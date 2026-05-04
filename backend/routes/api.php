@@ -11,4 +11,4 @@ Route::get('/ping', function () {
 });
 
 require base_path('routes/auth.php');
-require base_path('routes/admin.php');
+require base_path('routes/user.php');
