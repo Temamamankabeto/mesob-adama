@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -14,52 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__ . '/../routes/web.php',
         api: __DIR__ . '/../routes/api.php',
         commands: __DIR__ . '/../routes/console.php',
-        health: '/up',
-        then: function () {
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/public.php'));
-
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/customer.php'));
-
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/admin.php'));
-
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/waiter.php'));
-
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/cashier.php'));
-
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/manager.php'));
-
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/barman.php'));
-
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/kitchen.php'));
-
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/finance.php'));
-
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/auth.php'));
-
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/foodcontroller.php'));
-        }
+        health: '/up'
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
@@ -68,9 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
 
-        // Add CORS middleware globally
         $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
-
         $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions) {
