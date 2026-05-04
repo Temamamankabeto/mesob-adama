@@ -3,108 +3,104 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
+use App\Models\ServiceRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class DashboardController extends Controller
 {
+    public function overview(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'role' => 'mesob-overview',
+            'message' => 'MESOB eService Dashboard',
+            'data' => $this->summary($request),
+        ]);
+    }
+
+    public function cityDashboard(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'role' => 'super-admin',
+            'message' => 'City Level Dashboard',
+            'data' => $this->summary($request),
+        ]);
+    }
+
+    public function subcityDashboard(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'role' => 'subcity-admin',
+            'message' => 'Subcity Level Dashboard',
+            'data' => $this->summary($request, ['subcity_id' => $request->user()?->subcity_id]),
+        ]);
+    }
+
+    public function woredaDashboard(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'role' => 'woreda-admin',
+            'message' => 'Woreda Level Dashboard',
+            'data' => $this->summary($request, ['woreda_id' => $request->user()?->woreda_id]),
+        ]);
+    }
+
+    public function officerDashboard(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'role' => 'officer',
+            'message' => 'Officer Dashboard',
+            'data' => [
+                'assigned_requests' => ServiceRequest::where('assigned_officer_id', $request->user()?->id)->count(),
+                'pending_tasks' => ServiceRequest::where('assigned_officer_id', $request->user()?->id)->whereIn('status', ['submitted', 'under_review', 'returned'])->count(),
+                'completed_tasks' => ServiceRequest::where('assigned_officer_id', $request->user()?->id)->where('status', 'completed')->count(),
+            ],
+        ]);
+    }
 
     public function customerDashboard(Request $request)
     {
         return response()->json([
-            "success" => true,
-            "role" => "customer",
-            "message" => "Customer Dashboard",
-            "user" => $request->user()
+            'success' => true,
+            'role' => 'customer',
+            'message' => 'Customer Dashboard',
+            'data' => [
+                'my_applications' => ServiceRequest::where('customer_id', $request->user()?->id)->count(),
+                'pending_requests' => ServiceRequest::where('customer_id', $request->user()?->id)->whereIn('status', ['draft', 'submitted', 'under_review'])->count(),
+                'approved_services' => ServiceRequest::where('customer_id', $request->user()?->id)->whereIn('status', ['approved', 'completed'])->count(),
+                'returned_applications' => ServiceRequest::where('customer_id', $request->user()?->id)->where('status', 'returned')->count(),
+            ],
         ]);
     }
 
-    public function waiterDashboard(Request $request)
+    protected function summary(Request $request, array $scope = []): array
     {
-        Gate::authorize('dashboard.waiter');
-        return response()->json([
-            "success" => true,
-            "role" => "waiter",
-            "message" => "Waiter Dashboard",
-            "user" => $request->user()
-        ]);
-    }
+        $users = User::query();
+        $customers = Customer::query();
+        $requests = ServiceRequest::query();
 
-    public function cashierDashboard(Request $request)
-    {
-        Gate::authorize('cashier.dashboard');
-        return response()->json([
-            "success" => true,
-            "role" => "cashier",
-            "message" => "Cashier Dashboard",
-            "user" => $request->user()
-        ]);
-    }
+        foreach ($scope as $field => $value) {
+            if ($value) {
+                $users->where($field, $value);
+                $customers->where($field, $value);
+                $requests->where($field, $value);
+            }
+        }
 
-    public function barDashboard(Request $request)
-    {
-        Gate::authorize('bar.dashboard');
-        return response()->json([
-            "success" => true,
-            "role" => "barman",
-            "message" => "Bar Dashboard",
-            "user" => $request->user()
-        ]);
+        return [
+            'total_users' => $users->count(),
+            'total_customers' => $customers->count(),
+            'active_users' => (clone $users)->where('status', 'active')->count(),
+            'suspended_users' => (clone $users)->where('status', 'suspended')->count(),
+            'total_requests' => $requests->count(),
+            'pending_requests' => (clone $requests)->whereIn('status', ['draft', 'submitted', 'under_review', 'returned'])->count(),
+            'completed_requests' => (clone $requests)->where('status', 'completed')->count(),
+        ];
     }
-
-    public function kitchenDashboard(Request $request)
-    {
-        Gate::authorize('kitchen.dashboard');
-        return response()->json([
-            "success" => true,
-            "role" => "kitchen",
-            "message" => "Kitchen Dashboard",
-            "user" => $request->user()
-        ]);
-    }
-
-    public function foodControllerDashboard(Request $request)
-    {
-        Gate::authorize('food-controller.dashboard');
-        return response()->json([
-            "success" => true,
-            "role" => "food-controller",
-            "message" => "Food Controller Dashboard",
-            "user" => $request->user()
-        ]);
-    }
-
-    public function financeDashboard(Request $request)
-    {
-        Gate::authorize('finance.dashboard');
-        return response()->json([
-            "success" => true,
-            "role" => "finance",
-            "message" => "Finance Dashboard",
-            "user" => $request->user()
-        ]);
-    }
-
-    public function managerDashboard(Request $request)
-    {
-        Gate::authorize('manager.dashboard');
-        return response()->json([
-            "success" => true,
-            "role" => "manager",
-            "message" => "Manager Dashboard",
-            "user" => $request->user()
-        ]);
-    }
-
-    public function generalDashboard(Request $request)
-    {
-        Gate::authorize('general.dashboard');
-        return response()->json([
-            "success" => true,
-            "role" => "general-admin",
-            "message" => "General Admin Dashboard",
-            "user" => $request->user()
-        ]);
-    }
-
 }
