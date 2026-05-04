@@ -12,7 +12,7 @@ export const mesobApi = axios.create({
 
 mesobApi.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("mesob_token");
+    const token = localStorage.getItem("token") || localStorage.getItem("mesob_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
