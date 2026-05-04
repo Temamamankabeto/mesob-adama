@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from "axios";
 
-const API_BASE_URL = "/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
 const TOKEN_KEY = "token";
 
 type RetriableRequestConfig = InternalAxiosRequestConfig & {
@@ -25,6 +25,37 @@ export function saveAccessToken(token: string) {
 
   localStorage.setItem(TOKEN_KEY, token);
   setCookie(TOKEN_KEY, token);
+}
+
+export function saveSession(payload: {
+  token: string;
+  refresh_token?: string | null;
+  user?: unknown;
+  roles?: string[];
+  permissions?: string[];
+}) {
+  if (!isBrowser()) return;
+
+  saveAccessToken(payload.token);
+
+  if (payload.refresh_token) {
+    localStorage.setItem("refresh_token", payload.refresh_token);
+    setCookie("refresh_token", payload.refresh_token, 60 * 60 * 24 * 30);
+  }
+
+  if (payload.user) {
+    const user = JSON.stringify(payload.user);
+    localStorage.setItem("user", user);
+    setCookie("user", user);
+  }
+
+  const roles = JSON.stringify(payload.roles ?? []);
+  const permissions = JSON.stringify(payload.permissions ?? []);
+
+  localStorage.setItem("roles", roles);
+  localStorage.setItem("permissions", permissions);
+  setCookie("roles", roles);
+  setCookie("permissions", permissions);
 }
 
 export function clearSession() {
