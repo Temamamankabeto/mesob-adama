@@ -2,89 +2,59 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
 
-protected $guard_name = 'sanctum';
+    protected $guard_name = 'sanctum';
 
-protected $fillable=[
-'name','email','phone','profile_image',
-
-'password','is_active','address',
-];
-
-    protected $hidden = [
-        'password', 'remember_token',
+    protected $fillable = [
+        'name', 'email', 'phone', 'profile_image', 'password', 'address',
+        'user_type', 'status', 'is_active', 'city_id', 'subcity_id', 'woreda_id',
+        'phone_verified_at', 'last_login_at',
     ];
+
+    protected $hidden = ['password', 'remember_token'];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'phone_verified_at' => 'datetime',
+        'last_login_at' => 'datetime',
         'password' => 'hashed',
-        'is_active'=> 'boolean',
-        
+        'is_active' => 'boolean',
     ];
-
-    // Dining tables assigned to this waiter
-    
-
-    // Orders created by this user (customer/waiter)
-    public function createdOrders()
-    {
-        return $this->hasMany(Order::class, 'created_by');
-    }
-
-
-
-    // Orders served/managed by waiter
-    public function waiterOrders()
-    {
-        return $this->hasMany(Order::class, 'waiter_id');
-    }
-
-    public function kitchenTickets()
-    {
-        return $this->hasMany(KitchenTicket::class, 'chef_id');
-    }
-
-    public function barTickets()
-    {
-        return $this->hasMany(BarTicket::class, 'barman_id');
-    }
-
-    public function issuedBills()
-    {
-        return $this->hasMany(Bill::class, 'issued_by');
-    }
-
-    public function receivedPayments()
-    {
-        return $this->hasMany(Payment::class, 'received_by');
-    }
-
-    public function cashShifts()
-    {
-        return $this->hasMany(CashShift::class, 'cashier_id');
-    }
-
-    public function tables()
-    {
-    return $this->hasMany(DiningTable::class, 'assigned_waiter_id');
-    }
 
     protected $appends = ['profile_image_url'];
 
-    public function getProfileImageUrlAttribute()
+    public function customer()
     {
-    return $this->profile_image
-    ? asset('storage/' . $this->profile_image)
-    : null;
+        return $this->hasOne(Customer::class);
+    }
+
+    public function serviceRequests()
+    {
+        return $this->hasMany(ServiceRequest::class, 'customer_id');
+    }
+
+    public function assignedServiceRequests()
+    {
+        return $this->hasMany(ServiceRequest::class, 'assigned_officer_id');
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class);
+    }
+
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        return $this->profile_image ? asset('storage/' . $this->profile_image) : null;
     }
 }
