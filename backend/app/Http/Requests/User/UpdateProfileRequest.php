@@ -30,6 +30,7 @@ class UpdateProfileRequest extends FormRequest
                 'max:20',
                 Rule::unique('users', 'phone')->ignore($userId),
             ],
+            'gender' => ['nullable', 'string', 'in:male,female,other'],
             'old_password' => ['nullable', 'string'],
             'new_password' => ['nullable', 'string', 'min:6', 'max:255'],
             'profile' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
