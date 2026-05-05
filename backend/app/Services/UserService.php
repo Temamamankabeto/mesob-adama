@@ -48,6 +48,7 @@ class UserService
                     'name' => $user->name,
                     'email' => $user->email,
                     'phone' => $user->phone,
+                    'gender' => $user->gender,
                     'status' => $user->is_active ? 'active' : 'disabled',
                     'role' => $user->roles->pluck('name')->first(),
                     'profile_image_url' => $user->profile_image_url,
@@ -85,6 +86,7 @@ class UserService
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'],
+            'gender' => $data['gender'],
             'password' => Hash::make($data['password']),
             'is_active' => true,
         ]);
@@ -102,6 +104,7 @@ class UserService
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'],
+            'gender' => $data['gender'],
         ]);
 
         $user->syncRoles([$role->name]);
@@ -156,6 +159,9 @@ class UserService
         $user->name = $data['name'];
         $user->email = $data['email'];
         $user->phone = $data['phone'];
+        if (array_key_exists('gender', $data)) {
+            $user->gender = $data['gender'];
+        }
 
         if (!empty($data['new_password'])) {
             if (empty($data['old_password'])) {
