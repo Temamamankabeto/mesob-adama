@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\EserviceReportController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\ServiceRequestController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -53,6 +54,13 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::put('/customers/{id}', [CustomerController::class, 'update']);
     Route::patch('/customers/{id}/verify', [CustomerController::class, 'verify']);
     Route::patch('/customers/{id}/reject', [CustomerController::class, 'reject']);
+
+
+    // Service requests
+    Route::get('/service-requests', [ServiceRequestController::class, 'index']);
+    Route::get('/service-requests/{id}', [ServiceRequestController::class, 'show']);
+    Route::post('/service-requests', [ServiceRequestController::class, 'store']);
+    Route::put('/service-requests/{id}', [ServiceRequestController::class, 'update']);
 
     // Audit logs and reports
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
