@@ -29,7 +29,6 @@ return new class extends Migration
         if (!Schema::hasTable('woredas')) {
             Schema::create('woredas', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('city_id')->constrained('cities')->cascadeOnDelete();
                 $table->foreignId('subcity_id')->constrained('subcities')->cascadeOnDelete();
                 $table->string('name');
                 $table->timestamps();

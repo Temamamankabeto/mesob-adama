@@ -3,21 +3,77 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\City;
-use App\Models\Subcity;
-use App\Models\Woreda;
+use Illuminate\Support\Facades\DB;
 
 class LocationSeeder extends Seeder
 {
     public function run(): void
     {
-        $city = City::create(['name' => 'Adama', 'code' => 'AD']);
+        DB::transaction(function () {
 
-        $sub1 = Subcity::create(['city_id' => $city->id, 'name' => 'Subcity 01']);
-        $sub2 = Subcity::create(['city_id' => $city->id, 'name' => 'Subcity 02']);
+            // =========================
+            // CITY (avoid duplicate)
+            // =========================
+            $cityId = DB::table('cities')->updateOrInsert(
+                ['name' => 'Adama'],
+                [
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
 
-        Woreda::create(['city_id' => $city->id, 'subcity_id' => $sub1->id, 'name' => 'Woreda 01']);
-        Woreda::create(['city_id' => $city->id, 'subcity_id' => $sub1->id, 'name' => 'Woreda 02']);
-        Woreda::create(['city_id' => $city->id, 'subcity_id' => $sub2->id, 'name' => 'Woreda 03']);
+            // get actual ID
+            $cityId = DB::table('cities')->where('name', 'Adama')->value('id');
+
+            // =========================
+            // DATA
+            // =========================
+            $data = [
+                'Abbaa Gadaa' => ['Badhaatuu','Dagaagaa','Odaa'],
+                'Boolee' => ['Gooroo','Dhakaa Adii','Dhaddacha Araaraa','Andoodee'],
+                'Daabee' => ['Caffee','Hangaatuu','Solloqqee Dongorree'],
+                'Bokkuu Shanan' => ['Haroorettii','Torban Oboo','Hawaash Malkaa Sa’aa'],
+                'Luugoo' => ['Barreechaa','Migiraa','Dirree Nagaa'],
+                'Dambalaa' => ['Irreecha','Malkaa Adaamaa','Wanjii'],
+            ];
+
+            foreach ($data as $subcityName => $woredas) {
+
+                // =========================
+                // SUBCITY (avoid duplicate)
+                // =========================
+                DB::table('subcities')->updateOrInsert(
+                    [
+                        'name' => $subcityName,
+                        'city_id' => $cityId
+                    ],
+                    [
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+
+                $subcityId = DB::table('subcities')
+                    ->where('name', $subcityName)
+                    ->where('city_id', $cityId)
+                    ->value('id');
+
+                // =========================
+                // WOREDAS
+                // =========================
+                foreach ($woredas as $woredaName) {
+                    DB::table('woredas')->updateOrInsert(
+                        [
+                            'name' => $woredaName,
+                            'subcity_id' => $subcityId
+                        ],
+                        [
+                            'updated_at' => now(),
+                            'created_at' => now(),
+                        ]
+                    );
+                }
+            }
+        });
     }
 }
