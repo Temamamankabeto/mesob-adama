@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             //
+            //date_of_birth, address, gender
+            $table->date('date_of_birth')->nullable()->after('password');
+            $table->enum('gender', ['male', 'female'])->nullable()->after('date_of_birth');   
         });
     }
 

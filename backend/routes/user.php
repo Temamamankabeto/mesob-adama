@@ -49,5 +49,24 @@ Route::delete('/offices/{office}', [OfficeController::class, 'destroy']);
     // Woredas
     Route::apiResource('woredas', WoredaController::class);
 
+      Route::post('/users/{id}/change-password', [UserController::class, 'changePassword']);
+Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+ /*
+    |--------------------------------------------------------------------------
+    | ROLES
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('roles')->group(function () {
+        Route::get('/', [RoleController::class, 'index']);
+        Route::post('/', [RoleController::class, 'store']);
+        Route::put('{id}', [RoleController::class, 'update']);
+
+        // role permissions
+        Route::get('{id}/permissions', [RoleController::class, 'rolePermissions']);
+        Route::post('{id}/permissions', [RoleController::class, 'assignPermissions']);
+    });
+
+
+
 
 });

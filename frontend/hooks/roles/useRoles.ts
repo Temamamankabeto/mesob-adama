@@ -1,60 +1,64 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import {
   getRoles,
   createRole,
   updateRole,
   deleteRole,
 } from "@/services/roles/service";
+import { Role } from "@/types/roles/type";
 
-// =====================
-// GET ROLES (FIXED)
-// =====================
-export const useRoles = (page: number, perPage = 10, search = "") => {
-  return useQuery({
-    queryKey: ["roles", page, perPage, search],
-    queryFn: async () => {
-      const res = await getRoles(page, perPage, search);
+export const useRoles = () => {
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [meta, setMeta] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-      // ✅ FIX: always return array
-      return res.data?.data ?? [];
-    },
-  });
-};
+  const fetchRoles = async (page = 1) => {
+    try {
+      setLoading(true);
 
-// =====================
-// CREATE
-// =====================
-export const useCreateRole = () => {
-  const qc = useQueryClient();
+      const res = await getRoles(page);
 
-  return useMutation({
-    mutationFn: createRole,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["roles"] }),
-  });
-};
+      // 🔥 FIXED HERE
+      setRoles(res.roles || []);
+      setMeta(res.meta || null);
 
-// =====================
-// UPDATE
-// =====================
-export const useUpdateRole = () => {
-  const qc = useQueryClient();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  return useMutation({
-    mutationFn: ({ id, data }: any) => updateRole(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["roles"] }),
-  });
-};
+  const addRole = async (name: string) => {
+    await createRole(name);
+    fetchRoles();
+  };
 
-// =====================
-// DELETE
-// =====================
-export const useDeleteRole = () => {
-  const qc = useQueryClient();
+  const editRole = async (id: number, name: string) => {
+    await updateRole(id, name);
+    fetchRoles();
+  };
 
-  return useMutation({
-    mutationFn: deleteRole,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["roles"] }),
-  });
+  const removeRole = async (id: number) => {
+    await deleteRole(id);
+    fetchRoles();
+  };
+
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  return {
+    roles,
+    meta,
+    loading,
+    error,
+    fetchRoles,
+    addRole,
+    editRole,
+    removeRole,
+  };
 };

@@ -1,143 +1,114 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useRoles } from "@/hooks/roles/useRoles";
+import AssignPermissionModal from "@/components/roles/AssignPermissionModal";
+
 import {
-  useRoles,
-  useCreateRole,
-  useUpdateRole,
-  useDeleteRole,
-} from "@/hooks/roles/useRoles";
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
-type Role = {
-  id: number;
-  name: string;
-  created_at: string;
-};
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-/* 🔥 debounce */
-function useDebounce(value: string, delay = 400) {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value]);
-
-  return debounced;
-}
+import { Button } from "@/components/ui/button";
 
 export default function RolesPage() {
-  const [page, setPage] = useState(1);
+  const { roles, meta, loading, error, fetchRoles } = useRoles();
 
-  const [search, setSearch] = useState("");
-  const debounced = useDebounce(search);
+  const [open, setOpen] = useState(false);
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
 
-  const { data, isLoading } = useRoles(page, 10, debounced);
-
-  const create = useCreateRole();
-  const update = useUpdateRole();
-  const remove = useDeleteRole();
-
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-
-  const [editRole, setEditRole] = useState<Role | null>(null);
-  const [editName, setEditName] = useState("");
-
-  if (isLoading) return <p className="p-6">Loading...</p>;
-
-  const roles = data?.data || [];
-  const meta = data?.meta;
-
-  const handleCreate = () => {
-    if (!newName) return;
-
-    create.mutate({ name: newName }, {
-      onSuccess: () => {
-        setNewName("");
-        setCreateOpen(false);
-      },
-    });
+  const handleOpen = (roleId: number) => {
+    setSelectedRoleId(roleId);
+    setOpen(true);
   };
 
-  const handleUpdate = () => {
-    if (!editRole) return;
+  if (loading) return <p className="p-6">Loading...</p>;
+  if (error) return <p className="p-6 text-red-500">{error}</p>;
 
-    update.mutate({
-      id: editRole.id,
-      data: { name: editName },
-    });
-
-    setEditRole(null);
-  };
-
-  const handleDelete = (id: number) => {
-    if (!confirm("Delete role?")) return;
-    remove.mutate(id);
-  };
+  const safeRoles = roles ?? [];
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6">
 
-      {/* HEADER */}
-      <div className="flex justify-between">
-        <h1 className="text-xl font-bold">Roles</h1>
+      <Card>
+        <CardHeader className="flex justify-between">
+          <CardTitle>Roles Management</CardTitle>
+        </CardHeader>
 
-        <div className="flex gap-2">
-          <input
-            className="border px-3 py-2"
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
+        <CardContent>
 
-        </div>
-      </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Guard</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
 
-      {/* TABLE */}
-      <table className="w-full border">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border p-2">ID</th>
-            <th className="border p-2">Name</th>
-          </tr>
-        </thead>
+            <TableBody>
+              {safeRoles.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center">
+                    No roles found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                safeRoles.map((role: any) => (
+                  <TableRow key={role.id}>
+                    <TableCell>{role.id}</TableCell>
+                    <TableCell>{role.name}</TableCell>
+                    <TableCell>{role.guard_name}</TableCell>
 
-        <tbody>
-          {roles.map((r: Role) => (
-            <tr key={r.id}>
-              <td className="border p-2">{r.id}</td>
-              <td className="border p-2">{r.name}</td>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        onClick={() => handleOpen(role.id)}
+                      >
+                        Assign Permissions
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
 
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          {/* Pagination */}
+          <div className="flex gap-2 pt-4">
+            {Array.from({ length: meta?.last_page || 1 }).map((_, i) => (
+              <Button
+                key={i}
+                variant="outline"
+                onClick={() => fetchRoles(i + 1)}
+              >
+                {i + 1}
+              </Button>
+            ))}
+          </div>
 
-      {/* PAGINATION */}
-      <div className="flex gap-2">
-        <button disabled={page === 1} onClick={() => setPage(page - 1)}>
-          Prev
-        </button>
+        </CardContent>
+      </Card>
 
-        <span>
-          {meta?.current_page} / {meta?.last_page}
-        </span>
+      {/* ✅ MODAL */}
+      <AssignPermissionModal
+        open={open}
+        onClose={() => setOpen(false)}
+        roleId={selectedRoleId}
+      />
 
-        <button
-          disabled={page === meta?.last_page}
-          onClick={() => setPage(page + 1)}
-        >
-          Next
-        </button>
-      </div>
-
-    
     </div>
   );
 }
