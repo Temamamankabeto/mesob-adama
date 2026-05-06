@@ -1,30 +1,29 @@
-import api, { unwrap } from "@/lib/api";
+import api from "@/lib/api";
+import { RoleResponse } from "@/types/roles/type";
 
-export const getRoles = async (
-  page = 1,
-  perPage = 10,
-  search = ""
-) => {
-  const res = await api.get(
-    `/admin/roles?page=${page}&per_page=${perPage}&search=${search}`
-  );
-  return unwrap(res);
+// GET
+export const getRoles = async (page = 1) => {
+  const res = await api.get(`/admin/roles?page=${page}`);
+
+  return {
+    roles: res.data.data,
+    meta: res.data.meta,
+  };
 };
-
+// CREATE
 export const createRole = async (data: { name: string }) => {
-  const res = await api.post("/admin/roles", data);
-  return unwrap(res);
+  const res = await api.post(`/admin/roles`, data);
+  return res.data.data;
 };
 
-export const updateRole = async (
-  id: number,
-  data: { name: string }
-) => {
+// UPDATE
+export const updateRole = async (id: number, data: { name: string }) => {
   const res = await api.put(`/admin/roles/${id}`, data);
-  return unwrap(res);
+  return res.data.data;
 };
 
+// DELETE
 export const deleteRole = async (id: number) => {
   const res = await api.delete(`/admin/roles/${id}`);
-  return unwrap(res);
+  return res.data;
 };

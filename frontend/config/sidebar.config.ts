@@ -43,9 +43,8 @@ export const sidebarConfig: Record<AppRoleKey, RoleSidebar> = {
       s("Main", [dashboardItem("super-admin")]),
       s("Management", [
         { label: "Users", href: "/dashboard/users", icon: Users, permission: "users.read" },
-        { label: "Roles", href: "/dashboard/roles", icon: Users, permission: "roles.read" },
-        { label: "Offices", href: "/dashboard/offices", icon: Home, permission: "offices.read" },
-        { label: "Permissions", href: "/dashboard/permissions", icon: ShieldCheck, permission: "permissions.read" },
+        { label: "Roles", href: "/dashboard/users/roles", icon: Users, permission: "roles.read" },
+        { label: "Permissions", href: "/dashboard/users/permissions", icon: ShieldCheck, permission: "permissions.read" },
         { label: "Locations", href: "/dashboard/locations", icon: Map, permission: "cities.read" },
         { label: "Services", href: "/dashboard/services", icon: LayoutDashboard, permission: "permissions.read" },
         { label: "Window", href: "/dashboard/windows", icon: LayoutDashboard, permission: "permissions.read" },

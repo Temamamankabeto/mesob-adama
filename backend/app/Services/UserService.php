@@ -37,32 +37,41 @@ class UserService
         return $query->latest()->paginate($perPage);
     }
 
-    public function transformPaginatedUsers(LengthAwarePaginator $users): array
-    {
-        return [
-            'success' => true,
-            'message' => 'Users retrieved successfully',
-            'data' => collect($users->items())->map(function (User $user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'gender' => $user->gender,
-                    'status' => $user->is_active ? 'active' : 'disabled',
-                    'role' => $user->roles->pluck('name')->first(),
-                    'profile_image_url' => $user->profile_image_url,
-                    'created_at' => $user->created_at,
-                ];
-            })->values(),
-            'meta' => [
-                'current_page' => $users->currentPage(),
-                'per_page' => $users->perPage(),
-                'total' => $users->total(),
-                'last_page' => $users->lastPage(),
-            ],
-        ];
-    }
+   public function transformPaginatedUsers(LengthAwarePaginator $users): array
+{
+    return [
+        'success' => true,
+        'message' => 'Users retrieved successfully',
+        'data' => collect($users->items())->map(function (User $user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+
+                'status' => $user->is_active ? 'active' : 'disabled',
+
+                // ✅ Spatie single role (safe)
+                'role' => optional($user->roles->first())->name,
+
+                // optional relations (if you later eager load them)
+                'city_id' => $user->city_id,
+                'subcity_id' => $user->subcity_id,
+                'woreda_id' => $user->woreda_id,
+
+                'profile_image_url' => $user->profile_image_url,
+                'created_at' => $user->created_at,
+            ];
+        })->values(),
+
+        'meta' => [
+            'current_page' => $users->currentPage(),
+            'per_page' => $users->perPage(),
+            'total' => $users->total(),
+            'last_page' => $users->lastPage(),
+        ],
+    ];
+}
 
     public function getUser(int|string $id): User
     {
@@ -78,23 +87,22 @@ class UserService
             ->get();
     }
 
-    public function createUser(array $data): User
-    {
-        $role = $this->findRole($data['role']);
+ public function createUser(array $data)
+{
+    $roleName = $data['role'] ?? null;
+    unset($data['role']);
 
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'phone' => $data['phone'],
-            'gender' => $data['gender'],
-            'password' => Hash::make($data['password']),
-            'is_active' => true,
-        ]);
+    $user = User::create([
+        ...$data,
+        'password' => bcrypt($data['password']),
+    ]);
 
-        $user->syncRoles([$role->name]);
-
-        return $user->load('roles');
+    if ($roleName) {
+        $user->assignRole($roleName); // Spatie
     }
+
+    return $user->load('roles');
+}
 
     public function updateUser(User $user, array $data): User
     {
@@ -121,13 +129,14 @@ class UserService
         return $user->load('roles');
     }
 
-    public function toggleUser(User $user): User
-    {
-        $user->is_active = !$user->is_active;
-        $user->save();
+ 
+public function toggleUser(User $user): User
+{
+    $user->is_active = !$user->is_active;
+    $user->save();
 
-        return $user->load('roles');
-    }
+    return $user->load('roles');
+}
 
     public function resetPassword(User $user, string $newPassword): User
     {
@@ -217,4 +226,18 @@ class UserService
             ->where('guard_name', 'sanctum')
             ->firstOrFail();
     }
+
+   public function changePassword(User $user, string $currentPassword, string $newPassword): void
+{
+    if (!Hash::check($currentPassword, $user->password)) {
+        throw ValidationException::withMessages([
+            'current_password' => ['Current password is incorrect'],
+        ]);
+    }
+
+    $user->password = Hash::make($newPassword);
+    $user->save();
+}
+
+
 }

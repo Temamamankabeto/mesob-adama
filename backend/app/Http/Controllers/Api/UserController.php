@@ -54,19 +54,20 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(StoreUserRequest $request): JsonResponse
-    {
-        $this->authorize('create', User::class);
+ public function store(StoreUserRequest $request): JsonResponse
+{
+    // $this->authorize('create', User::class);
 
-        $user = $this->userService->createUser($request->validated());
+    $data = $request->validated();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'User created successfully',
-            'data' => $user,
-        ], 201);
-    }
+    $user = $this->userService->createUser($data);
 
+    return response()->json([
+        'success' => true,
+        'message' => 'User created successfully',
+        'data' => $user,
+    ], 201);
+}
     public function update(UpdateUserRequest $request, int|string $id): JsonResponse
     {
         $user = $this->userService->getUser($id);
@@ -164,4 +165,41 @@ class UserController extends Controller
             'message' => 'User deleted successfully',
         ]);
     }
+
+    //changePassword
+    public function changePassword(Request $request, int|string $id): JsonResponse
+{
+    $user = $this->userService->getUser($id);
+
+    $request->validate([
+        'current_password' => 'required|string',
+        'new_password' => 'required|string|min:8|confirmed',
+    ]);
+
+    $this->userService->changePassword(
+        $user,
+        $request->input('current_password'),
+        $request->input('new_password')
+    );
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Password changed successfully',
+    ]);
+}
+
+public function toggleStatus(int|string $id): JsonResponse
+{
+    $user = $this->userService->getUser($id);
+
+    $this->authorize('update', $user);
+
+    $updatedUser = $this->userService->toggleUser($user);
+
+    return response()->json([
+        'success' => true,
+        'message' => $user->is_active ? 'User disabled successfully' : 'User enabled successfully',
+        'data' => $updatedUser,
+    ]);
+}
 }

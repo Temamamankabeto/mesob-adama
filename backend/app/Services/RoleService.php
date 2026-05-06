@@ -97,29 +97,32 @@ class RoleService
             ->get(['id', 'name', 'guard_name']);
     }
 
-    public function assignPermissions(Role $role, array $permissionNames = []): array
-    {
-        $permNames = collect($permissionNames)
-            ->map(fn ($name) => trim((string) $name))
-            ->filter()
-            ->values()
-            ->all();
+   public function assignPermissions($role, array $permissions)
+{
+    // Normalize input → ONLY STRINGS
+    $cleanPermissions = collect($permissions)
+        ->map(function ($p) {
 
-        $existingPermissions = Permission::query()
-            ->where('guard_name', $this->guard)
-            ->whereIn('name', $permNames)
-            ->get();
+            if (is_array($p)) {
+                return $p['name'] ?? null;
+            }
 
-        $role->syncPermissions($existingPermissions);
+            return $p;
+        })
+        ->filter()
+        ->values()
+        ->toArray();
 
-        $this->clearPermissionCache();
+    // OPTIONAL: validate permissions exist in DB (BEST PRACTICE)
+    $validPermissions = Permission::whereIn('name', $cleanPermissions)
+        ->pluck('name')
+        ->toArray();
 
-        return [
-            'role_id' => $role->id,
-            'assigned_count' => $existingPermissions->count(),
-            'permissions' => $existingPermissions->pluck('name')->values(),
-        ];
-    }
+    // Sync with Spatie
+    $role->syncPermissions($validPermissions);
+
+    return $role->load('permissions');
+}
 
     protected function clearPermissionCache(): void
     {
