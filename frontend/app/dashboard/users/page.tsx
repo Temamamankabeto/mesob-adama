@@ -1,133 +1,327 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import Link from "next/link";
-import { Edit, Eye, KeyRound, Loader2, MoreHorizontal, Plus, RefreshCw, Search, Trash2, UserCheck, UserX } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import {
+  useUsers,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+} from "@/hooks/user/useUsers";
+
+import { useCities } from "@/hooks/location/useCities";
+import { useSubcities } from "@/hooks/location/useSubcities";
+import { useWoredas } from "@/hooks/location/useWoredas";
+import { useRoles } from "@/hooks/roles/useRoles";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useCreateUserMutation, useDeleteUserMutation, useResetUserPasswordMutation, useToggleUserMutation, useUpdateUserMutation, useUserRolesLiteQuery, useUsersQuery } from "@/hooks";
-import { createUserSchema, resetUserPasswordSchema, updateUserSchema } from "@/lib/schemas/user.schema";
-import type { CreateUserPayload, UpdateUserPayload, UserItem, UserStatus } from "@/types/user-management/user.type";
 
-const emptyCreate: CreateUserPayload = { name: "", email: "", phone: "", password: "", role: "" };
-const emptyEdit: UpdateUserPayload = { name: "", email: "", phone: "", role: "" };
-
-function roleOf(user: UserItem) {
-  if (user.role) return user.role;
-  const first = user.roles?.[0];
-  return !first ? "—" : typeof first === "string" ? first : first.name;
-}
+/* ================= TYPES ================= */
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  gender?: string;
+  city_id?: number;
+  subcity_id?: number;
+  woreda_id?: number;
+  role_id?: number;
+};
 
 export default function UsersPage() {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<UserStatus | "all">("all");
   const [page, setPage] = useState(1);
+
+  /* ================= USERS ================= */
+  const { data } = useUsers(page);
+  const users: User[] = data?.data || [];
+  const meta = data?.meta;
+
+  /* ================= LOCATION DATA (FIXED) ================= */
+  const { data: citiesData } = useCities(1);
+  const { data: subcitiesData } = useSubcities(1);
+  const { data: woredasData } = useWoredas(1);
+  const { data: rolesData } = useRoles(1);
+
+  // 🔥 FIX: ALWAYS extract .data
+  const cities = citiesData?.data || [];
+  const subcities = subcitiesData?.data || [];
+  const woredas = woredasData?.data || [];
+  const roles = rolesData?.data || [];
+
+  /* ================= MUTATIONS ================= */
+  const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
+  const deleteUser = useDeleteUser();
+
+  /* ================= UI STATE ================= */
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [resetOpen, setResetOpen] = useState(false);
-  const [deleteUser, setDeleteUser] = useState<UserItem | null>(null);
-  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
-  const [createForm, setCreateForm] = useState<CreateUserPayload>(emptyCreate);
-  const [editForm, setEditForm] = useState<UpdateUserPayload>(emptyEdit);
-  const [newPassword, setNewPassword] = useState("");
+  const [editUser, setEditUser] = useState<User | null>(null);
 
-  const params = useMemo(() => ({ search, status, page, per_page: 10 }), [search, status, page]);
-  const usersQuery = useUsersQuery(params);
-  const roles = useUserRolesLiteQuery().data ?? [];
-  const createUser = useCreateUserMutation(() => { setCreateOpen(false); setCreateForm(emptyCreate); });
-  const updateUser = useUpdateUserMutation(() => { setEditOpen(false); setSelectedUser(null); });
-  const toggleUser = useToggleUserMutation();
-  const removeUser = useDeleteUserMutation();
-  const resetPassword = useResetUserPasswordMutation(() => { setResetOpen(false); setSelectedUser(null); setNewPassword(""); });
+  const [form, setForm] = useState<any>({
+    name: "",
+    email: "",
+    phone: "",
+    gender: "",
+    role_id: "",
+    city_id: "",
+    subcity_id: "",
+    woreda_id: "",
+  });
 
-  const rows = usersQuery.data?.data ?? [];
-  const meta = usersQuery.data?.meta;
-  const busy = createUser.isPending || updateUser.isPending || resetPassword.isPending;
+  /* ================= HELPERS ================= */
+  const resetForm = () => {
+    setForm({
+      name: "",
+      email: "",
+      phone: "",
+      gender: "",
+      role_id: "",
+      city_id: "",
+      subcity_id: "",
+      woreda_id: "",
+    });
+  };
 
-  function openEdit(user: UserItem) {
-    const role = roleOf(user);
-    setSelectedUser(user);
-    setEditForm({ name: user.name ?? "", email: user.email ?? "", phone: user.phone ?? "", role: role === "—" ? "" : role });
-    setEditOpen(true);
-  }
+  const handleCreate = () => {
+    createUser.mutate(form, {
+      onSuccess: () => {
+        setCreateOpen(false);
+        resetForm();
+      },
+    });
+  };
 
-  function openReset(user: UserItem) {
-    setSelectedUser(user);
-    setNewPassword("");
-    setResetOpen(true);
-  }
+  const handleUpdate = () => {
+    if (!editUser) return;
 
-  function submitCreate(e: FormEvent) {
-    e.preventDefault();
-    createUser.mutate(createUserSchema.parse(createForm));
-  }
+    updateUser.mutate(
+      { id: editUser.id, data: form },
+      {
+        onSuccess: () => {
+          setEditUser(null);
+          resetForm();
+        },
+      }
+    );
+  };
 
-  function submitEdit(e: FormEvent) {
-    e.preventDefault();
-    if (!selectedUser) return;
-    updateUser.mutate({ id: selectedUser.id, payload: updateUserSchema.parse(editForm) });
-  }
-
-  function submitReset(e: FormEvent) {
-    e.preventDefault();
-    if (!selectedUser) return;
-    resetPassword.mutate({ id: selectedUser.id, payload: resetUserPasswordSchema.parse({ new_password: newPassword }) });
-  }
+  const handleDelete = (id: number) => {
+    if (confirm("Delete user?")) deleteUser.mutate(id);
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div><h1 className="text-2xl font-bold">Users</h1><p className="text-muted-foreground">Manage users, roles, status, and password resets.</p></div>
-        <Button onClick={() => setCreateOpen(true)}><Plus className="mr-2 h-4 w-4" /> New User</Button>
+    <div className="p-6 space-y-4">
+
+      {/* HEADER */}
+      <div className="flex justify-between">
+        <h1 className="text-2xl font-bold">Users</h1>
+        <Button onClick={() => setCreateOpen(true)}>+ Add User</Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <CardTitle>User List</CardTitle>
-            <div className="flex flex-col gap-2 md:flex-row">
-              <div className="relative"><Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" /><Input className="pl-8 md:w-72" placeholder="Search name, email or phone..." value={search} onChange={(e) => { setPage(1); setSearch(e.target.value); }} /></div>
-              <Select value={status} onValueChange={(v) => { setPage(1); setStatus(v as UserStatus | "all"); }}><SelectTrigger className="md:w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem><SelectItem value="active">Active</SelectItem><SelectItem value="disabled">Disabled</SelectItem></SelectContent></Select>
-              <Button variant="outline" onClick={() => usersQuery.refetch()}><RefreshCw className="mr-2 h-4 w-4" /> Refresh</Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {usersQuery.isLoading ? <div className="flex justify-center py-10 text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading users...</div> : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Phone</TableHead><TableHead>Role</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {rows.length === 0 ? <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">No users found</TableCell></TableRow> : rows.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell><TableCell>{user.email}</TableCell><TableCell>{user.phone ?? "—"}</TableCell><TableCell>{roleOf(user)}</TableCell><TableCell><Badge variant={user.status === "disabled" ? "secondary" : "default"}>{user.status ?? "active"}</Badge></TableCell>
-                      <TableCell className="text-right"><DropdownMenu modal={false}><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem asChild><Link href={`/dashboard/users/${user.id}`}><Eye className="mr-2 h-4 w-4" /> View</Link></DropdownMenuItem><DropdownMenuItem onSelect={() => setTimeout(() => openEdit(user), 0)}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem><DropdownMenuItem onSelect={() => setTimeout(() => toggleUser.mutate(user.id), 0)}>{user.status === "disabled" ? <UserCheck className="mr-2 h-4 w-4" /> : <UserX className="mr-2 h-4 w-4" />}{user.status === "disabled" ? "Enable" : "Disable"}</DropdownMenuItem><DropdownMenuItem onSelect={() => setTimeout(() => openReset(user), 0)}><KeyRound className="mr-2 h-4 w-4" /> Reset password</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive" onSelect={() => setTimeout(() => setDeleteUser(user), 0)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-          {meta && meta.last_page > 1 && <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground"><span>Page {meta.current_page} of {meta.last_page} • {meta.total} users</span><div className="flex gap-2"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</Button><Button variant="outline" size="sm" disabled={page >= meta.last_page} onClick={() => setPage((p) => p + 1)}>Next</Button></div></div>}
-        </CardContent>
-      </Card>
+      {/* TABLE */}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ID</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>City</TableHead>
+            <TableHead>Action</TableHead>
+          </TableRow>
+        </TableHeader>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}><DialogContent><DialogHeader><DialogTitle>Create User</DialogTitle><DialogDescription>Add a new user and assign one backend role.</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={submitCreate}><UserFields form={createForm} roles={roles.map((r) => r.name)} onChange={setCreateForm} includePassword /><Button className="w-full" disabled={busy}>{createUser.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save user</Button></form></DialogContent></Dialog>
-      <Dialog open={editOpen} onOpenChange={setEditOpen}><DialogContent><DialogHeader><DialogTitle>Edit User</DialogTitle><DialogDescription>Update user profile information and role.</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={submitEdit}><UserFields form={editForm} roles={roles.map((r) => r.name)} onChange={setEditForm} /><Button className="w-full" disabled={busy}>{updateUser.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Update user</Button></form></DialogContent></Dialog>
-      <Dialog open={resetOpen} onOpenChange={setResetOpen}><DialogContent><DialogHeader><DialogTitle>Reset Password</DialogTitle><DialogDescription>Set a new password for {selectedUser?.name ?? "this user"}.</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={submitReset}><div className="grid gap-2"><Label>New Password</Label><Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} /></div><Button className="w-full" disabled={resetPassword.isPending}>{resetPassword.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Reset password</Button></form></DialogContent></Dialog>
-      <AlertDialog open={Boolean(deleteUser)} onOpenChange={(open) => !open && setDeleteUser(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete user?</AlertDialogTitle><AlertDialogDescription>This will delete {deleteUser?.name}. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { if (deleteUser) removeUser.mutate(deleteUser.id); setDeleteUser(null); }}>Delete</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+        <TableBody>
+          {users.map((u) => (
+            <TableRow key={u.id}>
+              <TableCell>{u.id}</TableCell>
+              <TableCell>{u.name}</TableCell>
+              <TableCell>{u.email}</TableCell>
+              <TableCell>{u.role_id}</TableCell>
+              <TableCell>{u.city_id}</TableCell>
+
+              <TableCell className="relative">
+                <Button
+                  variant="ghost"
+                  onClick={() =>
+                    setOpenMenuId(openMenuId === u.id ? null : u.id)
+                  }
+                >
+                  ⋮
+                </Button>
+
+                {openMenuId === u.id && (
+                  <div className="absolute right-0 bg-white border shadow z-50">
+                    <button
+                      className="block px-3 py-2 w-full text-left"
+                      onClick={() => {
+                        setEditUser(u);
+                        setForm(u);
+                        setOpenMenuId(null);
+                      }}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      className="block px-3 py-2 w-full text-left text-red-600"
+                      onClick={() => handleDelete(u.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      {/* PAGINATION */}
+      <div className="flex gap-2">
+        <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
+          Prev
+        </Button>
+        <span>Page {meta?.current_page}</span>
+        <Button onClick={() => setPage(page + 1)}>Next</Button>
+      </div>
+
+      {/* ================= MODAL ================= */}
+      {(createOpen || editUser) && (
+        <Modal
+          title={editUser ? "Edit User" : "Create User"}
+          onClose={() => {
+            setCreateOpen(false);
+            setEditUser(null);
+          }}
+        >
+          {/* INPUTS */}
+          <Input
+            placeholder="Name"
+            value={form.name}
+            onChange={(e) =>
+              setForm({ ...form, name: e.target.value })
+            }
+          />
+
+          <Input
+            placeholder="Email"
+            value={form.email}
+            onChange={(e) =>
+              setForm({ ...form, email: e.target.value })
+            }
+          />
+
+          {/* GENDER */}
+          <select
+            className="border w-full p-2"
+            value={form.gender}
+            onChange={(e) =>
+              setForm({ ...form, gender: e.target.value })
+            }
+          >
+            <option value="">Select Gender</option>
+            <option value="male">male</option>
+            <option value="female">female</option>
+          </select>
+
+          {/* ROLE */}
+          <select
+            className="border w-full p-2"
+            value={form.role_id}
+            onChange={(e) =>
+              setForm({ ...form, role_id: e.target.value })
+            }
+          >
+            <option value="">Select Role</option>
+            {roles.map((r: any) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+
+          {/* CITY */}
+          <select
+            className="border w-full p-2"
+            value={form.city_id}
+            onChange={(e) =>
+              setForm({ ...form, city_id: e.target.value })
+            }
+          >
+            <option value="">Select City</option>
+            {cities.map((c: any) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+
+          {/* SUBCITY */}
+          <select
+            className="border w-full p-2"
+            value={form.subcity_id}
+            onChange={(e) =>
+              setForm({ ...form, subcity_id: e.target.value })
+            }
+          >
+            <option value="">Select SubCity</option>
+            {subcities.map((s: any) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+
+          {/* WOREDA */}
+          <select
+            className="border w-full p-2"
+            value={form.woreda_id}
+            onChange={(e) =>
+              setForm({ ...form, woreda_id: e.target.value })
+            }
+          >
+            <option value="">Select Woreda</option>
+            {woredas.map((w: any) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex justify-end">
+            <Button onClick={editUser ? handleUpdate : handleCreate}>
+              {editUser ? "Update" : "Save"}
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
 
-function UserFields<T extends CreateUserPayload | UpdateUserPayload>({ form, roles, onChange, includePassword = false }: { form: T; roles: string[]; onChange: (form: T) => void; includePassword?: boolean }) {
-  return <><div className="grid gap-2"><Label>Name</Label><Input value={form.name} onChange={(e) => onChange({ ...form, name: e.target.value })} required /></div><div className="grid gap-2"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => onChange({ ...form, email: e.target.value })} required /></div><div className="grid gap-2"><Label>Phone</Label><Input value={form.phone} onChange={(e) => onChange({ ...form, phone: e.target.value })} required /></div><div className="grid gap-2"><Label>Role</Label><Select value={form.role} onValueChange={(role) => onChange({ ...form, role })}><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger><SelectContent>{roles.map((role) => <SelectItem key={role} value={role}>{role}</SelectItem>)}</SelectContent></Select></div>{includePassword && "password" in form && <div className="grid gap-2"><Label>Password</Label><Input type="password" value={form.password} onChange={(e) => onChange({ ...form, password: e.target.value })} required minLength={6} /></div>}</>;
+/* ================= MODAL ================= */
+function Modal({ title, children, onClose }: any) {
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white p-6 w-[500px] rounded space-y-3">
+        <div className="flex justify-between">
+          <h2 className="font-bold">{title}</h2>
+          <button onClick={onClose}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
 }

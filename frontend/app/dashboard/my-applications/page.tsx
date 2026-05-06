@@ -1,5 +1,5 @@
 "use client";
-import { useServiceRequestsQuery } from "@/hooks/service-management/use-service-requests";
+import { useServiceRequestsQuery } from "@/hooks/services/use-service";
 
 export default function ServiceRequestsPage() {
   const { data, isLoading } = useServiceRequestsQuery( { mine: true });

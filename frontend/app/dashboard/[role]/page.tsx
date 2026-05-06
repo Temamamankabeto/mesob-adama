@@ -1,145 +1,388 @@
 import { notFound } from "next/navigation";
+import {
+  Activity,
+  Bell,
+  Building2,
+  CheckCircle2,
+  Clock3,
+  FileCheck2,
+  FileText,
+  Layers3,
+  ShieldCheck,
+  UserCheck,
+  Users,
+  Wallet,
+  XCircle,
+} from "lucide-react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { dashboardConfig, type AppRoleKey } from "@/config/dashboard.config";
 
-const quickActions = [
-  "Create user",
-  "Assign role",
-  "Grant permission",
-  "Audit logs",
-  "Export report",
-  "Service config",
-];
+import {
+  dashboardConfig,
+  type AppRoleKey,
+} from "@/config/dashboard.config";
 
-const pendingApprovals = [
-  { type: "Role change", subject: "Dawit A.", scope: "Subcity Admin", age: "5 min" },
-  { type: "User activation", subject: "Mahi K.", scope: "Woreda Back Officer", age: "13 min" },
-  { type: "Permission update", subject: "Traffic Service Team", scope: "City Front Officer", age: "31 min" },
-  { type: "Location reassignment", subject: "Abel F.", scope: "Subcity Front Officer", age: "47 min" },
-];
+function random(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
-const systemHealth = [
-  { name: "Auth API", status: "Healthy" },
-  { name: "User service", status: "Healthy" },
-  { name: "Audit pipeline", status: "Degraded" },
-  { name: "Queue workers", status: "Healthy" },
-];
+function generateDashboardData(role: string) {
+  const commonCharts = [
+    {
+      title: "Monthly Applications",
+      value: random(1000, 10000),
+    },
+    {
+      title: "Applications by Status",
+      value: random(100, 5000),
+    },
+    {
+      title: "Applications by Location",
+      value: random(100, 3000),
+    },
+  ];
 
-export default async function RoleDashboardPage({ params }: { params: Promise<{ role: string }> }) {
+  const recentActivities = [
+    "New application submitted",
+    "Application approved",
+    "Officer assigned",
+    "Document uploaded",
+    "Payment completed",
+    "Workflow updated",
+    "Application rejected",
+    "Verification completed",
+  ];
+
+  switch (role) {
+    case "super-admin":
+      return {
+        widgets: [
+          {
+            title: "Total Users",
+            value: random(10000, 50000),
+            icon: Users,
+          },
+          {
+            title: "Total Applications",
+            value: random(30000, 100000),
+            icon: FileText,
+          },
+          {
+            title: "Total Services",
+            value: random(50, 300),
+            icon: Layers3,
+          },
+          {
+            title: "Pending Requests",
+            value: random(100, 5000),
+            icon: Clock3,
+          },
+          {
+            title: "Approved Requests",
+            value: random(10000, 70000),
+            icon: CheckCircle2,
+          },
+          {
+            title: "Rejected Requests",
+            value: random(100, 3000),
+            icon: XCircle,
+          },
+          {
+            title: "System Activity",
+            value: `${random(90, 100)}%`,
+            icon: Activity,
+          },
+          {
+            title: "Revenue",
+            value: `ETB ${random(1, 9)}.${random(1, 9)}M`,
+            icon: Wallet,
+          },
+        ],
+        charts: commonCharts,
+        activities: recentActivities,
+      };
+
+    case "city-admin":
+      return {
+        widgets: [
+          {
+            title: "City Statistics",
+            value: random(1000, 20000),
+            icon: Building2,
+          },
+          {
+            title: "Subcity Performance",
+            value: `${random(70, 99)}%`,
+            icon: Activity,
+          },
+          {
+            title: "Pending Approvals",
+            value: random(50, 2000),
+            icon: Clock3,
+          },
+          {
+            title: "Officer Performance",
+            value: `${random(70, 99)}%`,
+            icon: UserCheck,
+          },
+        ],
+        charts: commonCharts,
+        activities: recentActivities,
+      };
+
+    case "subcity-admin":
+      return {
+        widgets: [
+          {
+            title: "Woreda Performance",
+            value: `${random(70, 99)}%`,
+            icon: Activity,
+          },
+          {
+            title: "Application Workflow",
+            value: random(100, 5000),
+            icon: Layers3,
+          },
+          {
+            title: "Assigned Officers",
+            value: random(10, 200),
+            icon: Users,
+          },
+        ],
+        charts: commonCharts,
+        activities: recentActivities,
+      };
+
+    case "woreda-admin":
+      return {
+        widgets: [
+          {
+            title: "Local Applications",
+            value: random(100, 5000),
+            icon: FileText,
+          },
+          {
+            title: "Front Officer Monitoring",
+            value: random(5, 100),
+            icon: UserCheck,
+          },
+          {
+            title: "Back Officer Monitoring",
+            value: random(5, 100),
+            icon: ShieldCheck,
+          },
+          {
+            title: "Reports",
+            value: random(1, 100),
+            icon: FileCheck2,
+          },
+        ],
+        charts: commonCharts,
+        activities: recentActivities,
+      };
+
+    case "front-officer":
+      return {
+        widgets: [
+          {
+            title: "New Applications",
+            value: random(10, 300),
+            icon: FileText,
+          },
+          {
+            title: "Verification Queue",
+            value: random(5, 100),
+            icon: Clock3,
+          },
+          {
+            title: "Assigned Requests",
+            value: random(10, 200),
+            icon: UserCheck,
+          },
+        ],
+        charts: commonCharts,
+        activities: recentActivities,
+      };
+
+    case "back-officer":
+      return {
+        widgets: [
+          {
+            title: "Processing Queue",
+            value: random(10, 500),
+            icon: Activity,
+          },
+          {
+            title: "Approvals",
+            value: random(100, 3000),
+            icon: CheckCircle2,
+          },
+          {
+            title: "Rejections",
+            value: random(1, 500),
+            icon: XCircle,
+          },
+          {
+            title: "Workflow Actions",
+            value: random(100, 5000),
+            icon: Layers3,
+          },
+        ],
+        charts: commonCharts,
+        activities: recentActivities,
+      };
+
+    default:
+      return {
+        widgets: [
+          {
+            title: "My Applications",
+            value: random(1, 30),
+            icon: FileText,
+          },
+          {
+            title: "Timeline Tracking",
+            value: random(1, 10),
+            icon: Clock3,
+          },
+          {
+            title: "Notifications",
+            value: random(1, 50),
+            icon: Bell,
+          },
+          {
+            title: "Uploaded Documents",
+            value: random(1, 100),
+            icon: FileCheck2,
+          },
+        ],
+        charts: commonCharts,
+        activities: recentActivities,
+      };
+  }
+}
+
+export default async function RoleDashboardPage({
+  params,
+}: {
+  params: Promise<{ role: string }>;
+}) {
   const { role } = await params;
-  const config = dashboardConfig[role as AppRoleKey];
-  if (!config) notFound();
-  const Icon = config.icon;
 
-  const isSuperAdmin = config.key === "super-admin";
+  const config = dashboardConfig[role as AppRoleKey];
+
+  if (!config) notFound();
+
+  const dashboardData = generateDashboardData(role);
 
   return (
-    <div className="dashboard-page space-y-6">
-      <div className="flex flex-col gap-3 rounded-2xl border bg-card p-5 shadow-sm md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">Role dashboard</p>
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{config.title}</h1>
-          <p className="mt-1 text-muted-foreground">{config.subtitle}</p>
-        </div>
-        <div className="rounded-2xl bg-primary/10 p-4 text-primary"><Icon className="h-8 w-8" /></div>
+    <div className="space-y-6">
+      {/* HEADER */}
+      <div className="rounded-3xl border bg-card p-6 shadow-sm">
+        <h1 className="text-3xl font-bold">
+          {config.title}
+        </h1>
+
+        <p className="mt-2 text-muted-foreground">
+          {config.subtitle}
+        </p>
       </div>
 
+      {/* WIDGETS */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {config.cards.map((card) => (
-          <Card key={card.label} className="rounded-2xl">
-            <CardHeader className="pb-2">
-              <CardDescription>{card.label}</CardDescription>
-              <CardTitle className="text-2xl">{card.value}</CardTitle>
+        {dashboardData.widgets.map((widget: any) => {
+          const Icon = widget.icon;
+
+          return (
+            <Card key={widget.title} className="rounded-3xl">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardDescription>
+                    {widget.title}
+                  </CardDescription>
+
+                  <CardTitle className="mt-2 text-3xl">
+                    {widget.value}
+                  </CardTitle>
+                </div>
+
+                <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+                  <Icon className="h-5 w-5" />
+                </div>
+              </CardHeader>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* CHARTS */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {dashboardData.charts.map((chart: any) => (
+          <Card key={chart.title} className="rounded-3xl">
+            <CardHeader>
+              <CardTitle>{chart.title}</CardTitle>
+
+              <CardDescription>
+                Dynamic mock analytics
+              </CardDescription>
             </CardHeader>
+
             <CardContent>
-              <p className="text-sm text-muted-foreground">{card.description}</p>
+              <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed bg-muted/20">
+                <div className="text-center">
+                  <p className="text-4xl font-bold">
+                    {chart.value}
+                  </p>
+
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Analytics Placeholder
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {isSuperAdmin ? (
-        <>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card className="rounded-2xl lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Super Admin Control Center</CardTitle>
-                <CardDescription>Crude full frontend surface for top-level admin operations.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {quickActions.map((action) => (
-                  <Button key={action} variant="outline" className="justify-start">{action}</Button>
-                ))}
-              </CardContent>
-            </Card>
+      {/* RECENT ACTIVITIES */}
+      <Card className="rounded-3xl">
+        <CardHeader>
+          <CardTitle>Recent Activities</CardTitle>
 
-            <Card className="rounded-2xl">
-              <CardHeader>
-                <CardTitle>System Health</CardTitle>
-                <CardDescription>Live services overview (placeholder values).</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {systemHealth.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between rounded-xl border p-2">
-                    <span className="text-sm">{item.name}</span>
-                    <Badge variant={item.status === "Healthy" ? "default" : "secondary"}>{item.status}</Badge>
+          <CardDescription>
+            Latest workflow activities
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          {dashboardData.activities.map(
+            (activity: string, index: number) => (
+              <div
+                key={index}
+                className="flex items-center justify-between rounded-2xl border p-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-primary/10 p-2 text-primary">
+                    <Activity className="h-4 w-4" />
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
 
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle>Pending Approvals Queue</CardTitle>
-              <CardDescription>Recent high-privilege actions waiting for decision.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] text-left text-sm">
-                  <thead className="border-b text-muted-foreground">
-                    <tr>
-                      <th className="px-2 py-3 font-medium">Action Type</th>
-                      <th className="px-2 py-3 font-medium">Requested By</th>
-                      <th className="px-2 py-3 font-medium">Target Scope</th>
-                      <th className="px-2 py-3 font-medium">Requested</th>
-                      <th className="px-2 py-3 font-medium">Decision</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pendingApprovals.map((item) => (
-                      <tr key={`${item.type}-${item.subject}`} className="border-b last:border-b-0">
-                        <td className="px-2 py-3">{item.type}</td>
-                        <td className="px-2 py-3">{item.subject}</td>
-                        <td className="px-2 py-3">{item.scope}</td>
-                        <td className="px-2 py-3 text-muted-foreground">{item.age} ago</td>
-                        <td className="px-2 py-3">
-                          <div className="flex gap-2">
-                            <Button size="sm">Approve</Button>
-                            <Button size="sm" variant="destructive">Reject</Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  <span>{activity}</span>
+                </div>
+
+                <Badge>Live</Badge>
               </div>
-            </CardContent>
-          </Card>
-        </>
-      ) : (
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle>Workspace</CardTitle>
-            <CardDescription>This role page is ready for feature-specific modules.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex min-h-56 items-center justify-center rounded-2xl border border-dashed bg-muted/30 p-10 text-center text-muted-foreground">{config.roleName} workspace placeholder</div>
-          </CardContent>
-        </Card>
-      )}
+            )
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
