@@ -82,7 +82,17 @@ class RolesPermissionsSeeder extends Seeder
             'windows.create',
             'windows.update',
             'windows.delete',
+
+             //permission
+             'permissions.read',  
+             'permission.create ',
+             'permission.update',
+            'permission.delete',
         ];
+
+       
+
+
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate([
@@ -132,6 +142,13 @@ class RolesPermissionsSeeder extends Seeder
                 'windows.create',
                 'windows.update',
                 'windows.delete',
+
+               
+             //permission
+             'permissions.read',  
+             'permission.create ',
+             'permission.update',
+              'permission.delete',
 
                 'reports.subcity',
                 'reports.woreda',

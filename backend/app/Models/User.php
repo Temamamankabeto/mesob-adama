@@ -57,4 +57,18 @@ class User extends Authenticatable
     {
         return $this->profile_image ? asset('storage/' . $this->profile_image) : null;
     }
+    /**
+ * Assigned services.
+ */
+public function assignedServices()
+{
+    return $this->belongsToMany(
+        Service::class,
+        'user_service_assignments'
+    )
+    ->withPivot([
+        'is_active',
+    ])
+    ->withTimestamps();
+}
 }

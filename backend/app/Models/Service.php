@@ -36,4 +36,45 @@ class Service extends Model
         ->withTimestamps()
         ->orderBy('service_window.step_order');
     }
+
+    /**
+ * Assigned users.
+ */
+public function assignedUsers()
+{
+    return $this->belongsToMany(
+        User::class,
+        'user_service_assignments'
+    )
+    ->withPivot([
+        'is_active',
+    ])
+    ->withTimestamps();
+}
+
+/**
+ * Front officers.
+ */
+public function frontOfficers()
+{
+    return $this->assignedUsers()
+        ->role([
+            'city_front_officer',
+            'subcity_front_officer',
+            'woreda_front_officer',
+        ]);
+}
+
+/**
+ * Back officers.
+ */
+public function backOfficers()
+{
+    return $this->assignedUsers()
+        ->role([
+            'city_back_officer',
+            'subcity_back_officer',
+            'woreda_back_officer',
+        ]);
+}
 }
