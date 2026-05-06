@@ -112,6 +112,7 @@ class UserService
             'name' => $data['name'],
             'email' => $data['email'],
             'phone' => $data['phone'],
+            'gender' => $data['gender'],
         ]);
 
         $user->syncRoles([$role->name]);
@@ -167,6 +168,9 @@ public function toggleUser(User $user): User
         $user->name = $data['name'];
         $user->email = $data['email'];
         $user->phone = $data['phone'];
+        if (array_key_exists('gender', $data)) {
+            $user->gender = $data['gender'];
+        }
 
         if (!empty($data['new_password'])) {
             if (empty($data['old_password'])) {

@@ -30,6 +30,7 @@ class UpdateUserRequest extends FormRequest
                 'max:20',
                 Rule::unique('users', 'phone')->ignore($userId),
             ],
+            'gender' => ['required', 'string', 'in:male,female,other'],
             'role' => [
                 'required',
                 'string',
