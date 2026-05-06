@@ -26,7 +26,14 @@ export type UserItem = {
   email: string;
   phone?: string | null;
   status?: UserStatus;
-  role?: string | null;
+  role?: string;
+  date_of_birth?: string | null;
+  address?: string | null;
+  subcity_id?: number | string | null;
+  woreda_id?: number | string | null;
+  city_id ?: number | string | null;
+  is_active?: boolean;
+  
   roles?: Array<string | { id?: number | string; name: string }>;
   profile_image_url?: string | null;
   created_at?: string;

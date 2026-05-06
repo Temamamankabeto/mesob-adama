@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, ShieldCheck, Map, FileText, UserCheck } from "lucide-react";
+import { LayoutDashboard, Users, ShieldCheck, Map, FileText, UserCheck, Home } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { dashboardConfig, normalizeRole, type AppRoleKey } from "@/config/dashboard.config";
 

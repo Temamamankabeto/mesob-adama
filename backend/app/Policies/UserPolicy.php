@@ -63,4 +63,9 @@ class UserPolicy
     {
         return $this->allows($user, 'users.read');
     }
+
+       public function officeList(Office $office): bool
+    {
+        return $this->allows($office, 'offices.read');
+    }
 }
