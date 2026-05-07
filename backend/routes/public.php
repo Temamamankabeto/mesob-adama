@@ -6,54 +6,36 @@ use App\Http\Controllers\Api\Public\HomeController;
 use App\Http\Controllers\Api\Public\PublicServiceController;
 use App\Http\Controllers\Api\Public\ApplicationTrackingController;
 
-/*
-|--------------------------------------------------------------------------
-| PUBLIC HOMEPAGE
-|--------------------------------------------------------------------------
-*/
-
 Route::prefix('public')->group(function () {
-
-    /*
-    |--------------------------------------------------------------------------
-    | HOMEPAGE
-    |--------------------------------------------------------------------------
-    */
 
     Route::get('/homepage', [
         HomeController::class,
-        'index'
+        'index',
     ]);
-
-    /*
-    |--------------------------------------------------------------------------
-    | SERVICES
-    |--------------------------------------------------------------------------
-    */
 
     Route::get('/services', [
         PublicServiceController::class,
-        'index'
+        'index',
     ]);
 
     Route::get('/services/featured', [
         PublicServiceController::class,
-        'featured'
+        'featured',
     ]);
+    Route::get('/window-services', [
+    PublicServiceController::class,
+    'windowServices',
+]);
 
     Route::get('/services/{service}', [
         PublicServiceController::class,
-        'show'
+        'show',
     ]);
-
-    /*
-    |--------------------------------------------------------------------------
-    | TRACK APPLICATION
-    |--------------------------------------------------------------------------
-    */
 
     Route::post('/track-application', [
         ApplicationTrackingController::class,
-        'track'
+        'track',
     ]);
+
+    
 });

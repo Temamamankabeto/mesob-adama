@@ -75,4 +75,24 @@ class PublicServiceController extends Controller
             'data' => $service->load('windows'),
         ]);
     }
+
+    /**
+ * Group services by windows
+ */
+public function windowServices()
+{
+    $windows =
+        $this->publicServiceService
+            ->groupByWindow();
+
+    return response()->json([
+
+        'success' => true,
+
+        'message' =>
+            'Window services retrieved successfully',
+
+        'data' => $windows,
+    ]);
+}
 }

@@ -7,17 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 class Window extends Model
 {
     protected $fillable = [
+
         'name',
         'availability',
     ];
 
     protected $casts = [
+
         'availability' => 'array',
     ];
 
-    /**
-     * Services relation.
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | RELATIONSHIPS
+    |--------------------------------------------------------------------------
+    */
+
     public function services()
     {
         return $this->belongsToMany(
