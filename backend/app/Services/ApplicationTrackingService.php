@@ -2,24 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\Application;
+use App\Models\ServiceRequest;
 
 class ApplicationTrackingService
 {
-    /**
-     * Track application.
-     */
-    public function track(
-        string $applicationNumber
-    ) {
-        return Application::with([
-            'service',
+    public function track(string $applicationNumber)
+    {
+        return ServiceRequest::with([
             'customer',
+            'officer',
         ])
-        ->where(
-            'application_number',
-            $applicationNumber
-        )
-        ->first();
+            ->where('id', $applicationNumber)
+            ->first();
     }
 }

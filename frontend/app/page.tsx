@@ -163,7 +163,7 @@ export default function HomePage() {
             </Link>
 
             <Link
-              href="/service"
+              href="/services"
               className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
             >
               Services
@@ -175,7 +175,7 @@ export default function HomePage() {
               Contact
             </Link>
                 <Link
-              href="/service"
+              href="/services"
               className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
             >
               News
@@ -542,7 +542,7 @@ export default function HomePage() {
           {/* VIEW ALL */}
           <div className="mt-10 text-center">
 
-            <Link href="/service">
+            <Link href="/services">
 
               <Button
                 variant="outline"
@@ -651,7 +651,7 @@ export default function HomePage() {
 
                 <li>
                   <Link
-                    href="/service"
+                    href="/services"
                     className="hover:text-foreground"
                   >
                     Services

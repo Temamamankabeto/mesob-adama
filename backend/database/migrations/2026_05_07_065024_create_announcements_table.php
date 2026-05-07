@@ -1,15 +1,31 @@
-Schema::create('announcements', function (Blueprint $table) {
+<?php
 
-    $table->id();
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-    $table->string('title');
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('announcements', function (Blueprint $table) {
+            $table->id();
 
-    $table->text('description');
+            $table->string('title');
 
-    $table->enum('status', [
-        'active',
-        'inactive',
-    ])->default('active');
+            $table->text('description');
 
-    $table->timestamps();
-});
+            $table->enum('status', [
+                'active',
+                'inactive',
+            ])->default('active');
+
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('announcements');
+    }
+};
