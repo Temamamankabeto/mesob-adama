@@ -24,6 +24,9 @@ type SubCity = {
   id: number;
   name: string;
   city_id: number;
+  city: {
+    name: string;
+  };
 };
 
 export default function SubCitiesPage() {
