@@ -6,7 +6,7 @@
   --radius: 0.75rem;
 
   /* Core cafeteria palette */
-  --background: oklch(0.985 0.01 85);
+  --background: oklch(100% 0.00011 271.152);
   --foreground: oklch(0.23 0.02 45);
 
   --card: oklch(1 0.01 85);
@@ -16,11 +16,11 @@
   --popover-foreground: oklch(0.23 0.02 45);
 
   /* Warm coffee / restaurant primary */
-  --primary: oklch(0.52 0.11 45);
+  --primary: oklch(55.522% 0.08928 227.899);
   --primary-foreground: oklch(0.985 0.01 85);
 
   /* Soft cream */
-  --secondary: oklch(0.95 0.02 85);
+  --secondary: oklch(97.679% 0.00846 84.493 / 0.938);
   --secondary-foreground: oklch(0.3 0.03 45);
 
   /* Neutral warm muted */
