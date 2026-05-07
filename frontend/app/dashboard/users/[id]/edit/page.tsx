@@ -51,7 +51,7 @@ export default function EditUserPage() {
   const { data: citiesData } = useCities(1);
   const { data: subcitiesData } = useSubcities(1);
   const { data: woredasData } = useWoredas(1);
-  const { roles: rolesData } = useRoles(1);
+  const { roles: rolesData } = useRoles();
 
   const cities = citiesData?.data || [];
   const subcities = subcitiesData?.data || [];

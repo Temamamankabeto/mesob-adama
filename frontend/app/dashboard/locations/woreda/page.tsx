@@ -83,7 +83,7 @@ export default function WoredaPage() {
               <TableRow key={w.id}>
                 <TableCell>{w.id}</TableCell>
                 <TableCell>{w.name}</TableCell>
-                <TableCell>{w.subcity.name}</TableCell>
+                <TableCell>{w.subcity_id}</TableCell>
 
                 <TableCell className="text-right relative">
                   <Button

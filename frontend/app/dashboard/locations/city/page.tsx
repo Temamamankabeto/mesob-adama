@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+
 import {
   useCities,
   useCreateCity,
@@ -26,8 +27,16 @@ type City = {
   code?: string;
 };
 
+type ModalProps = {
+  children: React.ReactNode;
+  title: string;
+  onClose: () => void;
+};
+
 export default function CitiesPage() {
-  const { data, isLoading } = useCities();
+  // ✅ FIXED HERE
+  const { data, isLoading } = useCities(1);
+
   const cities = data?.data ?? [];
 
   const createCity = useCreateCity();
@@ -46,42 +55,104 @@ export default function CitiesPage() {
 
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // ✅ close menu on outside click
+  // ✅ close dropdown menu on outside click
   useEffect(() => {
-    const handleClick = (e: any) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
+    const handleClick = (e: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node)
+      ) {
         setOpenMenuId(null);
       }
     };
 
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+    };
   }, []);
 
-  if (isLoading) return <p className="p-6">Loading...</p>;
+  if (isLoading) {
+    return <p className="p-6">Loading...</p>;
+  }
 
   return (
     <div className="p-6 space-y-4">
-      <div className="rounded-xl border shadow-sm">
+      {/* HEADER */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Cities</h1>
+
+        <Button onClick={() => setCreateOpen(true)}>
+          Create City
+        </Button>
+      </div>
+
+      {/* TABLE */}
+      <div className="rounded-xl border shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Code</TableHead>
+              <TableHead className="w-[120px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {cities.map((city: City) => (
-              <TableRow key={city.id}>
-                <TableCell>{city.id}</TableCell>
-                <TableCell>{city.name}</TableCell>
-                <TableCell>{city.code || "-"}</TableCell>
+            {cities.length > 0 ? (
+              cities.map((city: City) => (
+                <TableRow key={city.id}>
+                  <TableCell>{city.id}</TableCell>
 
-                
+                  <TableCell>{city.name}</TableCell>
+
+                  <TableCell>{city.code || "-"}</TableCell>
+
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditCity(city);
+                          setEditName(city.name);
+                          setEditCode(city.code || "");
+                        }}
+                      >
+                        Edit
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          if (
+                            confirm(
+                              `Delete ${city.name}?`
+                            )
+                          ) {
+                            deleteCity.mutate(city.id);
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className="text-center py-6"
+                >
+                  No cities found
+                </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>
@@ -89,78 +160,115 @@ export default function CitiesPage() {
       {/* CREATE MODAL */}
       {createOpen && (
         <Modal
+          title="Create City"
           onClose={() => {
             setCreateOpen(false);
             setNewName("");
             setNewCode("");
           }}
-          title="Create City"
         >
-          <Input
-            placeholder="City name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-          />
+          <div className="space-y-4">
+            <Input
+              placeholder="City name"
+              value={newName}
+              onChange={(e) =>
+                setNewName(e.target.value)
+              }
+            />
 
-          <Input
-            placeholder="Code"
-            value={newCode}
-            onChange={(e) => setNewCode(e.target.value)}
-          />
+            <Input
+              placeholder="Code"
+              value={newCode}
+              onChange={(e) =>
+                setNewCode(e.target.value)
+              }
+            />
 
-          <Button
-            onClick={() => {
-              createCity.mutate({ name: newName, code: newCode });
-              setCreateOpen(false);
-            }}
-          >
-            Save
-          </Button>
+            <Button
+              className="w-full"
+              onClick={() => {
+                createCity.mutate({
+                  name: newName,
+                  code: newCode,
+                });
+
+                setCreateOpen(false);
+                setNewName("");
+                setNewCode("");
+              }}
+            >
+              Save
+            </Button>
+          </div>
         </Modal>
       )}
 
       {/* EDIT MODAL */}
       {editCity && (
         <Modal
-          onClose={() => setEditCity(null)}
           title="Edit City"
+          onClose={() => setEditCity(null)}
         >
-          <Input
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-          />
+          <div className="space-y-4">
+            <Input
+              value={editName}
+              onChange={(e) =>
+                setEditName(e.target.value)
+              }
+            />
 
-          <Input
-            value={editCode}
-            onChange={(e) => setEditCode(e.target.value)}
-          />
+            <Input
+              value={editCode}
+              onChange={(e) =>
+                setEditCode(e.target.value)
+              }
+            />
 
-          <Button
-            onClick={() => {
-              updateCity.mutate({
-                id: editCity.id,
-                data: { name: editName, code: editCode },
-              });
-              setEditCity(null);
-            }}
-          >
-            Update
-          </Button>
+            <Button
+              className="w-full"
+              onClick={() => {
+                updateCity.mutate({
+                  id: editCity.id,
+                  data: {
+                    name: editName,
+                    code: editCode,
+                  },
+                });
+
+                setEditCity(null);
+              }}
+            >
+              Update
+            </Button>
+          </div>
         </Modal>
       )}
     </div>
   );
 }
 
-/* MODAL */
-function Modal({ children, title, onClose }: any) {
+/* MODAL COMPONENT */
+function Modal({
+  children,
+  title,
+  onClose,
+}: ModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl w-96 space-y-4 shadow-xl">
-        <div className="flex justify-between">
-          <h2 className="font-bold text-lg">{title}</h2>
-          <button onClick={onClose}>✕</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">
+            {title}
+          </h2>
+
+          <button
+            onClick={onClose}
+            className="text-xl"
+          >
+            ✕
+          </button>
         </div>
+
         {children}
       </div>
     </div>
