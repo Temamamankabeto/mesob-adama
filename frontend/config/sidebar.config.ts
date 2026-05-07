@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, ShieldCheck, Map, FileText, UserCheck, Home } from "lucide-react";
+import { LayoutDashboard, Users, ShieldCheck, Map, FileText, UserCheck, Home, Settings } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { dashboardConfig, normalizeRole, type AppRoleKey } from "@/config/dashboard.config";
 
@@ -45,9 +45,9 @@ export const sidebarConfig: Record<AppRoleKey, RoleSidebar> = {
         { label: "Users", href: "/dashboard/users", icon: Users, permission: "users.read" },
         { label: "Roles", href: "/dashboard/roles", icon: Users, permission: "roles.read" },
         // { label: "Permissions", href: "/dashboard/permissions", icon: ShieldCheck, permission: "permissions.read" },
-        // { label: "Locations", href: "/dashboard/locations", icon: Map, permission: "cities.read" },
         { label: "Services", href: "/dashboard/services", icon: LayoutDashboard, permission: "permissions.read" },
         { label: "Window", href: "/dashboard/windows", icon: LayoutDashboard, permission: "permissions.read" },
+        { label: "Configurations", href: "/dashboard/service-window", icon: Settings, permission: "cities.read" },
      
         { label: "Audit Logs", href: "/dashboard/audit-logs", icon: FileText, permission: "audit_logs.read" },
       ]),

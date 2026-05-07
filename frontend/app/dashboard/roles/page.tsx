@@ -22,6 +22,15 @@ import {
 
 import { Button } from "@/components/ui/button";
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+import { MoreVertical } from "lucide-react";
+
 export default function RolesPage() {
   const { roles, meta, loading, error, fetchRoles } = useRoles();
 
@@ -40,14 +49,12 @@ export default function RolesPage() {
 
   return (
     <div className="p-6">
-
       <Card>
-        <CardHeader className="flex justify-between">
+        <CardHeader>
           <CardTitle>Roles Management</CardTitle>
         </CardHeader>
 
         <CardContent>
-
           <Table>
             <TableHeader>
               <TableRow>
@@ -73,12 +80,30 @@ export default function RolesPage() {
                     <TableCell>{role.guard_name}</TableCell>
 
                     <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        onClick={() => handleOpen(role.id)}
-                      >
-                        Assign Permissions
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="w-5 h-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleOpen(role.id)}
+                          >
+                            Assign Permissions
+                          </DropdownMenuItem>
+
+                          {/* you can add more actions here later */}
+                          <DropdownMenuItem>
+                            Edit Role
+                          </DropdownMenuItem>
+
+                          <DropdownMenuItem className="text-red-600">
+                            Delete Role
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
@@ -98,17 +123,15 @@ export default function RolesPage() {
               </Button>
             ))}
           </div>
-
         </CardContent>
       </Card>
 
-      {/* ✅ MODAL */}
+      {/* MODAL */}
       <AssignPermissionModal
         open={open}
         onClose={() => setOpen(false)}
         roleId={selectedRoleId}
       />
-
     </div>
   );
 }
