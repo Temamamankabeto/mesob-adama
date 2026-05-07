@@ -12,7 +12,7 @@ class PermissionController extends Controller
 {
     public function index(Request $request)
     {
-        $this->authorize('viewAny', Permission::class);
+        // $this->authorize('viewAny', Permission::class);
     
         $search = trim((string) $request->query('search', ''));
         $perPage = (int) $request->query('per_page', 10);
