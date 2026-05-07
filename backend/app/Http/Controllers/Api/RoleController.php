@@ -19,58 +19,99 @@ class RoleController extends Controller
         protected RoleService $roleService
     ) {}
 
+    /*
+    |--------------------------------------------------------------------------
+    | LIST ROLES
+    |--------------------------------------------------------------------------
+    */
     public function index(IndexRoleRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', Role::class);
+        // $this->authorize('viewAny', Role::class);
 
-        $roles = $this->roleService->paginateRoles($request->validated());
-
-        return response()->json(
-            $this->roleService->transformPaginatedRoles($roles)
+        $roles = $this->roleService->paginateRoles(
+            $request->validated()
         );
-    }
-
-    public function permissions(IndexPermissionRequest $request): JsonResponse
-    {
-        $this->authorize('viewAny', Permission::class);
 
         return response()->json([
             'success' => true,
-            'data' => $this->roleService->getPermissions($request->validated()['search'] ?? null),
+            'data' => $roles->items(),
+            'meta' => [
+                'current_page' => $roles->currentPage(),
+                'last_page' => $roles->lastPage(),
+                'per_page' => $roles->perPage(),
+                'total' => $roles->total(),
+            ],
         ]);
     }
 
-    public function store(StoreRoleRequest $request): JsonResponse
+    /*
+    |--------------------------------------------------------------------------
+    | ALL PERMISSIONS
+    |--------------------------------------------------------------------------
+    */
+    public function permissions(IndexPermissionRequest $request): JsonResponse
     {
-        $this->authorize('create', Role::class);
-
-        $role = $this->roleService->createRole($request->validated());
+        // $this->authorize('viewAny', Permission::class);
 
         return response()->json([
             'success' => true,
-            'message' => 'Role created',
+            'data' => $this->roleService->getPermissions(
+                $request->validated()['search'] ?? null
+            ),
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE ROLE
+    |--------------------------------------------------------------------------
+    */
+    public function store(StoreRoleRequest $request): JsonResponse
+    {
+        // $this->authorize('create', Role::class);
+
+        $role = $this->roleService->createRole(
+            $request->validated()
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Role created successfully',
             'data' => $role,
         ], 201);
     }
 
-    public function update(UpdateRoleRequest $request, int|string $id): JsonResponse
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE ROLE
+    |--------------------------------------------------------------------------
+    */
+    public function update(UpdateRoleRequest $request, $id): JsonResponse
     {
         $role = $this->roleService->getRole($id);
-        $this->authorize('update', $role);
 
-        $updatedRole = $this->roleService->updateRole($role, $request->validated());
+        // $this->authorize('update', $role);
+
+        $updatedRole = $this->roleService->updateRole(
+            $role,
+            $request->validated()
+        );
 
         return response()->json([
             'success' => true,
-            'message' => 'Role updated',
+            'message' => 'Role updated successfully',
             'data' => $updatedRole,
         ]);
     }
 
-    public function rolePermissions(int|string $id): JsonResponse
+    /*
+    |--------------------------------------------------------------------------
+    | ROLE PERMISSIONS
+    |--------------------------------------------------------------------------
+    */
+    public function rolePermissions($id): JsonResponse
     {
         $role = $this->roleService->getRole($id);
-        // $this->authorize('view', $role);
 
         return response()->json([
             'success' => true,
@@ -78,19 +119,27 @@ class RoleController extends Controller
         ]);
     }
 
-   public function assignPermissions(AssignRolePermissionsRequest $request, $id): JsonResponse
-{
-    $role = Role::findOrFail($id); // ✅ ALWAYS REAL MODEL
+    /*
+    |--------------------------------------------------------------------------
+    | ASSIGN PERMISSIONS
+    |--------------------------------------------------------------------------
+    */
+    public function assignPermissions(
+        AssignRolePermissionsRequest $request,
+        $id
+    ): JsonResponse {
 
-    $result = $this->roleService->assignPermissions(
-        $role,
-        $request->validated()['permissions'] ?? []
-    );
+        $role = Role::findOrFail($id);
 
-    return response()->json([
-        'success' => true,
-        'message' => 'Permissions updated',
-        'data' => $result,
-    ]);
-}
+        $result = $this->roleService->assignPermissions(
+            $role,
+            $request->validated()['permissions'] ?? []
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permissions assigned successfully',
+            'data' => $result,
+        ]);
+    }
 }
