@@ -7,6 +7,7 @@ use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
 use App\Models\Service;
 use App\Services\ServiceService;
+use Illuminate\Http\Request;
 
 class ServiceController extends Controller
 {
@@ -20,18 +21,29 @@ class ServiceController extends Controller
     /**
      * List services
      */
-    public function index()
-    {
-        $this->authorize('viewAny', Service::class);
+    //    */
+public function index(Request $request)
+{
+    $services = Service::query()
 
-        $services = $this->serviceService->getAll();
+        ->when($request->search, function ($q) use ($request) {
+            $q->where('name', 'like', '%' . $request->search . '%');
+        })
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Services retrieved successfully',
-            'data' => $services,
-        ]);
-    }
+        ->latest()
+        ->paginate(10);
+
+    return response()->json([
+        'data' => $services->items(),
+
+        'meta' => [
+            'current_page' => $services->currentPage(),
+            'last_page' => $services->lastPage(),
+            'per_page' => $services->perPage(),
+            'total' => $services->total(),
+        ]
+    ]);
+}
 
     /**
      * Store service

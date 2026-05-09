@@ -7,25 +7,24 @@ import {
 } from "@/types/services/service";
 
 export const serviceService = {
+  /* GET ALL + SEARCH + PAGINATION */
   async getAll(
-    page = 1
+    page = 1,
+    search = ""
   ): Promise<PaginatedServiceResponse> {
-    const response = await api.get(
-      `/services?page=${page}`
-    );
+    const response = await api.get("/services", {
+      params: {
+        page,
+        search,
+      },
+    });
 
-    return unwrap<PaginatedServiceResponse>(
-      response
-    );
+    return unwrap<PaginatedServiceResponse>(response);
   },
 
-  async create(
-    payload: ServicePayload
-  ): Promise<Service> {
-    const response = await api.post(
-      "/services",
-      payload
-    );
+  /* CREATE */
+  async create(payload: ServicePayload): Promise<Service> {
+    const response = await api.post("/services", payload);
 
     const data = unwrap<{
       success: boolean;
@@ -36,14 +35,12 @@ export const serviceService = {
     return data.data;
   },
 
+  /* UPDATE */
   async update(
     id: number,
     payload: Partial<ServicePayload>
   ): Promise<Service> {
-    const response = await api.put(
-      `/services/${id}`,
-      payload
-    );
+    const response = await api.put(`/services/${id}`, payload);
 
     const data = unwrap<{
       success: boolean;
@@ -54,6 +51,7 @@ export const serviceService = {
     return data.data;
   },
 
+  /* DELETE */
   async delete(id: number): Promise<void> {
     await api.delete(`/services/${id}`);
   },

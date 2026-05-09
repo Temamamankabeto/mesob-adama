@@ -8,6 +8,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\City;
+use App\Models\Subcity;
+use App\Models\Woreda;
 
 class User extends Authenticatable
 {
@@ -71,4 +74,21 @@ public function assignedServices()
     ])
     ->withTimestamps();
 }
+
+// city
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function subcity()
+    {
+        return $this->belongsTo(Subcity::class);
+    }
+
+    public function woreda()
+    {
+        return $this->belongsTo(Woreda::class);
+    }
+
 }

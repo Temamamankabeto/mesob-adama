@@ -26,6 +26,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import { usePublicService } from "@/hooks/public-service/use-public-service";
+import Link from "next/link";
 
 export default function ServiceDetailPage() {
 
@@ -317,12 +318,12 @@ export default function ServiceDetailPage() {
                       </div>
                     </div>
 
-                    <Button className="mt-8 h-11 w-full rounded-2xl">
-
-                      Apply Service
-
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <Link href={`/services/${service.id}/apply`}>
+  <Button className="mt-8 h-11 w-full rounded-2xl">
+    Apply Service
+    <ArrowRight className="ml-2 h-4 w-4" />
+  </Button>
+</Link>
                   </CardContent>
                 </Card>
               </div>

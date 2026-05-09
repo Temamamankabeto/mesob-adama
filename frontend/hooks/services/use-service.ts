@@ -8,13 +8,23 @@ import {
   ServicePayload,
 } from "@/types/services/service";
 
-export function useServices(page = 1) {
+export const useServices = ({
+  page,
+  search,
+}: {
+  page: number;
+  search: string;
+}) => {
   return useQuery({
-    queryKey: ["services", page],
-    queryFn: () => serviceService.getAll(page),
-  });
-}
+    queryKey: ["services", page, search],
 
+    queryFn: async () => {
+      return await serviceService.getAll(page, search);
+    },
+
+    placeholderData: (prev) => prev,
+  });
+};
 export function useCreateService() {
   const queryClient = useQueryClient();
 
