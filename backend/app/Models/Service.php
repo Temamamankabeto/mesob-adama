@@ -66,4 +66,21 @@ class Service extends Model
                 'woreda_back_officer',
             ]);
     }
+
+    public function form()
+{
+    return $this->hasOne(
+        ServiceForm::class
+    );
+}
+
+public function applications()
+{
+    return $this->hasMany(
+        ServiceApplication::class
+    );
+}
+
+
+
 }
