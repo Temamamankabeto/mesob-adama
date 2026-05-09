@@ -14,8 +14,8 @@ class EserviceRolesSeeder extends Seeder
             'city_admin',
             'subcity_admin',
             'woreda_admin',
-            'front_officer',
-            'back_officer',
+            'front_officer',  //(at all level)
+            'back_officer', //(at all level)
             'customer'
         ];
 
