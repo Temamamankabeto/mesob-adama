@@ -2,17 +2,24 @@
 
 namespace App\Services;
 
-use App\Models\ServiceRequest;
+use App\Models\ServiceApplication;
 
 class ApplicationTrackingService
 {
-    public function track(string $applicationNumber)
+    public function track(string $trackingNumber)
     {
-        return ServiceRequest::with([
+        return ServiceApplication::with([
+            'service',
             'customer',
-            'officer',
+            'currentWindow',
+            'currentOfficer',
+            'data',
+            'files',
+            'workflow.window',
+            'workflow.officer',
+            'histories.actor',
         ])
-            ->where('id', $applicationNumber)
+            ->where('tracking_number', $trackingNumber)
             ->first();
     }
 }

@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import { useRouter } from "next/navigation";
-
 import {
-  Building2,
-  FileText,
-} from "lucide-react";
+  useParams,
+  useRouter,
+} from "next/navigation";
+
+import { useState } from "react";
 
 import {
   Card,
@@ -16,114 +14,66 @@ import {
 
 import { Button } from "@/components/ui/button";
 
-import { Input } from "@/components/ui/input";
+import {
+  useApplicationForm,
+  useApplyService,
+} from "@/hooks/application/use-application";
 
-import { Label } from "@/components/ui/label";
+import DynamicFieldRenderer from "@/components/application/DynamicFieldRenderer";
 
-import { Textarea } from "@/components/ui/textarea";
+export default function ApplyPage() {
 
-import { Separator } from "@/components/ui/separator";
-
-export default function ApplyConstructionPermitPage() {
+  const params = useParams();
 
   const router = useRouter();
 
+  const serviceId = Number(
+    params.id
+  );
+
+  const [formValues, setFormValues] =
+    useState<any>({});
+
+  const [files, setFiles] =
+    useState<any>({});
+
+  const {
+    data,
+    isLoading,
+  } = useApplicationForm(
+    serviceId
+  );
+
+  const applyMutation =
+    useApplyService(serviceId);
+
+  const form = data?.data;
+
   /*
   |--------------------------------------------------------------------------
-  | AUTH USER
+  | HANDLE CHANGE
   |--------------------------------------------------------------------------
   */
 
-  const [user, setUser] =
-    useState<any>(null);
+  const handleChange = (
+    name: string,
+    value: any
+  ) => {
 
-  const [loading, setLoading] =
-    useState(true);
+    if (value instanceof File) {
 
-  useEffect(() => {
-
-    const token =
-      localStorage.getItem("token");
-
-    /*
-    |--------------------------------------------------------------------------
-    | REDIRECT TO LOGIN
-    |--------------------------------------------------------------------------
-    */
-
-    if (!token) {
-
-      router.push("/login");
+      setFiles({
+        ...files,
+        [name]: value,
+      });
 
       return;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | GET LOGGED USER
-    |--------------------------------------------------------------------------
-    */
-
-    const fetchUser = async () => {
-
-      try {
-
-        const response =
-          await fetch(
-            "http://127.0.0.1:8000/api/user",
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                Accept: "application/json",
-              },
-            }
-          );
-
-        const data =
-          await response.json();
-
-        setUser(data);
-
-      } catch (error) {
-
-        console.error(error);
-
-        router.push("/login");
-
-      } finally {
-
-        setLoading(false);
-      }
-    };
-
-    fetchUser();
-
-  }, [router]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | APPLICATION FORM
-  |--------------------------------------------------------------------------
-  */
-
-  const [formData, setFormData] =
-    useState({
-      construction_type: "",
-      project_location: "",
-      estimated_budget: "",
-      project_description: "",
-      blueprint_file: null as File | null,
+    setFormValues({
+      ...formValues,
+      [name]: value,
     });
-
-  const handleChange = (
-    key: string,
-    value: any
-  ) => {
-
-    setFormData((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
   };
 
   /*
@@ -132,62 +82,57 @@ export default function ApplyConstructionPermitPage() {
   |--------------------------------------------------------------------------
   */
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (
+    e: React.FormEvent
+  ) => {
+
+    e.preventDefault();
 
     try {
 
-      const token =
-        localStorage.getItem("token");
-
-      const body =
+      const payload =
         new FormData();
 
-      body.append(
-        "construction_type",
-        formData.construction_type
+      /*
+      |--------------------------------------------------------------------------
+      | FORM VALUES
+      |--------------------------------------------------------------------------
+      */
+
+      Object.keys(formValues).forEach(
+        (key) => {
+
+          payload.append(
+            `data[${key}]`,
+            formValues[key]
+          );
+        }
       );
 
-      body.append(
-        "project_location",
-        formData.project_location
+      /*
+      |--------------------------------------------------------------------------
+      | FILES
+      |--------------------------------------------------------------------------
+      */
+
+      Object.keys(files).forEach(
+        (key) => {
+
+          payload.append(
+            `files[${key}]`,
+            files[key]
+          );
+        }
       );
-
-      body.append(
-        "estimated_budget",
-        formData.estimated_budget
-      );
-
-      body.append(
-        "project_description",
-        formData.project_description
-      );
-
-      if (
-        formData.blueprint_file
-      ) {
-
-        body.append(
-          "blueprint_file",
-          formData.blueprint_file
-        );
-      }
 
       const response =
-        await fetch(
-          "http://127.0.0.1:8000/api/construction-permit/apply",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            body,
-          }
+        await applyMutation.mutateAsync(
+          payload
         );
 
-      const data =
-        await response.json();
-
-      console.log(data);
+      router.push(
+        `/track-application?tracking=${response.data.tracking_number}`
+      );
 
     } catch (error) {
 
@@ -201,234 +146,116 @@ export default function ApplyConstructionPermitPage() {
   |--------------------------------------------------------------------------
   */
 
-  if (loading) {
+  if (isLoading) {
 
     return (
+
       <div className="flex min-h-screen items-center justify-center">
+
         Loading...
+
+      </div>
+    );
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | NO FORM
+  |--------------------------------------------------------------------------
+  */
+
+  if (!form) {
+
+    return (
+
+      <div className="flex min-h-screen items-center justify-center">
+
+        No form found
+
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-background py-10">
 
-      <div className="container mx-auto max-w-7xl px-4 py-10">
+      <div className="container mx-auto max-w-5xl px-4">
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
+        <Card className="rounded-3xl border-border shadow-sm">
 
-          {/* LEFT */}
-          <div>
+          <CardContent className="p-8">
 
-            <Card className="rounded-3xl">
+            {/* HEADER */}
+            <div className="mb-8">
 
-              <CardContent className="space-y-8 p-8">
+              <h1 className="text-3xl font-black">
 
-                {/* HEADER */}
-                <div>
+                {form.title}
 
-                  <div className="flex items-center gap-3">
+              </h1>
 
-                    <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+              <p className="mt-2 text-muted-foreground">
 
-                      <Building2 className="h-6 w-6" />
-                    </div>
+                {form.description}
 
-                    <div>
+              </p>
+            </div>
 
-                      <h1 className="text-3xl font-black">
-                        Construction Permit Request
-                      </h1>
+            {/* FORM */}
+            <form
+              onSubmit={handleSubmit}
+              className="grid gap-6 md:grid-cols-2"
+            >
 
-                      <p className="text-muted-foreground">
-                        Submit your construction permit application
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              {form.fields?.map(
+                (field: any) => (
 
-                {/* USER INFO */}
-                <div className="rounded-2xl border bg-muted/40 p-5">
+                  <div
+                    key={field.id}
+                    className={
+                      field.width ===
+                      "full"
+                        ? "md:col-span-2"
+                        : ""
+                    }
+                  >
 
-                  <h2 className="text-lg font-bold">
-                    Applicant Information
-                  </h2>
-
-                  <Separator className="my-4" />
-
-                  <div className="grid gap-4 md:grid-cols-2">
-
-                    <div>
-
-                      <Label>Full Name</Label>
-
-                      <Input
-                        value={user?.name || ""}
-                        disabled
-                      />
-                    </div>
-
-                    <div>
-
-                      <Label>Email Address</Label>
-
-                      <Input
-                        value={user?.email || ""}
-                        disabled
-                      />
-                    </div>
-
-                    <div>
-
-                      <Label>Phone Number</Label>
-
-                      <Input
-                        value={user?.phone || ""}
-                        disabled
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* FORM */}
-                <div className="space-y-5">
-
-                  <div>
-
-                    <Label>
-                      Construction Type
-                    </Label>
-
-                    <Input
-                      placeholder="Residential Building"
-                      value={formData.construction_type}
-                      onChange={(e) =>
-                        handleChange(
-                          "construction_type",
-                          e.target.value
-                        )
+                    <DynamicFieldRenderer
+                      field={field}
+                      value={
+                        formValues[
+                          field.name
+                        ]
+                      }
+                      onChange={
+                        handleChange
                       }
                     />
                   </div>
+                )
+              )}
 
-                  <div>
-
-                    <Label>
-                      Project Location
-                    </Label>
-
-                    <Input
-                      placeholder="Enter project location"
-                      value={formData.project_location}
-                      onChange={(e) =>
-                        handleChange(
-                          "project_location",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div>
-
-                    <Label>
-                      Estimated Budget
-                    </Label>
-
-                    <Input
-                      placeholder="Enter estimated budget"
-                      value={formData.estimated_budget}
-                      onChange={(e) =>
-                        handleChange(
-                          "estimated_budget",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div>
-
-                    <Label>
-                      Project Description
-                    </Label>
-
-                    <Textarea
-                      placeholder="Describe the project"
-                      value={formData.project_description}
-                      onChange={(e) =>
-                        handleChange(
-                          "project_description",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div>
-
-                    <Label>
-                      Upload Blueprint
-                    </Label>
-
-                    <Input
-                      type="file"
-                      onChange={(e) =>
-                        handleChange(
-                          "blueprint_file",
-                          e.target.files?.[0]
-                        )
-                      }
-                    />
-                  </div>
-                </div>
+              {/* SUBMIT */}
+              <div className="md:col-span-2">
 
                 <Button
-                  onClick={handleSubmit}
-                  className="h-12 w-full rounded-2xl"
+                  type="submit"
+                  size="lg"
+                  className="w-full rounded-2xl"
+                  disabled={
+                    applyMutation.isPending
+                  }
                 >
-                  Submit Application
+
+                  {applyMutation.isPending
+                    ? "Submitting..."
+                    : "Submit Application"}
+
                 </Button>
-
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* RIGHT */}
-          <div>
-
-            <Card className="sticky top-24 rounded-3xl">
-
-              <CardContent className="space-y-6 p-6">
-
-                <div className="flex items-center gap-2">
-
-                  <FileText className="h-5 w-5 text-primary" />
-
-                  <h2 className="text-lg font-bold">
-                    Criteria PDF
-                  </h2>
-                </div>
-
-                <a
-                  href="/pdf/construction-permit-criteria.pdf"
-                  target="_blank"
-                  className="block rounded-2xl border p-4 transition hover:bg-muted"
-                >
-
-                  <p className="font-semibold">
-                    Open Construction Permit PDF
-                  </p>
-
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    View application requirements
-                  </p>
-                </a>
-
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
