@@ -4,13 +4,16 @@ namespace App\Services;
 
 use App\Models\ServiceApplication;
 
-class ApplicationDashboardService
+class ApplicationReportService
 {
-    public function stats(): array
+    public function summary()
     {
         return [
             'total' => ServiceApplication::count(),
-            'submitted' => ServiceApplication::where('status', 'submitted')->count(),
+            'pending' => ServiceApplication::whereIn('status', [
+                'submitted',
+                'under_review',
+            ])->count(),
             'approved' => ServiceApplication::where('status', 'approved')->count(),
             'rejected' => ServiceApplication::where('status', 'rejected')->count(),
             'completed' => ServiceApplication::where('status', 'completed')->count(),

@@ -1,43 +1,37 @@
+import React from "react";
+
+type Item = {
+  title: string;
+  completed: boolean;
+};
+
 interface Props {
-  histories: any[];
+  items: Item[];
 }
 
 export default function ApplicationTimeline({
-  histories,
+  items,
 }: Props) {
-
   return (
-    <div className="space-y-5">
-
-      {histories?.map(
-        (history) => (
-
+    <div className="space-y-4">
+      {items.map((item, index) => (
+        <div
+          key={index}
+          className="flex items-center gap-3"
+        >
           <div
-            key={history.id}
-            className="flex gap-4"
-          >
+            className={`h-4 w-4 rounded-full ${
+              item.completed
+                ? "bg-green-500"
+                : "bg-gray-300"
+            }`}
+          />
 
-            <div className="mt-1 h-3 w-3 rounded-full bg-primary" />
-
-            <div>
-
-              <p className="font-semibold capitalize">
-                {history.action}
-              </p>
-
-              <p className="text-sm text-muted-foreground">
-                {history.remark}
-              </p>
-
-              <p className="mt-1 text-xs text-muted-foreground">
-                {new Date(
-                  history.created_at
-                ).toLocaleString()}
-              </p>
-            </div>
-          </div>
-        )
-      )}
+          <p className="text-sm font-medium">
+            {item.title}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
