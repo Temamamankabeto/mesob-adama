@@ -3,259 +3,210 @@
 import { useState } from "react";
 
 import {
-  useCreateServiceForm,
   useServiceForms,
-} from "@/hooks/useServiceForms";
+  useCreateServiceForm,
+  useUpdateServiceForm,
+  useDeleteServiceForm,
+} from "@/hooks/services/useServiceForms";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function ServiceFormsPage() {
+  const { data } = useServiceForms();
 
-  const { data, isLoading } =
-    useServiceForms();
+  const create = useCreateServiceForm();
+  const update = useUpdateServiceForm();
+  const remove = useDeleteServiceForm();
 
-  const createMutation =
-    useCreateServiceForm();
+  const forms = data?.data || [];
 
-  const forms =
-    data?.data?.data || [];
+  const [open, setOpen] = useState(false);
 
-  const [open, setOpen] =
-    useState(false);
+  const [form, setForm] = useState({
+    id: null as any,
+    service_id: "",
+    title: "",
+    description: "",
+  });
 
-  const [formData, setFormData] =
-    useState({
-
+  const reset = () => {
+    setForm({
+      id: null,
       service_id: "",
       title: "",
       description: "",
-      is_active: true,
     });
+  };
 
-  async function handleSubmit() {
+  const handleOpenCreate = () => {
+    reset();
+    setOpen(true);
+  };
 
-    try {
+  const handleEdit = (item: any) => {
+    setForm(item);
+    setOpen(true);
+  };
 
-      await createMutation.mutateAsync(
-        formData
-      );
+  const handleSubmit = async () => {
+    const payload = {
+      service_id: form.service_id,
+      title: form.title,
+      description: form.description,
+    };
 
-      setOpen(false);
-
-      setFormData({
-        service_id: "",
-        title: "",
-        description: "",
-        is_active: true,
+    if (form.id) {
+      await update.mutateAsync({
+        id: form.id,
+        payload,
       });
-
-    } catch (error) {
-
-      console.error(error);
+    } else {
+      await create.mutateAsync(payload);
     }
-  }
+
+    setOpen(false);
+    reset();
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-4">
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold">
+          Service Forms
+        </h1>
 
-      <div className="flex items-center justify-between">
-
-        <div>
-
-          <h1 className="text-2xl font-bold">
-            Service Forms
-          </h1>
-
-          <p className="text-sm text-gray-500">
-            Manage dynamic service forms
-          </p>
-
-        </div>
-
-        <button
-          onClick={() => setOpen(true)}
-          className="rounded-lg bg-black px-4 py-2 text-sm text-white"
-        >
-          Create Form
-        </button>
-
+        <Button onClick={handleOpenCreate}>
+          + Create Form
+        </Button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-white">
+      {/* TABLE */}
+      <div className="border rounded-md">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Service ID</TableHead>
+              <TableHead>Title</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
 
-        <table className="w-full">
+          <TableBody>
+            {forms.map((f: any) => (
+              <TableRow key={f.id}>
+                <TableCell>{f.id}</TableCell>
+                <TableCell>{f.service_id}</TableCell>
+                <TableCell className="font-medium">
+                  {f.title}
+                </TableCell>
+                <TableCell className="text-gray-500">
+                  {f.description}
+                </TableCell>
 
-          <thead className="bg-gray-100">
+                <TableCell className="text-right space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleEdit(f)}
+                  >
+                    Edit
+                  </Button>
 
-            <tr>
-
-              <th className="p-3 text-left">
-                ID
-              </th>
-
-              <th className="p-3 text-left">
-                Title
-              </th>
-
-              <th className="p-3 text-left">
-                Service
-              </th>
-
-              <th className="p-3 text-left">
-                Status
-              </th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {isLoading ? (
-
-              <tr>
-                <td
-                  colSpan={4}
-                  className="p-6 text-center"
-                >
-                  Loading...
-                </td>
-              </tr>
-
-            ) : forms.length === 0 ? (
-
-              <tr>
-                <td
-                  colSpan={4}
-                  className="p-6 text-center"
-                >
-                  No forms found
-                </td>
-              </tr>
-
-            ) : (
-
-              forms.map((form: any) => (
-
-                <tr
-                  key={form.id}
-                  className="border-t"
-                >
-
-                  <td className="p-3">
-                    {form.id}
-                  </td>
-
-                  <td className="p-3">
-                    {form.title}
-                  </td>
-
-                  <td className="p-3">
-                    {form.service?.name}
-                  </td>
-
-                  <td className="p-3">
-
-                    <span
-                      className={`rounded px-2 py-1 text-xs font-semibold ${
-                        form.is_active
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {form.is_active
-                        ? "Active"
-                        : "Inactive"}
-                    </span>
-
-                  </td>
-
-                </tr>
-
-              ))
-
-            )}
-
-          </tbody>
-
-        </table>
-
+                  <Button
+                    variant="destructive"
+                    onClick={() =>
+                      remove.mutate(f.id)
+                    }
+                  >
+                    Delete
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
-      {open && (
+      {/* MODAL (CREATE / EDIT) */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {form.id ? "Edit Service Form" : "Create Service Form"}
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="space-y-3">
+            <Input
+              placeholder="Service ID"
+              value={form.service_id}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  service_id: e.target.value,
+                })
+              }
+            />
 
-          <div className="w-full max-w-lg rounded-xl bg-white p-6">
+            <Input
+              placeholder="Title"
+              value={form.title}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  title: e.target.value,
+                })
+              }
+            />
 
-            <h2 className="mb-4 text-xl font-bold">
-              Create Service Form
-            </h2>
+            <Input
+              placeholder="Description"
+              value={form.description}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  description: e.target.value,
+                })
+              }
+            />
 
-            <div className="space-y-4">
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
 
-              <input
-                type="text"
-                placeholder="Service ID"
-                value={formData.service_id}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    service_id: e.target.value,
-                  })
-                }
-                className="w-full rounded border p-3"
-              />
-
-              <input
-                type="text"
-                placeholder="Title"
-                value={formData.title}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    title: e.target.value,
-                  })
-                }
-                className="w-full rounded border p-3"
-              />
-
-              <textarea
-                placeholder="Description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    description: e.target.value,
-                  })
-                }
-                className="w-full rounded border p-3"
-              />
-
-              <div className="flex justify-end gap-3">
-
-                <button
-                  onClick={() => setOpen(false)}
-                  className="rounded border px-4 py-2"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  onClick={handleSubmit}
-                  className="rounded bg-black px-4 py-2 text-white"
-                >
-                  Save
-                </button>
-
-              </div>
-
+              <Button onClick={handleSubmit}>
+                {form.id ? "Update" : "Create"}
+              </Button>
             </div>
-
           </div>
-
-        </div>
-
-      )}
-
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

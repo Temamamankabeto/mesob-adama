@@ -2,19 +2,45 @@
 
 import { useState } from "react";
 
-import { useServices } from "@/hooks/services/use-service";
+import {
+  useCreateService,
+  useDeleteService,
+  useServices,
+  useUpdateService,
+} from "@/hooks/services/use-service";
 
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-
-import { Search, MoreVertical } from "lucide-react";
+import {
+  Service,
+  ServiceAvailability,
+} from "@/types/services/service";
 
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+
+import { Button } from "@/components/ui/button";
+
+import { Input } from "@/components/ui/input";
+
+import { Label } from "@/components/ui/label";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { Textarea } from "@/components/ui/textarea";
+
+import { Checkbox } from "@/components/ui/checkbox";
+
+import { MoreVertical } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -23,43 +49,533 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+type FormState = {
+  name: string;
+  description: string;
+  has_back_officer: boolean;
+  service_fee: number;
+  availability: ServiceAvailability[];
+  status: "active" | "inactive";
+};
+
 export default function ServicePage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
 
-  const { data, isLoading } = useServices({
-    page,
-    search,
-  });
+  const [page] = useState(1);
 
-  const services = data?.data || [];
-  const meta = data?.meta || {};
+  /*
+  |--------------------------------------------------------------------------
+  | DIALOGS
+  |--------------------------------------------------------------------------
+  */
 
-  /* MODAL STATES */
-  const [viewOpen, setViewOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  const [createOpen, setCreateOpen] =
+    useState(false);
 
-  const [selected, setSelected] = useState<any>(null);
+  const [editOpen, setEditOpen] =
+    useState(false);
 
-  /* OPEN VIEW */
-  const handleView = (service: any) => {
-    setSelected(service);
-    setViewOpen(true);
+  /*
+  |--------------------------------------------------------------------------
+  | SELECTED SERVICE
+  |--------------------------------------------------------------------------
+  */
+
+  const [selectedService, setSelectedService] =
+    useState<Service | null>(null);
+
+  /*
+  |--------------------------------------------------------------------------
+  | FORM DATA
+  |--------------------------------------------------------------------------
+  */
+
+  const [formData, setFormData] =
+    useState<FormState>({
+      name: "",
+      description: "",
+      has_back_officer: false,
+      service_fee: 0,
+      availability: [],
+      status: "active",
+    });
+
+  /*
+  |--------------------------------------------------------------------------
+  | QUERIES
+  |--------------------------------------------------------------------------
+  */
+
+  const { data, isLoading } =
+    useServices(page);
+
+  /*
+  |--------------------------------------------------------------------------
+  | MUTATIONS
+  |--------------------------------------------------------------------------
+  */
+
+  const createMutation =
+    useCreateService();
+
+  const updateMutation =
+    useUpdateService();
+
+  const deleteMutation =
+    useDeleteService();
+
+  /*
+  |--------------------------------------------------------------------------
+  | RESET FORM
+  |--------------------------------------------------------------------------
+  */
+
+  const resetForm = () => {
+
+    setFormData({
+      name: "",
+      description: "",
+      has_back_officer: false,
+      service_fee: 0,
+      availability: [],
+      status: "active",
+    });
   };
 
-  /* OPEN EDIT */
-  const handleEdit = (service: any) => {
-    setSelected(service);
+  /*
+  |--------------------------------------------------------------------------
+  | CREATE
+  |--------------------------------------------------------------------------
+  */
+
+  const handleCreate =
+    async () => {
+
+      try {
+
+        await createMutation.mutateAsync(
+          formData
+        );
+
+        setCreateOpen(false);
+
+        resetForm();
+
+      } catch (error) {
+
+        console.error(error);
+      }
+    };
+
+  /*
+  |--------------------------------------------------------------------------
+  | EDIT
+  |--------------------------------------------------------------------------
+  */
+
+  const handleEdit = (
+    service: Service
+  ) => {
+
+    setSelectedService(service);
+
+    setFormData({
+      name: service.name,
+      description:
+        service.description || "",
+      has_back_officer:
+        service.has_back_officer,
+      service_fee:
+        service.service_fee,
+      availability:
+        service.availability,
+      status: service.status,
+    });
+
     setEditOpen(true);
   };
 
+  /*
+  |--------------------------------------------------------------------------
+  | UPDATE
+  |--------------------------------------------------------------------------
+  */
+
+  const handleUpdate =
+    async () => {
+
+      if (!selectedService)
+        return;
+
+      try {
+
+        await updateMutation.mutateAsync({
+
+          id: selectedService.id,
+
+          payload: formData,
+        });
+
+        setEditOpen(false);
+
+        setSelectedService(null);
+
+        resetForm();
+
+      } catch (error) {
+
+        console.error(error);
+      }
+    };
+
+  /*
+  |--------------------------------------------------------------------------
+  | DELETE
+  |--------------------------------------------------------------------------
+  */
+
+  const handleDelete =
+    async (id: number) => {
+
+      const confirmed =
+        confirm(
+          "Delete this service?"
+        );
+
+      if (!confirmed)
+        return;
+
+      try {
+
+        await deleteMutation.mutateAsync(
+          id
+        );
+
+      } catch (error) {
+
+        console.error(error);
+      }
+    };
+
+  /*
+  |--------------------------------------------------------------------------
+  | TOGGLE STATUS
+  |--------------------------------------------------------------------------
+  */
+
+  const handleToggleStatus =
+    async (
+      service: Service
+    ) => {
+
+      try {
+
+        await updateMutation.mutateAsync({
+
+          id: service.id,
+
+          payload: {
+
+            ...service,
+
+            status:
+              service.status ===
+              "active"
+                ? "inactive"
+                : "active",
+          },
+        });
+
+      } catch (error) {
+
+        console.error(error);
+      }
+    };
+
+  /*
+  |--------------------------------------------------------------------------
+  | REUSABLE FORM
+  |--------------------------------------------------------------------------
+  */
+
+  const ServiceForm = ({
+    isEdit = false,
+  }: {
+    isEdit?: boolean;
+  }) => (
+    <div className="space-y-4">
+
+      {/* NAME */}
+
+      <div className="space-y-2">
+
+        <Label>
+          Name
+        </Label>
+
+        <Input
+          value={formData.name}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              name:
+                e.target.value,
+            })
+          }
+        />
+
+      </div>
+
+      {/* DESCRIPTION */}
+
+      <div className="space-y-2">
+
+        <Label>
+          Description
+        </Label>
+
+        <Textarea
+          value={formData.description}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              description:
+                e.target.value,
+            })
+          }
+        />
+
+      </div>
+
+      {/* SERVICE FEE */}
+
+      <div className="space-y-2">
+
+        <Label>
+          Service Fee
+        </Label>
+
+        <Input
+          type="number"
+          value={formData.service_fee}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              service_fee:
+                Number(
+                  e.target.value
+                ),
+            })
+          }
+        />
+
+      </div>
+
+      {/* BACK OFFICER */}
+
+      <div className="flex items-center gap-3">
+
+        <Checkbox
+          checked={
+            formData.has_back_officer
+          }
+          onCheckedChange={(
+            checked
+          ) =>
+            setFormData({
+              ...formData,
+              has_back_officer:
+                !!checked,
+            })
+          }
+        />
+
+        <Label>
+          Has Back Officer
+        </Label>
+
+      </div>
+
+      {/* AVAILABILITY */}
+
+      <div className="space-y-3">
+
+        <Label>
+          Availability
+        </Label>
+
+        <div className="grid grid-cols-2 gap-3">
+
+          {(
+            [
+              "city",
+              "subcity",
+              "woreda",
+            ] as ServiceAvailability[]
+          ).map(
+            (item) => (
+
+              <div
+                key={item}
+                className="flex items-center gap-2"
+              >
+
+                <Checkbox
+                  checked={formData.availability.includes(
+                    item
+                  )}
+                  onCheckedChange={(
+                    checked
+                  ) => {
+
+                    if (
+                      checked
+                    ) {
+
+                      setFormData({
+                        ...formData,
+
+                        availability:
+                          [
+                            ...formData.availability,
+                            item,
+                          ],
+                      });
+
+                    } else {
+
+                      setFormData({
+                        ...formData,
+
+                        availability:
+                          formData.availability.filter(
+                            (
+                              i
+                            ) =>
+                              i !==
+                              item
+                          ),
+                      });
+                    }
+                  }}
+                />
+
+                <Label className="capitalize">
+                  {item}
+                </Label>
+
+              </div>
+            )
+          )}
+
+        </div>
+
+      </div>
+
+      {/* STATUS */}
+
+      <div className="space-y-2">
+
+        <Label>
+          Status
+        </Label>
+
+        <Select
+          value={
+            formData.status
+          }
+          onValueChange={(
+            value
+          ) =>
+            setFormData({
+              ...formData,
+              status:
+                value as
+                  | "active"
+                  | "inactive",
+            })
+          }
+        >
+
+          <SelectTrigger>
+
+            <SelectValue />
+
+          </SelectTrigger>
+
+          <SelectContent>
+
+            <SelectItem value="active">
+              Active
+            </SelectItem>
+
+            <SelectItem value="inactive">
+              Inactive
+            </SelectItem>
+
+          </SelectContent>
+
+        </Select>
+
+      </div>
+
+      {/* ACTIONS */}
+
+      <div className="flex justify-end gap-3 pt-4">
+
+        <Button
+          variant="outline"
+          onClick={() => {
+
+            if (isEdit) {
+
+              setEditOpen(false);
+
+            } else {
+
+              setCreateOpen(false);
+            }
+          }}
+        >
+          Cancel
+        </Button>
+
+        <Button
+          onClick={
+            isEdit
+              ? handleUpdate
+              : handleCreate
+          }
+          disabled={
+            isEdit
+              ? updateMutation.isPending
+              : createMutation.isPending
+          }
+        >
+
+          {isEdit
+            ? updateMutation.isPending
+              ? "Updating..."
+              : "Update"
+            : createMutation.isPending
+            ? "Creating..."
+            : "Create"}
+
+        </Button>
+
+      </div>
+
+    </div>
+  );
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
 
       {/* HEADER */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+      <div className="flex items-center justify-between">
 
         <div>
+
           <h1 className="text-2xl font-bold">
             Services
           </h1>
@@ -68,187 +584,270 @@ export default function ServicePage() {
             Manage system services
           </p>
 
-          <div className="mt-2 text-sm font-medium">
-            Total Services: {meta?.total || 0}
-          </div>
         </div>
 
-        {/* SEARCH */}
-        <div className="relative w-full md:w-[300px]">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        {/* CREATE MODAL */}
 
-          <Input
-            className="pl-10"
-            placeholder="Search services..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
+        <Dialog
+          open={createOpen}
+          onOpenChange={(open) => {
+
+            setCreateOpen(open);
+
+            if (!open) {
+              resetForm();
+            }
+          }}
+        >
+
+          <DialogTrigger asChild>
+
+            <Button>
+              Create Service
+            </Button>
+
+          </DialogTrigger>
+
+          <DialogContent className="sm:max-w-lg">
+
+            <DialogHeader>
+
+              <DialogTitle>
+                Create Service
+              </DialogTitle>
+
+            </DialogHeader>
+
+            <ServiceForm />
+
+          </DialogContent>
+
+        </Dialog>
+
       </div>
 
       {/* TABLE */}
-      <div className="border rounded-lg overflow-hidden">
+
+      <div className="overflow-hidden rounded-xl border bg-background">
+
         <table className="w-full">
-          <thead>
-            <tr className="border-b bg-muted/40">
-              <th className="p-3 text-left">Name</th>
-              <th className="p-3 text-left">Fee</th>
-              <th className="p-3 text-left">Status</th>
-              <th className="p-3 text-right">Action</th>
+
+          <thead className="bg-muted/50">
+
+            <tr>
+
+              <th className="p-4 text-left">
+                Name
+              </th>
+
+              <th className="p-4 text-left">
+                Fee
+              </th>
+
+              <th className="p-4 text-left">
+                Availability
+              </th>
+
+              <th className="p-4 text-left">
+                Back Officer
+              </th>
+
+              <th className="p-4 text-left">
+                Status
+              </th>
+
+              <th className="p-4 text-right">
+                Action
+              </th>
+
             </tr>
+
           </thead>
 
           <tbody>
+
             {isLoading ? (
+
               <tr>
-                <td colSpan={4} className="p-6 text-center">
+
+                <td
+                  colSpan={6}
+                  className="p-6 text-center"
+                >
                   Loading...
                 </td>
+
               </tr>
-            ) : services.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="p-6 text-center">
-                  No services found
-                </td>
-              </tr>
+
             ) : (
-              services.map((s: any) => (
-                <tr key={s.id} className="border-b">
 
-                  <td className="p-3">{s.name}</td>
-                  <td className="p-3">{s.service_fee}</td>
-                  <td className="p-3">{s.status}</td>
+              data?.data?.data?.map(
+                (
+                  service: Service
+                ) => (
 
-                  {/* ACTION */}
-                  <td className="p-3 text-right">
+                  <tr
+                    key={
+                      service.id
+                    }
+                    className="border-t"
+                  >
 
-                    <DropdownMenu>
+                    <td className="p-4">
+                      {service.name}
+                    </td>
 
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="w-5 h-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
+                    <td className="p-4">
+                      {
+                        service.service_fee
+                      }
+                    </td>
 
-                      <DropdownMenuContent align="end">
+                    <td className="p-4 capitalize">
 
-                        <DropdownMenuItem
-                          onClick={() => handleView(s)}
-                        >
-                          View
-                        </DropdownMenuItem>
+                      {service.availability.join(
+                        ", "
+                      )}
 
-                        <DropdownMenuItem
-                          onClick={() => handleEdit(s)}
-                        >
-                          Edit
-                        </DropdownMenuItem>
+                    </td>
 
-                      </DropdownMenuContent>
+                    <td className="p-4">
 
-                    </DropdownMenu>
+                      {service.has_back_officer
+                        ? "Yes"
+                        : "No"}
 
-                  </td>
-                </tr>
-              ))
+                    </td>
+
+                    <td className="p-4">
+
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${
+                          service.status ===
+                          "active"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+
+                        {
+                          service.status
+                        }
+
+                      </span>
+
+                    </td>
+
+                    <td className="p-4">
+
+                      <div className="flex justify-end">
+
+                        <DropdownMenu>
+
+                          <DropdownMenuTrigger
+                            asChild
+                          >
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                            >
+
+                              <MoreVertical className="w-4 h-4" />
+
+                            </Button>
+
+                          </DropdownMenuTrigger>
+
+                          <DropdownMenuContent align="end">
+
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleEdit(
+                                  service
+                                )
+                              }
+                            >
+                              Edit
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleToggleStatus(
+                                  service
+                                )
+                              }
+                            >
+
+                              {service.status ===
+                              "active"
+                                ? "Disable"
+                                : "Enable"}
+
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() =>
+                                handleDelete(
+                                  service.id
+                                )
+                              }
+                            >
+                              Delete
+                            </DropdownMenuItem>
+
+                          </DropdownMenuContent>
+
+                        </DropdownMenu>
+
+                      </div>
+
+                    </td>
+
+                  </tr>
+                )
+              )
+
             )}
+
           </tbody>
+
         </table>
+
       </div>
 
-      {/* PAGINATION */}
-      <div className="flex items-center justify-between">
+      {/* UPDATE MODAL */}
 
-        <div className="text-sm text-muted-foreground">
-          Page {meta?.current_page || 1} of {meta?.last_page || 1}
-        </div>
+      <Dialog
+        open={editOpen}
+        onOpenChange={(open) => {
 
-        <div className="flex gap-2">
+          setEditOpen(open);
 
-          <Button
-            variant="outline"
-            disabled={meta?.current_page <= 1}
-            onClick={() => setPage((p) => Math.max(p - 1, 1))}
-          >
-            Prev
-          </Button>
+          if (!open) {
 
-          <Button
-            variant="outline"
-            disabled={meta?.current_page >= meta?.last_page}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
+            setSelectedService(null);
 
-        </div>
-      </div>
+            resetForm();
+          }
+        }}
+      >
 
-      {/* ================= VIEW MODAL ================= */}
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
+
           <DialogHeader>
-            <DialogTitle>Service Details</DialogTitle>
+
+            <DialogTitle>
+              Update Service
+            </DialogTitle>
+
           </DialogHeader>
 
-          {selected && (
-            <div className="space-y-3 text-sm">
-
-              <div>
-                <strong>Name:</strong> {selected.name}
-              </div>
-
-              <div>
-                <strong>Fee:</strong> {selected.service_fee}
-              </div>
-
-              <div>
-                <strong>Status:</strong> {selected.status}
-              </div>
-
-              <div>
-                <strong>Description:</strong>{" "}
-                {selected.description || "-"}
-              </div>
-
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* ================= EDIT MODAL ================= */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Service</DialogTitle>
-          </DialogHeader>
-
-          {selected && (
-            <div className="space-y-4">
-
-              <Input
-                defaultValue={selected.name}
-              />
-
-              <Input
-                defaultValue={selected.service_fee}
-              />
-
-              <Input
-                defaultValue={selected.status}
-              />
-
-              <Button className="w-full">
-                Save Changes
-              </Button>
-
-            </div>
-          )}
+          <ServiceForm isEdit />
 
         </DialogContent>
+
       </Dialog>
 
     </div>

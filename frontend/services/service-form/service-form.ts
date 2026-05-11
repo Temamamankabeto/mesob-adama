@@ -1,48 +1,17 @@
-import api, { unwrap } from "@/lib/api";
+import api from "@/lib/api";
+import { ServiceFormPayload } from "@/types/service-form/service-form";
+export const ServiceFormAPI = {
+  list: async () => (await api.get("/service-forms")).data,
 
-export const serviceFormService = {
-  async getAll() {
-    const response = await api.get(
-      "/admin/service-forms"
-    );
+  show: async (id: number) =>
+    (await api.get(`/service-forms/${id}`)).data,
 
-    return unwrap(response);
-  },
+  create: async (payload: ServiceFormPayload) =>
+    (await api.post("/service-forms", payload)).data,
 
-  async getOne(id: number) {
-    const response = await api.get(
-      `/admin/service-forms/${id}`
-    );
+  update: async (id: number, payload: ServiceFormPayload) =>
+    (await api.put(`/service-forms/${id}`, payload)).data,
 
-    return unwrap(response);
-  },
-
-  async create(payload: any) {
-    const response = await api.post(
-      "/admin/service-forms",
-      payload
-    );
-
-    return unwrap(response);
-  },
-
-  async update(
-    id: number,
-    payload: any
-  ) {
-    const response = await api.put(
-      `/admin/service-forms/${id}`,
-      payload
-    );
-
-    return unwrap(response);
-  },
-
-  async delete(id: number) {
-    const response = await api.delete(
-      `/admin/service-forms/${id}`
-    );
-
-    return unwrap(response);
-  },
+  remove: async (id: number) =>
+    (await api.delete(`/service-forms/${id}`)).data,
 };

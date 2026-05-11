@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ServiceController;
 
 use App\Http\Controllers\Api\UserServiceAssignmentController;
+// controller for service form
+
+use App\Http\Controllers\Api\ServiceFormController;
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -19,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
         [ServiceController::class, 'index']
     );
 
+     Route::apiResource('service-forms', ServiceFormController::class);
     Route::post(
         '/services',
         [ServiceController::class, 'store']
