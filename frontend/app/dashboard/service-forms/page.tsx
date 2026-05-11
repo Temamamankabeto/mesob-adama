@@ -63,8 +63,10 @@ export default function ServiceFormsPage() {
   const [page, setPage] =
     useState(1);
 
-  const [search, setSearch] =
-    useState("");
+  const forms =
+    data?.data?.data ||
+    data?.data ||
+    [];
 
   const [open, setOpen] =
     useState(false);
@@ -197,8 +199,13 @@ export default function ServiceFormsPage() {
 
     if (!selectedServiceId) {
 
-      alert(
-        "Please select service"
+      await createMutation.mutateAsync(
+        {
+          ...formData,
+          service_id: Number(
+            formData.service_id
+          ),
+        }
       );
 
       return;
@@ -379,7 +386,9 @@ export default function ServiceFormsPage() {
 
                         <div className="p-3 text-sm text-muted-foreground">
 
-                          No services found
+                  <td className="p-3">
+                    {form.service?.name || form.service_name || form.service_id}
+                  </td>
 
                         </div>
 
