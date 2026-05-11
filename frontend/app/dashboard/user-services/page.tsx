@@ -1,72 +1,35 @@
 "use client";
 
-import {
-  useMemo,
-  useState,
-} from "react";
-
-import {
-  AlertTriangle,
-  Plus,
-  Search,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-
-import {
-  Card,
- CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-
-import {
-  Alert,
-  AlertDescription,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { useUsers } from "@/hooks/user/useUsers";
-
-import {
-  useAssignUserServices,
-  useServices,
-} from "@/hooks/services/use-service";
+import { useAssignUserServices, useServices } from "@/hooks/services/use-service";
 
 export default function UserServicePage() {
-
   const [serviceSearch, setServiceSearch] = useState("");
-
   const [selectedService, setSelectedService] = useState<any | null>(null);
-
   const [selectedOfficer, setSelectedOfficer] = useState<any | null>(null);
-
   const [assignmentType, setAssignmentType] = useState<"front" | "back">("front");
 
   const { data: usersData } = useUsers(1);
-
   const { data: servicesData } = useServices(1);
 
   const assignMutation = useAssignUserServices();
 
   const services = servicesData?.data?.data || [];
-
   const users = usersData?.data || [];
 
   const filteredServices = useMemo(() => {
-    return services.filter(
-      (service: any) =>
-        service.name?.toLowerCase()?.includes(serviceSearch.toLowerCase())
+    return services.filter((service: any) =>
+      service.name?.toLowerCase()?.includes(serviceSearch.toLowerCase())
     );
   }, [services, serviceSearch]);
 
@@ -75,10 +38,10 @@ export default function UserServicePage() {
       const role = (user.role || user.roles?.[0]?.name || "").toLowerCase();
 
       if (assignmentType === "front") {
-        return role.includes("front") || role.includes("front_officer");
+        return role.includes("front");
       }
 
-      return role.includes("back") || role.includes("back_officer");
+      return role.includes("back");
     });
   }, [users, assignmentType]);
 
@@ -87,73 +50,28 @@ export default function UserServicePage() {
       return null;
     }
 
-    const assignedUsers =
-      selectedService.assigned_users ||
-      selectedService.assignedUsers ||
-      [];
+    const assignedUsers = selectedService.assigned_users || selectedService.assignedUsers || [];
 
     return assignedUsers.find((user: any) => {
       const role = (user.role || user.roles?.[0]?.name || "").toLowerCase();
 
-      const isActive =
-        user.pivot?.is_active === true ||
-        user.pivot?.is_active === 1;
+      const isActive = user.pivot?.is_active === true || user.pivot?.is_active === 1;
 
       if (!isActive) {
         return false;
       }
 
       if (assignmentType === "front") {
-        return role.includes("front") || role.includes("front_officer");
+        return role.includes("front");
       }
 
-      return role.includes("back") || role.includes("back_officer");
+      return role.includes("back");
     });
   }, [selectedService, assignmentType]);
 
   const handleAssign = async () => {
-    if (!selectedService) {
-      alert("Please select service");
+    if (!selectedService || !selectedOfficer) {
       return;
-    }
-
-    if (!selectedOfficer) {
-      alert("Please select officer");
-      return;
-    }
-
-    if (
-      assignmentType === "back" &&
-      !selectedService.has_back_officer
-    ) {
-      alert("This service has no back officer");
-      return;
-    }
-
-    if (
-      Number(currentAssignedOfficer?.id) ===
-      Number(selectedOfficer.id)
-    ) {
-      alert(
-        assignmentType === "front"
-          ? "This front officer is already assigned to this service"
-          : "This back officer is already assigned to this service"
-      );
-
-      return;
-    }
-
-    if (
-      currentAssignedOfficer &&
-      Number(currentAssignedOfficer.id) !== Number(selectedOfficer.id)
-    ) {
-      const confirmed = confirm(
-        `This service is currently assigned to ${currentAssignedOfficer.name}. Reassign to ${selectedOfficer.name}?`
-      );
-
-      if (!confirmed) {
-        return;
-      }
     }
 
     try {
@@ -164,11 +82,7 @@ export default function UserServicePage() {
         },
       });
 
-      alert(
-        currentAssignedOfficer
-          ? "Officer reassigned successfully"
-          : "Service assigned successfully"
-      );
+      alert("Service assigned successfully");
     } catch (error) {
       console.error(error);
       alert("Failed to assign service");
@@ -203,11 +117,7 @@ export default function UserServicePage() {
                   setSelectedService(service);
                   setSelectedOfficer(null);
                 }}
-                className={`w-full rounded-xl border p-4 text-left transition ${
-                  selectedService?.id === service.id
-                    ? "border-primary bg-primary/5"
-                    : "hover:bg-muted"
-                }`}
+                className={`w-full rounded-xl border p-4 text-left transition ${selectedService?.id === service.id ? "border-primary bg-primary/5" : "hover:bg-muted"}`}
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -252,14 +162,9 @@ export default function UserServicePage() {
                   }}
                 >
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="front">
-                      Assign Front Officer
-                    </TabsTrigger>
+                    <TabsTrigger value="front">Assign Front Officer</TabsTrigger>
 
-                    <TabsTrigger
-                      value="back"
-                      disabled={!selectedService.has_back_officer}
-                    >
+                    <TabsTrigger value="back" disabled={!selectedService.has_back_officer}>
                       Assign Back Officer
                     </TabsTrigger>
                   </TabsList>
@@ -280,36 +185,34 @@ export default function UserServicePage() {
                       {filteredOfficers.map((user: any) => {
                         const isAssigned = Number(currentAssignedOfficer?.id) === Number(user.id);
 
+                        if (isAssigned) {
+                          return (
+                            <div
+                              key={user.id}
+                              className="pointer-events-none w-full cursor-not-allowed rounded-xl border border-green-500 bg-green-50 p-4 text-left opacity-50"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-semibold">{user.name}</p>
+                                  <p className="text-sm text-muted-foreground">{user.role}</p>
+                                </div>
+
+                                <Badge className="bg-green-600">Currently Assigned</Badge>
+                              </div>
+                            </div>
+                          );
+                        }
+
                         return (
                           <button
                             key={user.id}
                             type="button"
-                            disabled={isAssigned}
-                            onClick={() => {
-                              if (isAssigned) return;
-                              setSelectedOfficer(user);
-                            }}
-                            className={`w-full rounded-xl border p-4 text-left transition ${
-                              selectedOfficer?.id === user.id
-                                ? "border-primary bg-primary/5"
-                                : "hover:bg-muted"
-                            } ${
-                              isAssigned
-                                ? "cursor-not-allowed border-green-500 bg-green-50 opacity-60"
-                                : ""
-                            }`}
+                            onClick={() => setSelectedOfficer(user)}
+                            className={`w-full rounded-xl border p-4 text-left transition ${selectedOfficer?.id === user.id ? "border-primary bg-primary/5" : "hover:bg-muted"}`}
                           >
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-semibold">{user.name}</p>
-                                <p className="text-sm text-muted-foreground">{user.role}</p>
-                              </div>
-
-                              {isAssigned && (
-                                <Badge className="bg-green-600">
-                                  Currently Assigned
-                                </Badge>
-                              )}
+                            <div>
+                              <p className="font-semibold">{user.name}</p>
+                              <p className="text-sm text-muted-foreground">{user.role}</p>
                             </div>
                           </button>
                         );
@@ -318,33 +221,15 @@ export default function UserServicePage() {
                   </TabsContent>
 
                   <TabsContent value="back">
-                    {!selectedService.has_back_officer ? (
-                      <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
-                        This service has no back officer
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {filteredOfficers.map((user: any) => {
-                          const isAssigned = Number(currentAssignedOfficer?.id) === Number(user.id);
+                    <div className="space-y-3">
+                      {filteredOfficers.map((user: any) => {
+                        const isAssigned = Number(currentAssignedOfficer?.id) === Number(user.id);
 
+                        if (isAssigned) {
                           return (
-                            <button
+                            <div
                               key={user.id}
-                              type="button"
-                              disabled={isAssigned}
-                              onClick={() => {
-                                if (isAssigned) return;
-                                setSelectedOfficer(user);
-                              }}
-                              className={`w-full rounded-xl border p-4 text-left transition ${
-                                selectedOfficer?.id === user.id
-                                  ? "border-primary bg-primary/5"
-                                  : "hover:bg-muted"
-                              } ${
-                                isAssigned
-                                  ? "cursor-not-allowed border-green-500 bg-green-50 opacity-60"
-                                  : ""
-                              }`}
+                              className="pointer-events-none w-full cursor-not-allowed rounded-xl border border-green-500 bg-green-50 p-4 text-left opacity-50"
                             >
                               <div className="flex items-center justify-between">
                                 <div>
@@ -352,31 +237,34 @@ export default function UserServicePage() {
                                   <p className="text-sm text-muted-foreground">{user.role}</p>
                                 </div>
 
-                                {isAssigned && (
-                                  <Badge className="bg-green-600">
-                                    Currently Assigned
-                                  </Badge>
-                                )}
+                                <Badge className="bg-green-600">Currently Assigned</Badge>
                               </div>
-                            </button>
+                            </div>
                           );
-                        })}
-                      </div>
-                    )}
+                        }
+
+                        return (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => setSelectedOfficer(user)}
+                            className={`w-full rounded-xl border p-4 text-left transition ${selectedOfficer?.id === user.id ? "border-primary bg-primary/5" : "hover:bg-muted"}`}
+                          >
+                            <div>
+                              <p className="font-semibold">{user.name}</p>
+                              <p className="text-sm text-muted-foreground">{user.role}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </TabsContent>
                 </Tabs>
 
                 <div className="flex justify-end">
-                  <Button
-                    onClick={handleAssign}
-                    disabled={assignMutation.isPending || !selectedOfficer}
-                  >
+                  <Button onClick={handleAssign} disabled={assignMutation.isPending || !selectedOfficer}>
                     <Plus className="mr-2 h-4 w-4" />
-                    {assignMutation.isPending
-                      ? "Assigning..."
-                      : currentAssignedOfficer
-                      ? "Reassign Officer"
-                      : "Assign Service"}
+                    {assignMutation.isPending ? "Assigning..." : "Assign Service"}
                   </Button>
                 </div>
               </div>
