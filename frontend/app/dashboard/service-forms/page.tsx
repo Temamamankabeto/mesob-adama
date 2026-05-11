@@ -16,7 +16,9 @@ export default function ServiceFormsPage() {
     useCreateServiceForm();
 
   const forms =
-    data?.data?.data || [];
+    data?.data?.data ||
+    data?.data ||
+    [];
 
   const [open, setOpen] =
     useState(false);
@@ -35,7 +37,12 @@ export default function ServiceFormsPage() {
     try {
 
       await createMutation.mutateAsync(
-        formData
+        {
+          ...formData,
+          service_id: Number(
+            formData.service_id
+          ),
+        }
       );
 
       setOpen(false);
@@ -149,7 +156,7 @@ export default function ServiceFormsPage() {
                   </td>
 
                   <td className="p-3">
-                    {form.service?.name}
+                    {form.service?.name || form.service_name || form.service_id}
                   </td>
 
                   <td className="p-3">
