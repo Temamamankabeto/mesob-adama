@@ -8,15 +8,15 @@ use App\Services\ApplicationDashboardService;
 class ApplicationDashboardController extends Controller
 {
     public function __construct(
-        protected ApplicationDashboardService $dashboardService
+        protected ApplicationDashboardService $service
     ) {}
 
-    public function summary()
+    public function stats()
     {
         return response()->json([
             'success' => true,
-            'message' => 'Application dashboard summary retrieved successfully',
-            'data' => $this->dashboardService->summary(),
+            'message' => 'Dashboard stats retrieved successfully',
+            'data' => $this->service->stats(),
         ]);
     }
 }

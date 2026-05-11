@@ -186,7 +186,7 @@ class RolesPermissionsSeeder extends Seeder
             ],
 
             // CITY FRONT OFFICER
-            'city_front_officer' => [
+            'front_officer' => [
                 'auth.me',
 
                 'users.read',
@@ -198,7 +198,7 @@ class RolesPermissionsSeeder extends Seeder
             ],
 
             // CITY BACK OFFICER
-            'city_back_officer' => [
+            'back_officer' => [
                 'auth.me',
 
                 'users.read',
@@ -208,54 +208,9 @@ class RolesPermissionsSeeder extends Seeder
 
                 'reports.officer',
             ],
+ 
 
-            // SUBCITY FRONT OFFICER
-            'subcity_front_officer' => [
-                'auth.me',
-
-                'users.read',
-
-                // SERVICES
-                'services.read',
-
-                'reports.officer',
-            ],
-
-            // SUBCITY BACK OFFICER
-            'subcity_back_officer' => [
-                'auth.me',
-
-                'users.read',
-
-                // SERVICES
-                'services.read',
-
-                'reports.officer',
-            ],
-
-            // WOREDA FRONT OFFICER
-            'woreda_front_officer' => [
-                'auth.me',
-
-                'users.read',
-
-                // SERVICES
-                'services.read',
-
-                'reports.officer',
-            ],
-
-            // WOREDA BACK OFFICER
-            'woreda_back_officer' => [
-                'auth.me',
-
-                'users.read',
-
-                // SERVICES
-                'services.read',
-
-                'reports.officer',
-            ],
+           
 
             // CUSTOMER
             'customer' => [
@@ -305,14 +260,14 @@ class RolesPermissionsSeeder extends Seeder
                 'name' => 'Front Officer',
                 'email' => 'frontofficer@eservice.com',
                 'phone' => '0911000004',
-                'role' => 'woreda_front_officer',
+                'role' => 'front_officer',
             ],
 
             [
                 'name' => 'Back Officer',
                 'email' => 'backofficer@eservice.com',
                 'phone' => '0911000005',
-                'role' => 'woreda_back_officer',
+                'role' => 'back_officer',
             ],
 
             [
