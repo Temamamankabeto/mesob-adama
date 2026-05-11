@@ -3,7 +3,7 @@ import api, { unwrap } from "@/lib/api";
 export const serviceFormService = {
   async getAll() {
     const response = await api.get(
-      "/admin/service-forms"
+      "/service-forms"
     );
 
     return unwrap(response);
@@ -11,7 +11,7 @@ export const serviceFormService = {
 
   async getOne(id: number) {
     const response = await api.get(
-      `/admin/service-forms/${id}`
+      `/service-forms/${id}`
     );
 
     return unwrap(response);
@@ -19,11 +19,11 @@ export const serviceFormService = {
 
   async create(payload: any) {
     const response = await api.post(
-      "/admin/service-forms",
+      "/service-forms",
       payload
     );
 
-    return unwrap(response);
+    return unwrap(response);  
   },
 
   async update(
@@ -31,7 +31,7 @@ export const serviceFormService = {
     payload: any
   ) {
     const response = await api.put(
-      `/admin/service-forms/${id}`,
+      `/service-forms/${id}`,
       payload
     );
 
@@ -40,7 +40,7 @@ export const serviceFormService = {
 
   async delete(id: number) {
     const response = await api.delete(
-      `/admin/service-forms/${id}`
+      `/service-forms/${id}`
     );
 
     return unwrap(response);

@@ -21,6 +21,12 @@ class Service extends Model
         'service_fee' => 'float',
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | WINDOWS
+    |--------------------------------------------------------------------------
+    */
+
     public function windows()
     {
         return $this->belongsToMany(
@@ -35,6 +41,12 @@ class Service extends Model
             ->orderBy('service_window.step_order');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | ASSIGNED USERS
+    |--------------------------------------------------------------------------
+    */
+
     public function assignedUsers()
     {
         return $this->belongsToMany(
@@ -47,6 +59,12 @@ class Service extends Model
             ->withTimestamps();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | FRONT OFFICERS
+    |--------------------------------------------------------------------------
+    */
+
     public function frontOfficers()
     {
         return $this->assignedUsers()
@@ -56,6 +74,12 @@ class Service extends Model
                 'woreda_front_officer',
             ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BACK OFFICERS
+    |--------------------------------------------------------------------------
+    */
 
     public function backOfficers()
     {
@@ -67,20 +91,29 @@ class Service extends Model
             ]);
     }
 
-    public function form()
-{
-    return $this->hasOne(
-        ServiceForm::class
-    );
-}
+    /*
+    |--------------------------------------------------------------------------
+    | FORMS
+    |--------------------------------------------------------------------------
+    */
 
-public function applications()
-{
-    return $this->hasMany(
-        ServiceApplication::class
-    );
-}
+    public function forms()
+    {
+        return $this->hasMany(
+            ServiceForm::class
+        );
+    }
 
+    /*
+    |--------------------------------------------------------------------------
+    | APPLICATIONS
+    |--------------------------------------------------------------------------
+    */
 
-
+    public function applications()
+    {
+        return $this->hasMany(
+            ServiceApplication::class
+        );
+    }
 }

@@ -1,3 +1,7 @@
+import {
+  LaravelPaginatedResponse,
+} from "@/types/common";
+
 export type ServiceAvailability =
   | "city"
   | "subcity"
@@ -6,6 +10,56 @@ export type ServiceAvailability =
 export type ServiceStatus =
   | "active"
   | "inactive";
+
+/*
+|--------------------------------------------------------------------------
+| ROLE TYPE
+|--------------------------------------------------------------------------
+*/
+
+export type OfficerRole =
+  | "front_officer"
+  | "back_officer";
+
+/*
+|--------------------------------------------------------------------------
+| ROLE
+|--------------------------------------------------------------------------
+*/
+
+export interface Role {
+  id: number;
+
+  name: OfficerRole;
+}
+
+/*
+|--------------------------------------------------------------------------
+| ASSIGNED USER
+|--------------------------------------------------------------------------
+*/
+
+export interface AssignedUser {
+  id: number;
+
+  name: string;
+
+  email?: string;
+
+  role?: OfficerRole;
+
+  roles?: Role[];
+
+  pivot?: {
+    is_active: boolean;
+  };
+}
+
+/*
+|--------------------------------------------------------------------------
+| SERVICE
+|--------------------------------------------------------------------------
+*/
 
 export interface Service {
   id: number;
@@ -25,7 +79,23 @@ export interface Service {
   created_at: string;
 
   updated_at: string;
+
+  /*
+  |--------------------------------------------------------------------------
+  | RELATIONSHIPS
+  |--------------------------------------------------------------------------
+  */
+
+  assignedUsers?: AssignedUser[];
+
+  assigned_users?: AssignedUser[];
 }
+
+/*
+|--------------------------------------------------------------------------
+| SERVICE PAYLOAD
+|--------------------------------------------------------------------------
+*/
 
 export interface ServicePayload {
   name: string;
@@ -41,20 +111,202 @@ export interface ServicePayload {
   status: ServiceStatus;
 }
 
-export interface PaginatedServiceResponse {
+/*
+|--------------------------------------------------------------------------
+| PAGINATED SERVICE RESPONSE
+|--------------------------------------------------------------------------
+*/
+
+export type PaginatedServiceResponse =
+  LaravelPaginatedResponse<Service>;
+
+/*
+|--------------------------------------------------------------------------
+| USER ASSIGNED SERVICE
+|--------------------------------------------------------------------------
+*/
+
+export interface UserAssignedService {
+  id: number;
+
+  name: string;
+
+  pivot?: {
+    user_id?: number;
+
+    service_id?: number;
+
+    is_active: boolean;
+
+    created_at?: string;
+
+    updated_at?: string;
+  };
+}
+
+/*
+|--------------------------------------------------------------------------
+| USER SERVICE RESPONSE
+|--------------------------------------------------------------------------
+*/
+
+export interface UserServiceAssignmentResponse {
   success: boolean;
 
   message: string;
 
   data: {
-    current_page: number;
+    id: number;
 
-    data: Service[];
+    name: string;
 
-    last_page: number;
+    email?: string;
 
-    per_page: number;
+    role?: OfficerRole;
 
-    total: number;
+    roles?: Role[];
+
+    assigned_services: UserAssignedService[];
+
+    assignedServices?: UserAssignedService[];
   };
+}
+
+/*
+|--------------------------------------------------------------------------
+| ASSIGN USER SERVICE PAYLOAD
+|--------------------------------------------------------------------------
+*/
+
+export interface AssignUserServicePayload {
+  service_ids: number[];
+}
+
+/*
+|--------------------------------------------------------------------------
+| OFFICER
+|--------------------------------------------------------------------------
+*/
+
+export interface Officer {
+  id: number;
+
+  name: string;
+
+  email?: string;
+
+  phone?: string;
+
+  gender?: string | null;
+
+  address?: string | null;
+
+  status?: string;
+
+  profile_image_url?: string | null;
+
+  role?: OfficerRole;
+
+  roles?: Role[];
+
+  assigned_services?: UserAssignedService[];
+
+  assignedServices?: UserAssignedService[];
+}
+
+/*
+|--------------------------------------------------------------------------
+| OFFICER RESPONSE
+|--------------------------------------------------------------------------
+*/
+ /*
+|--------------------------------------------------------------------------
+| OFFICER RESPONSE
+|--------------------------------------------------------------------------
+*/
+
+export type OfficerListResponse =
+  LaravelPaginatedResponse<Officer>;
+
+
+
+/*
+|--------------------------------------------------------------------------
+| SERVICE FORM
+|--------------------------------------------------------------------------
+*/
+
+export interface ServiceForm {
+  id: number;
+
+  service_id: number;
+
+  title: string;
+
+  description?: string | null;
+
+  is_active: boolean;
+
+  created_at: string;
+
+  updated_at?: string;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| SERVICE FORM RESPONSE
+|--------------------------------------------------------------------------
+*/
+
+export type ServiceFormResponse =
+  LaravelPaginatedResponse<ServiceForm>;
+
+
+
+/*
+|--------------------------------------------------------------------------
+| SINGLE SERVICE FORM RESPONSE
+|--------------------------------------------------------------------------
+*/
+
+export interface SingleServiceFormResponse {
+  success: boolean;
+
+  message: string;
+
+  data: ServiceForm;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| CREATE SERVICE FORM PAYLOAD
+|--------------------------------------------------------------------------
+*/
+
+export interface CreateServiceFormPayload {
+  title: string;
+
+  description?: string;
+
+  is_active?: boolean;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| UPDATE SERVICE FORM PAYLOAD
+|--------------------------------------------------------------------------
+*/
+
+export interface UpdateServiceFormPayload {
+  title?: string;
+
+  description?: string;
+
+  is_active?: boolean;
 }
