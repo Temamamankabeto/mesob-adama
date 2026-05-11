@@ -2,61 +2,276 @@
 
 import { useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
+
+import { Button } from "@/components/ui/button";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+import {
+  Dialog,
+ DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+import { Input } from "@/components/ui/input";
+
+import { Label } from "@/components/ui/label";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+import { Textarea } from "@/components/ui/textarea";
+
+import Pagination from "@/components/common/Pagination";
+
 import {
   useCreateServiceForm,
   useServiceForms,
-} from "@/hooks/useServiceForms";
+  useServices,
+} from "@/hooks/services/use-service";
 
 export default function ServiceFormsPage() {
 
-  const { data, isLoading } =
-    useServiceForms();
+  /*
+  |--------------------------------------------------------------------------
+  | STATES
+  |--------------------------------------------------------------------------
+  */
 
-  const createMutation =
-    useCreateServiceForm();
+  const [page, setPage] =
+    useState(1);
 
-  const forms =
-    data?.data?.data || [];
+  const [search, setSearch] =
+    useState("");
 
   const [open, setOpen] =
     useState(false);
 
-  const [formData, setFormData] =
+  const [
+    selectedServiceId,
+    setSelectedServiceId,
+  ] = useState<
+    number | undefined
+  >(undefined);
+
+  const [formData,
+    setFormData] =
     useState({
 
-      service_id: "",
       title: "",
+
       description: "",
+
       is_active: true,
     });
 
+  /*
+  |--------------------------------------------------------------------------
+  | SERVICES
+  |--------------------------------------------------------------------------
+  */
+
+  const {
+    data: servicesResponse,
+    isLoading: servicesLoading,
+  } = useServices();
+
+  const services =
+    Array.isArray(
+      servicesResponse?.data
+    )
+      ? servicesResponse.data
+      : Array.isArray(
+          servicesResponse?.data?.data
+        )
+      ? servicesResponse.data.data
+      : Array.isArray(
+          servicesResponse?.data?.data?.data
+        )
+      ? servicesResponse.data.data.data
+      : [];
+
+  /*
+  |--------------------------------------------------------------------------
+  | FORMS
+  |--------------------------------------------------------------------------
+  */
+
+  const {
+    data: formsResponse,
+    isLoading,
+    refetch,
+  } = useServiceForms(
+    selectedServiceId,
+    {
+      page,
+      search,
+      per_page: 10,
+    }
+  );
+
+  const forms =
+    Array.isArray(
+      formsResponse?.data
+    )
+      ? formsResponse.data
+      : Array.isArray(
+          formsResponse?.data?.data
+        )
+      ? formsResponse.data.data
+      : Array.isArray(
+          formsResponse?.data?.data?.data
+        )
+      ? formsResponse.data.data.data
+      : [];
+
+  const meta =
+    formsResponse?.meta ||
+    formsResponse?.data?.meta ||
+    formsResponse?.data?.data?.meta;
+
+  /*
+  |--------------------------------------------------------------------------
+  | DEBUG
+  |--------------------------------------------------------------------------
+  */
+
+  console.log(
+    "servicesResponse",
+    servicesResponse
+  );
+
+  console.log(
+    "services",
+    services
+  );
+
+  console.log(
+    "formsResponse",
+    formsResponse
+  );
+
+  console.log(
+    "forms",
+    forms
+  );
+
+  /*
+  |--------------------------------------------------------------------------
+  | CREATE
+  |--------------------------------------------------------------------------
+  */
+
+  const createMutation =
+    useCreateServiceForm();
+
+  /*
+  |--------------------------------------------------------------------------
+  | SUBMIT
+  |--------------------------------------------------------------------------
+  */
+
   async function handleSubmit() {
+
+    if (!selectedServiceId) {
+
+      alert(
+        "Please select service"
+      );
+
+      return;
+    }
+
+    if (!formData.title) {
+
+      alert(
+        "Title is required"
+      );
+
+      return;
+    }
 
     try {
 
-      await createMutation.mutateAsync(
-        formData
-      );
+      console.log({
+
+        serviceId:
+          selectedServiceId,
+
+        payload:
+          formData,
+      });
+
+      await createMutation
+        .mutateAsync({
+
+          serviceId:
+            selectedServiceId,
+
+          payload:
+            formData,
+        });
+
+      await refetch();
 
       setOpen(false);
 
       setFormData({
-        service_id: "",
+
         title: "",
+
         description: "",
+
         is_active: true,
       });
 
-    } catch (error) {
+      setSelectedServiceId(
+        undefined
+      );
+
+    } catch (error: any) {
 
       console.error(error);
+
+      alert(
+
+        error?.response?.data
+          ?.message ||
+
+        "Failed to create form"
+      );
     }
   }
 
   return (
+
     <div className="space-y-6">
 
-      <div className="flex items-center justify-between">
+      {/* HEADER */}
+
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
         <div>
 
@@ -64,197 +279,384 @@ export default function ServiceFormsPage() {
             Service Forms
           </h1>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-muted-foreground">
             Manage dynamic service forms
           </p>
 
         </div>
 
-        <button
-          onClick={() => setOpen(true)}
-          className="rounded-lg bg-black px-4 py-2 text-sm text-white"
-        >
-          Create Form
-        </button>
+        <div className="flex items-center gap-3">
 
-      </div>
+          {/* SEARCH */}
 
-      <div className="overflow-hidden rounded-xl border bg-white">
+          <Input
+            placeholder="Search forms..."
+            value={search}
+            onChange={(e) => {
 
-        <table className="w-full">
+              setSearch(
+                e.target.value
+              );
 
-          <thead className="bg-gray-100">
+              setPage(1);
+            }}
+            className="w-[250px]"
+          />
 
-            <tr>
+          {/* CREATE */}
 
-              <th className="p-3 text-left">
-                ID
-              </th>
+          <Dialog
+            open={open}
+            onOpenChange={setOpen}
+          >
 
-              <th className="p-3 text-left">
-                Title
-              </th>
+            <DialogTrigger asChild>
 
-              <th className="p-3 text-left">
-                Service
-              </th>
+              <Button>
+                Create Form
+              </Button>
 
-              <th className="p-3 text-left">
-                Status
-              </th>
+            </DialogTrigger>
 
-            </tr>
+            <DialogContent className="sm:max-w-[500px]">
 
-          </thead>
+              <DialogHeader>
 
-          <tbody>
+                <DialogTitle>
+                  Create Service Form
+                </DialogTitle>
 
-            {isLoading ? (
+              </DialogHeader>
 
-              <tr>
-                <td
-                  colSpan={4}
-                  className="p-6 text-center"
-                >
-                  Loading...
-                </td>
-              </tr>
+              <div className="space-y-4">
 
-            ) : forms.length === 0 ? (
+                {/* SERVICE */}
 
-              <tr>
-                <td
-                  colSpan={4}
-                  className="p-6 text-center"
-                >
-                  No forms found
-                </td>
-              </tr>
+                <div className="space-y-2">
 
-            ) : (
+                  <Label>
+                    Service
+                  </Label>
 
-              forms.map((form: any) => (
+                  <Select
+                    value={
+                      selectedServiceId?.toString()
+                    }
+                    onValueChange={(value) =>
+                      setSelectedServiceId(
+                        Number(value)
+                      )
+                    }
+                  >
 
-                <tr
-                  key={form.id}
-                  className="border-t"
-                >
+                    <SelectTrigger>
 
-                  <td className="p-3">
-                    {form.id}
-                  </td>
+                      <SelectValue placeholder="Select Service" />
 
-                  <td className="p-3">
-                    {form.title}
-                  </td>
+                    </SelectTrigger>
 
-                  <td className="p-3">
-                    {form.service?.name}
-                  </td>
+                    <SelectContent>
 
-                  <td className="p-3">
+                      {services.length > 0 ? (
 
-                    <span
-                      className={`rounded px-2 py-1 text-xs font-semibold ${
-                        form.is_active
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {form.is_active
-                        ? "Active"
-                        : "Inactive"}
-                    </span>
+                        services.map(
+                          (
+                            service: any
+                          ) => (
 
-                  </td>
+                            <SelectItem
+                              key={
+                                service.id
+                              }
+                              value={service.id.toString()}
+                            >
+                              {service.name}
+                            </SelectItem>
+                          )
+                        )
 
-                </tr>
+                      ) : (
 
-              ))
+                        <div className="p-3 text-sm text-muted-foreground">
 
-            )}
+                          No services found
 
-          </tbody>
+                        </div>
 
-        </table>
+                      )}
 
-      </div>
+                    </SelectContent>
 
-      {open && (
+                  </Select>
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                </div>
 
-          <div className="w-full max-w-lg rounded-xl bg-white p-6">
+                {/* TITLE */}
 
-            <h2 className="mb-4 text-xl font-bold">
-              Create Service Form
-            </h2>
+                <div className="space-y-2">
 
-            <div className="space-y-4">
+                  <Label>
+                    Title
+                  </Label>
 
-              <input
-                type="text"
-                placeholder="Service ID"
-                value={formData.service_id}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    service_id: e.target.value,
-                  })
-                }
-                className="w-full rounded border p-3"
-              />
+                  <Input
+                    placeholder="Form title"
+                    value={
+                      formData.title
+                    }
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        title:
+                          e.target
+                            .value,
+                      })
+                    }
+                  />
 
-              <input
-                type="text"
-                placeholder="Title"
-                value={formData.title}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    title: e.target.value,
-                  })
-                }
-                className="w-full rounded border p-3"
-              />
+                </div>
 
-              <textarea
-                placeholder="Description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    description: e.target.value,
-                  })
-                }
-                className="w-full rounded border p-3"
-              />
+                {/* DESCRIPTION */}
 
-              <div className="flex justify-end gap-3">
+                <div className="space-y-2">
 
-                <button
-                  onClick={() => setOpen(false)}
-                  className="rounded border px-4 py-2"
-                >
-                  Cancel
-                </button>
+                  <Label>
+                    Description
+                  </Label>
 
-                <button
-                  onClick={handleSubmit}
-                  className="rounded bg-black px-4 py-2 text-white"
-                >
-                  Save
-                </button>
+                  <Textarea
+                    placeholder="Description"
+                    value={
+                      formData.description
+                    }
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        description:
+                          e.target
+                            .value,
+                      })
+                    }
+                  />
+
+                </div>
+
+                {/* ACTIONS */}
+
+                <div className="flex justify-end gap-3">
+
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      setOpen(false)
+                    }
+                  >
+                    Cancel
+                  </Button>
+
+                  <Button
+                    onClick={
+                      handleSubmit
+                    }
+                    disabled={
+                      createMutation.isPending
+                    }
+                  >
+
+                    {createMutation.isPending
+                      ? "Saving..."
+                      : "Save"}
+
+                  </Button>
+
+                </div>
 
               </div>
 
-            </div>
+            </DialogContent>
 
-          </div>
+          </Dialog>
 
         </div>
 
-      )}
+      </div>
+
+      {/* TABLE */}
+
+      <Card>
+
+        <CardHeader>
+
+          <CardTitle>
+            Forms List
+          </CardTitle>
+
+        </CardHeader>
+
+        <CardContent>
+
+          {isLoading ? (
+
+            <div className="py-10 text-center">
+              Loading...
+            </div>
+
+          ) : (
+
+            <div className="space-y-4">
+
+              <div className="overflow-x-auto">
+
+                <Table>
+
+                  <TableHeader>
+
+                    <TableRow>
+
+                      <TableHead>
+                        ID
+                      </TableHead>
+
+                      <TableHead>
+                        Service
+                      </TableHead>
+
+                      <TableHead>
+                        Title
+                      </TableHead>
+
+                      <TableHead>
+                        Description
+                      </TableHead>
+
+                      <TableHead>
+                        Status
+                      </TableHead>
+
+                    </TableRow>
+
+                  </TableHeader>
+
+                  <TableBody>
+
+                    {forms.length > 0 ? (
+
+                      forms.map(
+                        (
+                          form: any
+                        ) => (
+
+                          <TableRow
+                            key={
+                              form.id
+                            }
+                          >
+
+                            <TableCell>
+                              {form.id}
+                            </TableCell>
+
+                            <TableCell>
+
+                              {form
+                                .service
+                                ?.name ||
+
+                                services.find(
+                                  (
+                                    service: any
+                                  ) =>
+                                    service.id ===
+                                    form.service_id
+                                )?.name ||
+
+                                "-"}
+
+                            </TableCell>
+
+                            <TableCell className="font-medium">
+
+                              {form.title}
+
+                            </TableCell>
+
+                            <TableCell>
+
+                              {form.description ||
+                                "-"}
+
+                            </TableCell>
+
+                            <TableCell>
+
+                              <Badge
+                                variant={
+                                  form.is_active
+                                    ? "default"
+                                    : "destructive"
+                                }
+                              >
+
+                                {form.is_active
+                                  ? "Active"
+                                  : "Inactive"}
+
+                              </Badge>
+
+                            </TableCell>
+
+                          </TableRow>
+                        )
+                      )
+
+                    ) : (
+
+                      <TableRow>
+
+                        <TableCell
+                          colSpan={5}
+                          className="py-10 text-center text-muted-foreground"
+                        >
+
+                          No forms found
+
+                        </TableCell>
+
+                      </TableRow>
+
+                    )}
+
+                  </TableBody>
+
+                </Table>
+
+              </div>
+
+              {/* PAGINATION */}
+
+              {meta && (
+
+                <Pagination
+                  currentPage={
+                    meta.current_page
+                  }
+                  lastPage={
+                    meta.last_page
+                  }
+                  onPageChange={
+                    setPage
+                  }
+                />
+
+              )}
+
+            </div>
+
+          )}
+
+        </CardContent>
+
+      </Card>
 
     </div>
   );

@@ -59,30 +59,78 @@ type FormState = {
 };
 
 export default function ServicePage() {
+
   const [page] = useState(1);
 
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  /*
+  |--------------------------------------------------------------------------
+  | DIALOGS
+  |--------------------------------------------------------------------------
+  */
+
+  const [createOpen, setCreateOpen] =
+    useState(false);
+
+  const [editOpen, setEditOpen] =
+    useState(false);
+
+  /*
+  |--------------------------------------------------------------------------
+  | SELECTED SERVICE
+  |--------------------------------------------------------------------------
+  */
 
   const [selectedService, setSelectedService] =
     useState<Service | null>(null);
 
-  const [formData, setFormData] = useState<FormState>({
-    name: "",
-    description: "",
-    has_back_officer: false,
-    service_fee: 0,
-    availability: [],
-    status: "active",
-  });
+  /*
+  |--------------------------------------------------------------------------
+  | FORM DATA
+  |--------------------------------------------------------------------------
+  */
 
-  const { data, isLoading } = useServices(page);
+  const [formData, setFormData] =
+    useState<FormState>({
+      name: "",
+      description: "",
+      has_back_officer: false,
+      service_fee: 0,
+      availability: [],
+      status: "active",
+    });
 
-  const createMutation = useCreateService();
-  const updateMutation = useUpdateService();
-  const deleteMutation = useDeleteService();
+  /*
+  |--------------------------------------------------------------------------
+  | QUERIES
+  |--------------------------------------------------------------------------
+  */
+
+  const { data, isLoading } =
+    useServices(page);
+
+  /*
+  |--------------------------------------------------------------------------
+  | MUTATIONS
+  |--------------------------------------------------------------------------
+  */
+
+  const createMutation =
+    useCreateService();
+
+  const updateMutation =
+    useUpdateService();
+
+  const deleteMutation =
+    useDeleteService();
+
+  /*
+  |--------------------------------------------------------------------------
+  | RESET
+  |--------------------------------------------------------------------------
+  */
 
   const resetForm = () => {
+
     setFormData({
       name: "",
       description: "",
@@ -93,103 +141,238 @@ export default function ServicePage() {
     });
   };
 
-  const handleCreate = async () => {
-    try {
-      await createMutation.mutateAsync(formData);
+  /*
+  |--------------------------------------------------------------------------
+  | CREATE
+  |--------------------------------------------------------------------------
+  */
 
-      setCreateOpen(false);
-      resetForm();
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const handleCreate =
+    async () => {
 
-  const handleEdit = (service: Service) => {
+      try {
+
+        await createMutation.mutateAsync(
+          formData
+        );
+
+        setCreateOpen(false);
+
+        resetForm();
+
+      } catch (error) {
+
+        console.error(error);
+      }
+    };
+
+  /*
+  |--------------------------------------------------------------------------
+  | EDIT
+  |--------------------------------------------------------------------------
+  */
+
+  const handleEdit = (
+    service: Service
+  ) => {
+
     setSelectedService(service);
 
     setFormData({
       name: service.name,
-      description: service.description || "",
-      has_back_officer: service.has_back_officer,
-      service_fee: service.service_fee,
-      availability: service.availability,
+      description:
+        service.description || "",
+      has_back_officer:
+        service.has_back_officer,
+      service_fee:
+        service.service_fee,
+      availability:
+        service.availability,
       status: service.status,
     });
 
     setEditOpen(true);
   };
 
-  const handleUpdate = async () => {
-    if (!selectedService) return;
+  /*
+  |--------------------------------------------------------------------------
+  | UPDATE
+  |--------------------------------------------------------------------------
+  */
 
-    try {
-      await updateMutation.mutateAsync({
-        id: selectedService.id,
-        payload: formData,
-      });
+  const handleUpdate =
+    async () => {
 
-      setEditOpen(false);
-      resetForm();
-    } catch (error) {
-      console.error(error);
-    }
-  };
+      if (!selectedService)
+        return;
 
-  const handleDelete = async (id: number) => {
-    const confirmed = confirm("Delete this service?");
-    if (!confirmed) return;
+      try {
 
-    try {
-      await deleteMutation.mutateAsync(id);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+        await updateMutation.mutateAsync({
+
+          id: selectedService.id,
+
+          payload: formData,
+        });
+
+        setEditOpen(false);
+
+        setSelectedService(null);
+
+        resetForm();
+
+      } catch (error) {
+
+        console.error(error);
+      }
+    };
+
+  /*
+  |--------------------------------------------------------------------------
+  | DELETE
+  |--------------------------------------------------------------------------
+  */
+
+  const handleDelete =
+    async (id: number) => {
+
+      const confirmed =
+        confirm(
+          "Delete this service?"
+        );
+
+      if (!confirmed)
+        return;
+
+      try {
+
+        await deleteMutation.mutateAsync(
+          id
+        );
+
+      } catch (error) {
+
+        console.error(error);
+      }
+    };
+
+  /*
+  |--------------------------------------------------------------------------
+  | TOGGLE STATUS
+  |--------------------------------------------------------------------------
+  */
+
+  const handleToggleStatus =
+    async (
+      service: Service
+    ) => {
+
+      try {
+
+        await updateMutation.mutateAsync({
+
+          id: service.id,
+
+          payload: {
+
+            ...service,
+
+            status:
+              service.status ===
+              "active"
+                ? "inactive"
+                : "active",
+          },
+        });
+
+      } catch (error) {
+
+        console.error(error);
+      }
+    };
 
   return (
     <div className="space-y-6 p-6">
+
       {/* HEADER */}
+
       <div className="flex items-center justify-between">
+
         <div>
+
           <h1 className="text-2xl font-bold">
             Services
           </h1>
+
           <p className="text-sm text-muted-foreground">
             Manage system services
           </p>
+
         </div>
+
+        {/* CREATE MODAL */}
 
         <Dialog
           open={createOpen}
-          onOpenChange={setCreateOpen}
+          onOpenChange={(open) => {
+
+            setCreateOpen(open);
+
+            if (!open) {
+              resetForm();
+            }
+          }}
         >
+
           <DialogTrigger asChild>
-            <Button>Create Service</Button>
+
+            <Button>
+              Create Service
+            </Button>
+
           </DialogTrigger>
 
           <DialogContent className="sm:max-w-lg">
+
             <DialogHeader>
+
               <DialogTitle>
                 Create Service
               </DialogTitle>
+
             </DialogHeader>
 
             <div className="space-y-4">
+
+              {/* NAME */}
+
               <div className="space-y-2">
-                <Label>Name</Label>
+
+                <Label>
+                  Name
+                </Label>
+
                 <Input
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      name: e.target.value,
+                      name:
+                        e.target.value,
                     })
                   }
                 />
+
               </div>
 
+              {/* DESCRIPTION */}
+
               <div className="space-y-2">
-                <Label>Description</Label>
+
+                <Label>
+                  Description
+                </Label>
+
                 <Textarea
                   value={formData.description}
                   onChange={(e) =>
@@ -200,30 +383,44 @@ export default function ServicePage() {
                     })
                   }
                 />
+
               </div>
 
+              {/* SERVICE FEE */}
+
               <div className="space-y-2">
-                <Label>Service Fee</Label>
+
+                <Label>
+                  Service Fee
+                </Label>
+
                 <Input
                   type="number"
                   value={formData.service_fee}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      service_fee: Number(
-                        e.target.value
-                      ),
+                      service_fee:
+                        Number(
+                          e.target.value
+                        ),
                     })
                   }
                 />
+
               </div>
 
+              {/* BACK OFFICER */}
+
               <div className="flex items-center gap-3">
+
                 <Checkbox
                   checked={
                     formData.has_back_officer
                   }
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(
+                    checked
+                  ) =>
                     setFormData({
                       ...formData,
                       has_back_officer:
@@ -231,67 +428,104 @@ export default function ServicePage() {
                     })
                   }
                 />
+
                 <Label>
                   Has Back Officer
                 </Label>
+
               </div>
 
+              {/* AVAILABILITY */}
+
               <div className="space-y-3">
-                <Label>Availability</Label>
+
+                <Label>
+                  Availability
+                </Label>
 
                 <div className="grid grid-cols-2 gap-3">
+
                   {(
                     [
                       "city",
                       "subcity",
                       "woreda",
                     ] as ServiceAvailability[]
-                  ).map((item) => (
-                    <div
-                      key={item}
-                      className="flex items-center gap-2"
-                    >
-                      <Checkbox
-                        checked={formData.availability.includes(
-                          item
-                        )}
-                        onCheckedChange={(
-                          checked
-                        ) => {
-                          if (checked) {
-                            setFormData({
-                              ...formData,
-                              availability: [
-                                ...formData.availability,
-                                item,
-                              ],
-                            });
-                          } else {
-                            setFormData({
-                              ...formData,
-                              availability:
-                                formData.availability.filter(
-                                  (i) =>
-                                    i !== item
-                                ),
-                            });
-                          }
-                        }}
-                      />
-                      <Label className="capitalize">
-                        {item}
-                      </Label>
-                    </div>
-                  ))}
+                  ).map(
+                    (item) => (
+
+                      <div
+                        key={item}
+                        className="flex items-center gap-2"
+                      >
+
+                        <Checkbox
+                          checked={formData.availability.includes(
+                            item
+                          )}
+                          onCheckedChange={(
+                            checked
+                          ) => {
+
+                            if (
+                              checked
+                            ) {
+
+                              setFormData({
+                                ...formData,
+
+                                availability:
+                                  [
+                                    ...formData.availability,
+                                    item,
+                                  ],
+                              });
+
+                            } else {
+
+                              setFormData({
+                                ...formData,
+
+                                availability:
+                                  formData.availability.filter(
+                                    (
+                                      i
+                                    ) =>
+                                      i !==
+                                      item
+                                  ),
+                              });
+                            }
+                          }}
+                        />
+
+                        <Label className="capitalize">
+                          {item}
+                        </Label>
+
+                      </div>
+                    )
+                  )}
+
                 </div>
+
               </div>
 
+              {/* STATUS */}
+
               <div className="space-y-2">
-                <Label>Status</Label>
+
+                <Label>
+                  Status
+                </Label>
 
                 <Select
-                  value={formData.status}
-                  onValueChange={(value) =>
+                  value={
+                    formData.status
+                  }
+                  onValueChange={(
+                    value
+                  ) =>
                     setFormData({
                       ...formData,
                       status:
@@ -301,118 +535,202 @@ export default function ServicePage() {
                     })
                   }
                 >
+
                   <SelectTrigger>
+
                     <SelectValue />
+
                   </SelectTrigger>
 
                   <SelectContent>
+
                     <SelectItem value="active">
                       Active
                     </SelectItem>
+
                     <SelectItem value="inactive">
                       Inactive
                     </SelectItem>
+
                   </SelectContent>
+
                 </Select>
+
               </div>
 
-              <div className="flex justify-end">
+              {/* ACTIONS */}
+
+              <div className="flex justify-end gap-3 pt-4">
+
                 <Button
-                  onClick={handleCreate}
+                  variant="outline"
+                  onClick={() =>
+                    setCreateOpen(false)
+                  }
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  onClick={
+                    handleCreate
+                  }
                   disabled={
                     createMutation.isPending
                   }
                 >
+
                   {createMutation.isPending
                     ? "Creating..."
                     : "Create"}
+
                 </Button>
+
               </div>
+
             </div>
+
           </DialogContent>
+
         </Dialog>
+
       </div>
 
       {/* TABLE */}
+
       <div className="overflow-hidden rounded-xl border bg-background">
+
         <table className="w-full">
+
           <thead className="bg-muted/50">
+
             <tr>
+
               <th className="p-4 text-left">
                 Name
               </th>
+
               <th className="p-4 text-left">
                 Fee
               </th>
+
               <th className="p-4 text-left">
                 Availability
               </th>
+
               <th className="p-4 text-left">
                 Back Officer
               </th>
+
               <th className="p-4 text-left">
                 Status
               </th>
+
               <th className="p-4 text-right">
                 Action
               </th>
+
             </tr>
+
           </thead>
 
           <tbody>
+
             {isLoading ? (
+
               <tr>
+
                 <td
                   colSpan={6}
                   className="p-6 text-center"
                 >
                   Loading...
                 </td>
+
               </tr>
+
             ) : (
+
               data?.data?.data?.map(
-                (service: Service) => (
+                (
+                  service: Service
+                ) => (
+
                   <tr
-                    key={service.id}
+                    key={
+                      service.id
+                    }
                     className="border-t"
                   >
+
                     <td className="p-4">
                       {service.name}
                     </td>
+
                     <td className="p-4">
-                      {service.service_fee}
+                      {
+                        service.service_fee
+                      }
                     </td>
+
                     <td className="p-4 capitalize">
+
                       {service.availability.join(
                         ", "
                       )}
-                    </td>
-                    <td className="p-4">
-                      {service.has_back_officer
-                        ? "Yes"
-                        : "No"}
-                    </td>
-                    <td className="p-4 capitalize">
-                      {service.status}
+
                     </td>
 
                     <td className="p-4">
+
+                      {service.has_back_officer
+                        ? "Yes"
+                        : "No"}
+
+                    </td>
+
+                    <td className="p-4">
+
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${
+                          service.status ===
+                          "active"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+
+                        {
+                          service.status
+                        }
+
+                      </span>
+
+                    </td>
+
+                    <td className="p-4">
+
                       <div className="flex justify-end">
+
                         <DropdownMenu>
+
                           <DropdownMenuTrigger
                             asChild
                           >
+
                             <Button
                               variant="ghost"
                               size="sm"
                             >
+
                               <MoreVertical className="w-4 h-4" />
+
                             </Button>
+
                           </DropdownMenuTrigger>
 
-                          <DropdownMenuContent
-                            align="end"
-                          >
+                          <DropdownMenuContent align="end">
+
                             <DropdownMenuItem
                               onClick={() =>
                                 handleEdit(
@@ -421,6 +739,21 @@ export default function ServicePage() {
                               }
                             >
                               Edit
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleToggleStatus(
+                                  service
+                                )
+                              }
+                            >
+
+                              {service.status ===
+                              "active"
+                                ? "Disable"
+                                : "Enable"}
+
                             </DropdownMenuItem>
 
                             <DropdownMenuItem
@@ -433,80 +766,164 @@ export default function ServicePage() {
                             >
                               Delete
                             </DropdownMenuItem>
+
                           </DropdownMenuContent>
+
                         </DropdownMenu>
+
                       </div>
+
                     </td>
+
                   </tr>
                 )
               )
+
             )}
+
           </tbody>
+
         </table>
+
       </div>
 
       {/* UPDATE MODAL */}
+
       <Dialog
         open={editOpen}
-        onOpenChange={setEditOpen}
+        onOpenChange={(open) => {
+
+          setEditOpen(open);
+
+          /*
+          |--------------------------------------------------------------------------
+          | RESET WHEN CLOSED
+          |--------------------------------------------------------------------------
+          */
+
+          if (!open) {
+
+            setSelectedService(null);
+
+            resetForm();
+          }
+        }}
       >
+
         <DialogContent className="sm:max-w-lg">
+
           <DialogHeader>
+
             <DialogTitle>
               Update Service
             </DialogTitle>
+
           </DialogHeader>
 
           <div className="space-y-4">
-            <Input
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  name: e.target.value,
-                })
-              }
-            />
 
-            <Textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  description:
-                    e.target.value,
-                })
-              }
-            />
+            {/* NAME */}
 
-            <Input
-              type="number"
-              value={formData.service_fee}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  service_fee: Number(
-                    e.target.value
-                  ),
-                })
-              }
-            />
+            <div className="space-y-2">
 
-            <div className="flex justify-end">
+              <Label>
+                Name
+              </Label>
+
+              <Input
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    name:
+                      e.target.value,
+                  })
+                }
+              />
+
+            </div>
+
+            {/* DESCRIPTION */}
+
+            <div className="space-y-2">
+
+              <Label>
+                Description
+              </Label>
+
+              <Textarea
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    description:
+                      e.target.value,
+                  })
+                }
+              />
+
+            </div>
+
+            {/* SERVICE FEE */}
+
+            <div className="space-y-2">
+
+              <Label>
+                Service Fee
+              </Label>
+
+              <Input
+                type="number"
+                value={formData.service_fee}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    service_fee:
+                      Number(
+                        e.target.value
+                      ),
+                  })
+                }
+              />
+
+            </div>
+
+            {/* ACTIONS */}
+
+            <div className="flex justify-end gap-3 pt-4">
+
               <Button
-                onClick={handleUpdate}
+                variant="outline"
+                onClick={() =>
+                  setEditOpen(false)
+                }
+              >
+                Cancel
+              </Button>
+
+              <Button
+                onClick={
+                  handleUpdate
+                }
                 disabled={
                   updateMutation.isPending
                 }
               >
+
                 {updateMutation.isPending
                   ? "Updating..."
                   : "Update"}
+
               </Button>
+
             </div>
+
           </div>
+
         </DialogContent>
+
       </Dialog>
+
     </div>
   );
 }

@@ -46,9 +46,12 @@ export const sidebarConfig: Record<AppRoleKey, RoleSidebar> = {
         { label: "Roles", href: "/dashboard/roles", icon: Users, permission: "roles.read" },
         // { label: "Permissions", href: "/dashboard/permissions", icon: ShieldCheck, permission: "permissions.read" },
         { label: "Services", href: "/dashboard/services", icon: LayoutDashboard, permission: "permissions.read" },
+        { label: "Service Windows", href: "/dashboard/service-window", icon: LayoutDashboard, permission: "permissions.read" },
+
         { label: "Window", href: "/dashboard/windows", icon: LayoutDashboard, permission: "permissions.read" },
-        { label: "Configurations", href: "/dashboard/service-window", icon: Settings, permission: "cities.read" },
-     
+        { label: "User Services", href: "/dashboard/user-services", icon: Settings, permission: "cities.read" },
+        { label: "Officers Services", href: "/dashboard/services/officers", icon: Settings, permission: "cities.read" },
+  
         { label: "Audit Logs", href: "/dashboard/audit-logs", icon: FileText, permission: "audit_logs.read" },
       ]),
     ],
