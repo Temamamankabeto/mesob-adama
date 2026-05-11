@@ -7,7 +7,7 @@ return new class extends Migration {
     public function up(): void {
         Schema::table('service_form_fields', function (Blueprint $table) {
             if (!Schema::hasColumn('service_form_fields','section_id')) {
-                $table->foreignId('section_id')->nullable()->after('form_id')->constrained('service_form_sections')->nullOnDelete();
+                $table->foreignId('section_id')->nullable()->after('description')->constrained('service_form_sections')->nullOnDelete();
             }
             $table->integer('sort_order')->default(0);
             $table->string('placeholder')->nullable();

@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -158,7 +159,7 @@ class UserController extends Controller
         $user = $this->userService->getUser($id);
         $this->authorize('delete', $user);
 
-        $this->userService->deleteUser($user, auth()->id());
+        $this->userService->deleteUser($user, Auth::user()->id);
 
         return response()->json([
             'success' => true,

@@ -8,22 +8,61 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('service_application_workflow', function (Blueprint $table) {
+        /*
+        |--------------------------------------------------------------------------
+        | SERVICE APPLICATION WORKFLOWS
+        |--------------------------------------------------------------------------
+        */
+
+        Schema::create('service_application_workflows', function (Blueprint $table) {
 
             $table->id();
+
+            /*
+            |--------------------------------------------------------------------------
+            | RELATIONS
+            |--------------------------------------------------------------------------
+            */
 
             $table->foreignId('application_id')
                 ->constrained('service_applications')
                 ->cascadeOnDelete();
 
             $table->foreignId('window_id')
+                ->nullable()
                 ->constrained('windows')
-                ->cascadeOnDelete();
+                ->nullOnDelete();
 
             $table->foreignId('officer_id')
                 ->nullable()
                 ->constrained('users')
                 ->nullOnDelete();
+
+            $table->foreignId('acted_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+
+            /*
+            |--------------------------------------------------------------------------
+            | WORKFLOW STAGES
+            |--------------------------------------------------------------------------
+            */
+
+            $table->string('from_stage')
+                ->nullable();
+
+            $table->string('to_stage')
+                ->nullable();
+
+            $table->string('action')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | STATUS
+            |--------------------------------------------------------------------------
+            */
 
             $table->enum('status', [
 
@@ -36,8 +75,32 @@ return new class extends Migration
 
             ])->default('pending');
 
+            /*
+            |--------------------------------------------------------------------------
+            | COMMENTS / REMARKS
+            |--------------------------------------------------------------------------
+            */
+
             $table->text('remark')
                 ->nullable();
+
+            $table->text('comment')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | ESCALATION
+            |--------------------------------------------------------------------------
+            */
+
+            $table->timestamp('escalated_at')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | ACTION TIME
+            |--------------------------------------------------------------------------
+            */
 
             $table->timestamp('acted_at')
                 ->nullable();
@@ -48,8 +111,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists(
-            'service_application_workflow'
-        );
+        Schema::dropIfExists('service_application_workflows');
     }
 };
