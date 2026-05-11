@@ -12,7 +12,7 @@ export const serviceService = {
     page = 1,
     search = ""
   ): Promise<PaginatedServiceResponse> {
-    const response = await api.get("/services", {
+    const response = await api.get("/admin/services", {
       params: {
         page,
         search,
