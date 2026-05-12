@@ -3,12 +3,14 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import {
   Dialog,
   DialogContent,
@@ -16,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
 import {
   Table,
   TableBody,
@@ -40,31 +43,46 @@ import {
 export default function ServiceFormSectionsPage() {
   const [open, setOpen] = useState(false);
 
-  const [formData, setFormData] = useState<ServiceFormSectionPayload>({
-    service_form_id: 0,
-    title: "",
-    description: "",
-    sort_order: 0,
-    is_active: true,
-  });
+  const [formData, setFormData] =
+    useState<ServiceFormSectionPayload>({
+      service_form_id: 0,
+      title: "",
+      description: "",
+      sort_order: 0,
+      is_active: true,
+    });
+
+  /*
+  |--------------------------------------------------------------------------
+  | HOOKS
+  |--------------------------------------------------------------------------
+  */
 
   const {
-    data,
+    data: sections = [],
     isLoading,
   } = useServiceFormSections();
 
-  const createMutation = useCreateServiceFormSection();
+  const createMutation =
+    useCreateServiceFormSection();
 
-  const sections: ServiceFormSection[] =
-    data?.data?.data ||
-    data?.data ||
-    [];
+  /*
+  |--------------------------------------------------------------------------
+  | CREATE
+  |--------------------------------------------------------------------------
+  */
 
   async function handleCreate() {
     await createMutation.mutateAsync({
       ...formData,
-      service_form_id: Number(formData.service_form_id),
-      sort_order: Number(formData.sort_order),
+
+      service_form_id: Number(
+        formData.service_form_id
+      ),
+
+      sort_order: Number(
+        formData.sort_order
+      ),
     });
 
     setOpen(false);
@@ -91,9 +109,14 @@ export default function ServiceFormSectionsPage() {
           </p>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+          open={open}
+          onOpenChange={setOpen}
+        >
           <DialogTrigger asChild>
-            <Button>Create Section</Button>
+            <Button>
+              Create Section
+            </Button>
           </DialogTrigger>
 
           <DialogContent>
@@ -107,7 +130,9 @@ export default function ServiceFormSectionsPage() {
               formData={formData}
               setFormData={setFormData}
               onSubmit={handleCreate}
-              loading={createMutation.isPending}
+              loading={
+                createMutation.isPending
+              }
             />
           </DialogContent>
         </Dialog>
@@ -125,41 +150,74 @@ export default function ServiceFormSectionsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Service Form</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Sort Order</TableHead>
+
+                <TableHead>
+                  Service Form
+                </TableHead>
+
+                <TableHead>
+                  Title
+                </TableHead>
+
+                <TableHead>
+                  Description
+                </TableHead>
+
+                <TableHead>
+                  Sort Order
+                </TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center"
+                  >
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : sections.length > 0 ? (
-                sections.map((section) => (
-                  <TableRow key={section.id}>
-                    <TableCell>{section.id}</TableCell>
+                sections.map(
+                  (
+                    section: ServiceFormSection
+                  ) => (
+                    <TableRow
+                      key={section.id}
+                    >
+                      <TableCell>
+                        {section.id}
+                      </TableCell>
 
-                    <TableCell>
-                      {section.service_form?.title || section.service_form_id}
-                    </TableCell>
+                      <TableCell>
+                        {section.form
+                          ?.title ||
+                          section.service_form_id}
+                      </TableCell>
 
-                    <TableCell>{section.title}</TableCell>
+                      <TableCell>
+                        {section.title}
+                      </TableCell>
 
-                    <TableCell>
-                      {section.description || "-"}
-                    </TableCell>
+                      <TableCell>
+                        {section.description ||
+                          "-"}
+                      </TableCell>
 
-                    <TableCell>{section.sort_order}</TableCell>
-                  </TableRow>
-                ))
+                      <TableCell>
+                        {section.sort_order}
+                      </TableCell>
+                    </TableRow>
+                  )
+                )
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center"
+                  >
                     No sections found
                   </TableCell>
                 </TableRow>
