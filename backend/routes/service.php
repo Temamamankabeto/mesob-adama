@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ServiceFormController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\UserServiceAssignmentController;
+use App\Http\Controllers\Api\ServiceFormSectionController;
 
 // use App\Http\Controllers\Api\ServiceFormController;
 
@@ -83,4 +84,36 @@ Route::middleware('auth:sanctum')->group(function () {
         '/service-officers',
         [UserServiceAssignmentController::class, 'officers']
     );
+
+
+    /*
+|--------------------------------------------------------------------------
+| SERVICE FORM SECTIONS
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/service-form-sections',
+    [ServiceFormSectionController::class, 'index']
+);
+
+Route::post(
+    '/service-form-sections',
+    [ServiceFormSectionController::class, 'store']
+);
+
+Route::get(
+    '/service-form-sections/{serviceFormSection}',
+    [ServiceFormSectionController::class, 'show']
+);
+
+Route::put(
+    '/service-form-sections/{serviceFormSection}',
+    [ServiceFormSectionController::class, 'update']
+);
+
+Route::delete(
+    '/service-form-sections/{serviceFormSection}',
+    [ServiceFormSectionController::class, 'destroy']
+);
 });
