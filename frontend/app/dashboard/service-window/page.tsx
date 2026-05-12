@@ -13,21 +13,14 @@ import {
 } from "lucide-react";
 
 import { useServices } from "@/hooks/services/use-service";
-
 import { useWindows } from "@/hooks/windows/use-window";
-
 import {
   useAssignServiceWindows,
   useServiceWindows,
 } from "@/hooks/service-window/use-service-window";
 
 import { Button } from "@/components/ui/button";
-
-import { Checkbox } from "@/components/ui/checkbox";
-
 import { Input } from "@/components/ui/input";
-
-import { Label } from "@/components/ui/label";
 
 import {
   Card,
@@ -42,14 +35,7 @@ export default function ServiceWindowPage() {
   const [windowSearch, setWindowSearch] = useState("");
   const [selectedService, setSelectedService] = useState<number | null>(null);
 
-  const [selectedWindows, setSelectedWindows] = useState<
-    {
-      window_id: number;
-      window_name?: string;
-      step_order: number;
-      is_required: boolean;
-    }[]
-  >([]);
+  const [selectedWindows, setSelectedWindows] = useState<any[]>([]);
 
   const { data: servicesData } = useServices(1);
   const { data: windowsData } = useWindows(1);
@@ -60,14 +46,62 @@ export default function ServiceWindowPage() {
 
   const assignMutation = useAssignServiceWindows();
 
+  /*
+  |--------------------------------------------------------------------------
+  | SAFE SERVICES
+  |--------------------------------------------------------------------------
+  */
+
+  const services = useMemo(() => {
+    const raw = servicesData;
+
+    return (
+      raw?.data?.data ||
+      raw?.data ||
+      raw ||
+      []
+    );
+  }, [servicesData]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | SAFE WINDOWS
+  |--------------------------------------------------------------------------
+  */
+
+  const windows = useMemo(() => {
+    const raw = windowsData;
+
+    return (
+      raw?.data?.data ||
+      raw?.data ||
+      raw ||
+      []
+    );
+  }, [windowsData]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | ASSIGNED WINDOWS STATE
+  |--------------------------------------------------------------------------
+  */
+
+  const assignedWindowIds = useMemo(() => {
+    return (
+      assignedWindowsData?.data?.windows?.map(
+        (w: any) => w.id
+      ) || []
+    );
+  }, [assignedWindowsData]);
+
   useEffect(() => {
     if (assignedWindowsData?.data?.windows) {
       const formatted = assignedWindowsData.data.windows.map(
-        (window: any) => ({
-          window_id: window.id,
-          window_name: window.name,
-          step_order: window.pivot.step_order,
-          is_required: window.pivot.is_required,
+        (w: any) => ({
+          window_id: w.id,
+          window_name: w.name,
+          step_order: w.pivot.step_order,
+          is_required: w.pivot.is_required,
         })
       );
 
@@ -77,26 +111,43 @@ export default function ServiceWindowPage() {
     }
   }, [assignedWindowsData]);
 
-  // ✅ FIX: SAFE SERVICES ACCESS
-  const services = servicesData?.data ?? [];
+  /*
+  |--------------------------------------------------------------------------
+  | FILTER SERVICES
+  |--------------------------------------------------------------------------
+  */
 
   const filteredServices = useMemo(() => {
+    if (!Array.isArray(services)) return [];
+
     return services.filter((service: any) =>
-      service.name
-        .toLowerCase()
+      service?.name
+        ?.toLowerCase()
         .includes(serviceSearch.toLowerCase())
     );
   }, [services, serviceSearch]);
 
+  /*
+  |--------------------------------------------------------------------------
+  | FILTER WINDOWS
+  |--------------------------------------------------------------------------
+  */
+
   const filteredWindows = useMemo(() => {
-    return (
-      windowsData?.data?.data?.filter((window) =>
-        window.name
-          .toLowerCase()
-          .includes(windowSearch.toLowerCase())
-      ) || []
+    if (!Array.isArray(windows)) return [];
+
+    return windows.filter((w: any) =>
+      w?.name
+        ?.toLowerCase()
+        .includes(windowSearch.toLowerCase())
     );
-  }, [windowsData, windowSearch]);
+  }, [windows, windowSearch]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | ADD WINDOW
+  |--------------------------------------------------------------------------
+  */
 
   const handleAddWindow = (window: any) => {
     const exists = selectedWindows.find(
@@ -116,104 +167,65 @@ export default function ServiceWindowPage() {
     ]);
   };
 
-  const handleRemoveWindow = (windowId: number) => {
+  const handleRemoveWindow = (id: number) => {
     const filtered = selectedWindows.filter(
-      (window) => window.window_id !== windowId
+      (w) => w.window_id !== id
     );
 
-    const reordered = filtered.map((window, index) => ({
-      ...window,
-      step_order: index + 1,
+    const reordered = filtered.map((w, i) => ({
+      ...w,
+      step_order: i + 1,
     }));
 
     setSelectedWindows(reordered);
   };
 
-  const handleStepChange = (windowId: number, value: number) => {
-    setSelectedWindows((prev) =>
-      prev.map((window) =>
-        window.window_id === windowId
-          ? { ...window, step_order: value }
-          : window
-      )
-    );
-  };
-
-  const handleRequiredChange = (windowId: number, checked: boolean) => {
-    setSelectedWindows((prev) =>
-      prev.map((window) =>
-        window.window_id === windowId
-          ? { ...window, is_required: checked }
-          : window
-      )
-    );
-  };
+  /*
+  |--------------------------------------------------------------------------
+  | ASSIGN
+  |--------------------------------------------------------------------------
+  */
 
   const handleAssign = async () => {
-    if (!selectedService) {
-      alert("Please select a service");
-      return;
-    }
+    if (!selectedService) return alert("Select service first");
 
-    try {
-      await assignMutation.mutateAsync({
-        serviceId: selectedService,
-        payload: {
-          windows: selectedWindows.map((window) => ({
-            window_id: window.window_id,
-            step_order: window.step_order,
-            is_required: window.is_required,
-          })),
-        },
-      });
+    await assignMutation.mutateAsync({
+      serviceId: selectedService,
+      payload: {
+        windows: selectedWindows.map((w) => ({
+          window_id: w.window_id,
+          step_order: w.step_order,
+          is_required: w.is_required,
+        })),
+      },
+    });
 
-      alert("Workflow saved successfully");
-    } catch (error) {
-      console.error(error);
-    }
+    alert("Workflow saved");
   };
 
   return (
     <div className="grid gap-6 p-6 lg:grid-cols-12">
 
-      {/* LEFT PANEL */}
-      <Card className="lg:col-span-4 h-[calc(100vh-120px)]">
+      {/* LEFT */}
+      <Card className="lg:col-span-4 h-[100vh]">
 
         <CardHeader>
           <CardTitle>Services</CardTitle>
         </CardHeader>
 
-        <CardContent className="flex h-full flex-col gap-4 overflow-hidden">
+        <CardContent className="flex flex-col gap-3">
 
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search service..."
-              className="pl-9"
-              value={serviceSearch}
-              onChange={(e) => setServiceSearch(e.target.value)}
-            />
-          </div>
+          <Input
+            placeholder="Search services..."
+            value={serviceSearch}
+            onChange={(e) => setServiceSearch(e.target.value)}
+          />
 
-          {/* SERVICES FIXED */}
-          <div className="flex-1 space-y-2 overflow-y-auto pr-2">
-
-            {!services?.length && (
-              <div className="text-sm text-muted-foreground text-center py-6">
-                Loading services...
-              </div>
-            )}
-
-            {services?.length === 0 && (
-              <div className="text-sm text-muted-foreground text-center py-6">
-                No services found
-              </div>
-            )}
+          <div className="overflow-y-auto space-y-2">
 
             {filteredServices.map((service: any) => (
               <Button
                 key={service.id}
-                type="button"
                 variant={
                   selectedService === service.id
                     ? "default"
@@ -225,118 +237,116 @@ export default function ServiceWindowPage() {
                 {service.name}
               </Button>
             ))}
+
           </div>
 
         </CardContent>
       </Card>
 
-      {/* RIGHT PANEL (UNCHANGED) */}
-      <div className="space-y-6 lg:col-span-8">
+      {/* RIGHT */}
+      <div className="lg:col-span-8 space-y-6">
 
-        <Card className="h-[420px]">
+        {/* WINDOWS */}
+        <Card>
           <CardHeader>
             <CardTitle>Add Windows</CardTitle>
           </CardHeader>
 
-          <CardContent className="flex h-full flex-col gap-4 overflow-hidden">
+          <CardContent className="space-y-3">
 
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search window..."
-                className="pl-9"
-                value={windowSearch}
-                onChange={(e) => setWindowSearch(e.target.value)}
-              />
-            </div>
+            <Input
+              placeholder="Search windows..."
+              value={windowSearch}
+              onChange={(e) => setWindowSearch(e.target.value)}
+            />
 
-            <div className="grid flex-1 gap-3 overflow-y-auto pr-2 md:grid-cols-2">
-              {filteredWindows.map((window) => {
-                const exists = selectedWindows.find(
-                  (w) => w.window_id === window.id
-                );
+            <div className="grid md:grid-cols-2 gap-3">
+
+              {filteredWindows.map((w: any) => {
+                const isAssigned = assignedWindowIds.includes(w.id);
 
                 return (
                   <div
-                    key={window.id}
-                    className="flex items-center justify-between rounded-lg border p-3"
+                    key={w.id}
+                    className={`border p-3 rounded flex justify-between items-center ${
+                      isAssigned ? "opacity-50" : ""
+                    }`}
                   >
                     <div>
-                      <p className="font-medium">{window.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {window.availability.join(", ")}
-                      </p>
+                      <p className="font-medium">{w.name}</p>
                     </div>
 
                     <Button
                       size="icon"
-                      disabled={!!exists}
-                      onClick={() => handleAddWindow(window)}
+                      disabled={isAssigned}
+                      onClick={() => handleAddWindow(w)}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
+
                   </div>
                 );
               })}
+
             </div>
 
           </CardContent>
         </Card>
 
-        <Card className="min-h-[400px]">
+        {/* WORKFLOW */}
+        <Card>
+
           <CardHeader>
-            <CardTitle>Workflow Builder</CardTitle>
+            <CardTitle>Workflow</CardTitle>
           </CardHeader>
 
-          <CardContent className="space-y-4 overflow-y-auto">
+          <CardContent className="space-y-3">
+
             {selectedWindows.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
+              <div className="text-center text-muted-foreground py-10">
                 No windows selected
               </div>
             ) : (
-              selectedWindows
-                .sort((a, b) => a.step_order - b.step_order)
-                .map((window, index) => (
-                  <div
-                    key={window.window_id}
-                    className="rounded-xl border p-4"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold">
-                          Step {window.step_order}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {window.window_name}
-                        </p>
-                      </div>
-
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() =>
-                          handleRemoveWindow(window.window_id)
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+              selectedWindows.map((w) => (
+                <div
+                  key={w.window_id}
+                  className="border p-3 rounded flex justify-between"
+                >
+                  <div>
+                    <p className="font-medium">
+                      Step {w.step_order}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {w.window_name}
+                    </p>
                   </div>
-                ))
+
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    onClick={() =>
+                      handleRemoveWindow(w.window_id)
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+
+                </div>
+              ))
             )}
 
             <div className="flex justify-end">
-              <Button
-                onClick={handleAssign}
-                disabled={assignMutation.isPending}
-              >
-                {assignMutation.isPending ? "Saving..." : "Save Workflow"}
+              <Button onClick={handleAssign}>
+                Save Workflow
               </Button>
             </div>
 
           </CardContent>
+
         </Card>
+
       </div>
+
     </div>
   );
 }

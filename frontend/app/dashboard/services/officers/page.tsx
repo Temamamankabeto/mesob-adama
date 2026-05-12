@@ -238,7 +238,7 @@ export default function ServiceOfficersPage() {
                             <TableCell className="text-right">
 
                               <Link
-                                href={`/dashboard/services/officers/${officer.id}`}
+                                href={`/dashboard/user-services`}
                               >
 
                                 <Button size="sm">

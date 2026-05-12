@@ -93,10 +93,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     | AUDIT LOGS
     |--------------------------------------------------------------------------
     */
-    Route::prefix('audit-logs')->group(function () {
-        Route::get('/', [AuditLogController::class, 'index']);
-        Route::get('{id}', [AuditLogController::class, 'show']);
-    });
+  
 
     /*
     |--------------------------------------------------------------------------

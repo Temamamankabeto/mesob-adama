@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\OfficeController;
 use App\Http\Controllers\Api\CityController;
 use App\Http\Controllers\Api\SubcityController;
 use App\Http\Controllers\Api\WoredaController;
+use App\Http\Controllers\Api\AuditLogController;
 use Illuminate\Support\Facades\Route;
  
 
@@ -37,11 +38,10 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::delete('/permissions/{id}', [PermissionController::class, 'destroy']);
 
     Route::get('/offices', [OfficeController::class, 'index']);
-Route::post('/offices', [OfficeController::class, 'store']);
-Route::get('/offices/{office}', [OfficeController::class, 'show']);
-Route::put('/offices/{office}', [OfficeController::class, 'update']);
-Route::delete('/offices/{office}', [OfficeController::class, 'destroy']);  
-
+    Route::post('/offices', [OfficeController::class, 'store']);
+    Route::get('/offices/{office}', [OfficeController::class, 'show']);
+    Route::put('/offices/{office}', [OfficeController::class, 'update']);
+    Route::delete('/offices/{office}', [OfficeController::class, 'destroy']);  
 
    // Cities
     Route::apiResource('cities', CityController::class);
@@ -53,7 +53,7 @@ Route::delete('/offices/{office}', [OfficeController::class, 'destroy']);
     Route::apiResource('woredas', WoredaController::class);
 
       Route::post('/users/{id}/change-password', [UserController::class, 'changePassword']);
-Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
  /*
     |--------------------------------------------------------------------------
     | ROLES
@@ -68,8 +68,12 @@ Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'
         Route::get('{id}/permissions', [RoleController::class, 'rolePermissions']);
         Route::post('{id}/permissions', [RoleController::class, 'assignPermissions']);
     });
-
-
+  //expand these Route::apiResource('audit-logs', AuditLogController::class);
+        Route::get('/audit-logs', [AuditLogController::class, 'index']);
+        Route::post('/audit-logs', [AuditLogController::class, 'store']);
+        Route::get('/audit-logs/{id}', [AuditLogController::class, 'show']);
+        Route::put('/audit-logs/{id}', [AuditLogController::class, 'update']);
+        Route::delete('/audit-logs/{id}', [AuditLogController::class, 'destroy']);
 
 
 });
