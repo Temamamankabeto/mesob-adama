@@ -4,14 +4,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 
 // GET USERS
-export const useUsers = (page: number) =>
-  useQuery({
-    queryKey: ["users", page],
+export const useUsers = (page = 1, search = "") => {
+  return useQuery({
+    queryKey: ["users", page, search],
     queryFn: async () => {
-      const res = await api.get(`/admin/users?page=${page}`);
+      const res = await api.get(
+        `/admin/users?page=${page}&search=${search}`
+      );
+
       return res.data;
     },
   });
+};
 
 // CREATE
 export const useCreateUser = () => {
