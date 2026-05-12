@@ -2,12 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\Api\ServiceController;
-
-use App\Http\Controllers\Api\UserServiceAssignmentController;
-// controller for service form
-
 use App\Http\Controllers\Api\ServiceFormController;
+use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\UserServiceAssignmentController;
+
+// use App\Http\Controllers\Api\ServiceFormController;
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -22,7 +21,6 @@ Route::middleware('auth:sanctum')->group(function () {
         [ServiceController::class, 'index']
     );
 
-     Route::apiResource('service-forms', ServiceFormController::class);
     Route::post(
         '/services',
         [ServiceController::class, 'store']
@@ -36,6 +34,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete(
         '/services/{service}',
         [ServiceController::class, 'destroy']
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | SERVICE FORMS
+    |--------------------------------------------------------------------------
+    */
+
+    Route::apiResource(
+        'service-forms',
+        ServiceFormController::class
     );
 
     /*
@@ -54,22 +63,10 @@ Route::middleware('auth:sanctum')->group(function () {
         [UserServiceAssignmentController::class, 'assign']
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | REMOVE ASSIGNMENT
-    |--------------------------------------------------------------------------
-    */
-
     Route::delete(
         '/users/{user}/services/{serviceId}',
         [UserServiceAssignmentController::class, 'remove']
     );
-
-    /*
-    |--------------------------------------------------------------------------
-    | TOGGLE ASSIGNMENT
-    |--------------------------------------------------------------------------
-    */
 
     Route::patch(
         '/users/{user}/services/{serviceId}/toggle',
@@ -78,7 +75,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | LIST OFFICERS WITH SERVICES
+    | OFFICERS
     |--------------------------------------------------------------------------
     */
 
@@ -86,43 +83,4 @@ Route::middleware('auth:sanctum')->group(function () {
         '/service-officers',
         [UserServiceAssignmentController::class, 'officers']
     );
-
-
-    // service form route   
-
-    /*
-|--------------------------------------------------------------------------
-| SERVICE FORMS
-|--------------------------------------------------------------------------
-*/
-
-Route::get(
-    '/services/{service}/forms',
-    [ServiceController::class, 'forms']
-);
-
-Route::post(
-    '/services/{service}/forms',
-    [ServiceController::class, 'storeForm']
-);
-
-Route::get(
-    '/service-forms/{serviceForm}',
-    [ServiceController::class, 'showForm']
-);
-
-Route::put(
-    '/service-forms/{serviceForm}',
-    [ServiceController::class, 'updateForm']
-);
-
-Route::delete(
-    '/service-forms/{serviceForm}',
-    [ServiceController::class, 'destroyForm']
-);
-
-Route::patch(
-    '/service-forms/{serviceForm}/toggle',
-    [ServiceController::class, 'toggleForm']
-);
 });

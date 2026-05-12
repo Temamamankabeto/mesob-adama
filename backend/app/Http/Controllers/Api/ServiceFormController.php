@@ -1,12 +1,16 @@
 <?php
 
-namespace App\Modules\ServiceForms\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Modules\ServiceForms\Models\ServiceForm;
-use App\Modules\ServiceForms\Services\ServiceFormService;
-use App\Modules\ServiceForms\Http\Requests\StoreServiceFormRequest;
-use App\Modules\ServiceForms\Http\Requests\UpdateServiceFormRequest;
+
+use App\Http\Requests\StoreServiceFormRequest;
+use App\Http\Requests\UpdateServiceFormRequest;
+
+use App\Models\ServiceForm;
+
+use App\Services\ServiceFormService;
+
 use Illuminate\Http\Request;
 
 class ServiceFormController extends Controller
@@ -22,39 +26,59 @@ class ServiceFormController extends Controller
         );
     }
 
-    public function store(StoreServiceFormRequest $request)
-    {
-        $data = $this->service->create($request->validated());
+    public function store(
+        StoreServiceFormRequest $request
+    ) {
 
-        return response()->json([
-            'message' => 'Created',
-            'data' => $data
-        ]);
-    }
-
-    public function show(ServiceForm $serviceForm)
-    {
-        return response()->json(
-            $serviceForm->load('service')
+        $data = $this->service->create(
+            $request->validated()
         );
-    }
-
-    public function update(UpdateServiceFormRequest $request, ServiceForm $serviceForm)
-    {
-        $data = $this->service->update($serviceForm, $request->validated());
 
         return response()->json([
-            'message' => 'Updated',
+            'success' => true,
+            'message' => 'Created successfully',
             'data' => $data
         ]);
     }
 
-    public function destroy(ServiceForm $serviceForm)
-    {
-        $this->service->delete($serviceForm);
+    public function show(
+        ServiceForm $serviceForm
+    ) {
 
         return response()->json([
-            'message' => 'Deleted'
+            'success' => true,
+            'data' => $serviceForm->load('service')
+        ]);
+    }
+
+    public function update(
+        UpdateServiceFormRequest $request,
+        ServiceForm $serviceForm
+    ) {
+
+        $data = $this->service->update(
+            $serviceForm,
+            $request->validated()
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Updated successfully',
+            'data' => $data
+        ]);
+    }
+
+    public function destroy(
+        ServiceForm $serviceForm
+    ) {
+
+        $this->service->delete(
+            $serviceForm
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Deleted successfully'
         ]);
     }
 }

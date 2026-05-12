@@ -1,17 +1,80 @@
 import api from "@/lib/api";
-import { ServiceFormPayload } from "@/types/service-form/service-form";
+
+import {
+  ServiceForm,
+  ServiceFormPayload,
+} from "@/types/service-form/service-form";
+
 export const ServiceFormAPI = {
-  list: async () => (await api.get("/service-forms")).data,
+  /*
+  |--------------------------------------------------------------------------
+  | LIST
+  |--------------------------------------------------------------------------
+  */
+  list: async (): Promise<ServiceForm[]> => {
+    const response = await api.get("/service-forms");
 
-  show: async (id: number) =>
-    (await api.get(`/service-forms/${id}`)).data,
+    return Array.isArray(response.data?.data)
+      ? response.data.data
+      : [];
+  },
 
-  create: async (payload: ServiceFormPayload) =>
-    (await api.post("/service-forms", payload)).data,
+  /*
+  |--------------------------------------------------------------------------
+  | SHOW
+  |--------------------------------------------------------------------------
+  */
+  show: async (
+    id: number
+  ): Promise<ServiceForm> => {
+    const response = await api.get(
+      `/service-forms/${id}`
+    );
 
-  update: async (id: number, payload: ServiceFormPayload) =>
-    (await api.put(`/service-forms/${id}`, payload)).data,
+    return response.data.data;
+  },
 
-  remove: async (id: number) =>
-    (await api.delete(`/service-forms/${id}`)).data,
+  /*
+  |--------------------------------------------------------------------------
+  | CREATE
+  |--------------------------------------------------------------------------
+  */
+  create: async (
+    payload: ServiceFormPayload
+  ): Promise<ServiceForm> => {
+    const response = await api.post(
+      "/service-forms",
+      payload
+    );
+
+    return response.data.data;
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | UPDATE
+  |--------------------------------------------------------------------------
+  */
+  update: async (
+    id: number,
+    payload: ServiceFormPayload
+  ): Promise<ServiceForm> => {
+    const response = await api.put(
+      `/service-forms/${id}`,
+      payload
+    );
+
+    return response.data.data;
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | DELETE
+  |--------------------------------------------------------------------------
+  */
+  remove: async (
+    id: number
+  ): Promise<void> => {
+    await api.delete(`/service-forms/${id}`);
+  },
 };
