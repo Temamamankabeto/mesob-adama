@@ -4,8 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+// ✅ ADD THIS
+use App\Models\Traits\Auditable;
+
 class Service extends Model
 {
+    // ✅ ENABLE AUDIT
+    use Auditable;
+
     protected $fillable = [
         'name',
         'description',

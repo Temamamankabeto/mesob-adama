@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Services;
-
+use App\Models\Traits\Auditable;
 use App\Models\ServiceForm;
 
 class ServiceFormService
