@@ -21,16 +21,27 @@ class UserController extends Controller
         protected UserService $userService
     ) {}
 
-    public function index(IndexUserRequest $request): JsonResponse
-    {
-        $this->authorize('viewAny', User::class);
+public function index(Request $request)
+{
+    $users = User::query()
+    ->with(['city', 'subcity', 'woreda', 'roles'])
+    ->when($request->search, function ($q) use ($request) {
+        $q->where(function ($query) use ($request) {
+            $query->where('name', 'like', '%' . $request->search . '%')
+                ->orWhere('email', 'like', '%' . $request->search . '%')
+                ->orWhere('phone', 'like', '%' . $request->search . '%');
+        });
+    })
+    ->paginate(10);
 
-        $users = $this->userService->paginateUsers($request->validated());
+// 🔥 IMPORTANT PART (ADD ROLE NAMES)
+$users->getCollection()->transform(function ($user) {
+    $user->role_names = $user->getRoleNames(); // <-- THIS FIXES EVERYTHING
+    return $user;
+});
 
-        return response()->json(
-            $this->userService->transformPaginatedUsers($users)
-        );
-    }
+return response()->json($users);
+}
 
     public function show(int|string $id): JsonResponse
     {

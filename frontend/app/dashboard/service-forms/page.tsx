@@ -1,15 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import {
-  useCreateServiceForm,
   useServiceForms,
-  useServices,
-} from "@/hooks/services/use-service";
+  useCreateServiceForm,
+  useUpdateServiceForm,
+  useDeleteServiceForm,
+} from "@/hooks/services/useServiceForms";
+
+import { useServices } from "@/hooks/services/use-service";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import {
   Card,
   CardContent,
@@ -21,17 +26,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import {
   Table,
   TableBody,
@@ -40,251 +36,393 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ServiceFormsPage() {
-  const [open, setOpen] = useState(false);
 
-  const {
-    data: formsResponse,
-    isLoading,
-    refetch,
-  } = useServiceForms();
+  const { data, isLoading } =
+    useServiceForms();
 
-  const {
-    data: servicesResponse,
-  } = useServices();
+  const { data: servicesData } =
+    useServices();
 
-  const createMutation = useCreateServiceForm();
+  const create =
+    useCreateServiceForm();
 
-  const forms =
-    formsResponse?.data?.data ||
-    formsResponse?.data ||
-    [];
+  const update =
+    useUpdateServiceForm();
+
+  const remove =
+    useDeleteServiceForm();
+
+  /*
+  |--------------------------------------------------------------------------
+  | SAFE DATA
+  |--------------------------------------------------------------------------
+  */
 
   const services =
-    servicesResponse?.data?.data ||
-    servicesResponse?.data ||
-    [];
+    Array.isArray(servicesData)
+      ? servicesData
+      : servicesData?.data?.data ||
+        servicesData?.data ||
+        [];
 
-  const [formData, setFormData] = useState({
+  const forms =
+    Array.isArray(data)
+      ? data
+      : data?.data || [];
+
+  /*
+  |--------------------------------------------------------------------------
+  | SEARCH
+  |--------------------------------------------------------------------------
+  */
+
+  const [search, setSearch] =
+    useState("");
+
+  const filteredForms =
+    useMemo(() => {
+      return forms.filter((f: any) => {
+
+        const serviceName =
+          services.find(
+            (s: any) =>
+              s.id == f.service_id
+          )?.name || "";
+
+        const keyword =
+          search.toLowerCase();
+
+        return (
+          f.title
+            ?.toLowerCase()
+            .includes(keyword) ||
+
+          f.description
+            ?.toLowerCase()
+            .includes(keyword) ||
+
+          serviceName
+            ?.toLowerCase()
+            .includes(keyword)
+        );
+      });
+    }, [forms, search, services]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | MODAL STATE
+  |--------------------------------------------------------------------------
+  */
+
+  const [open, setOpen] =
+    useState(false);
+
+  const [form, setForm] = useState({
+    id: null as number | null,
     service_id: "",
     title: "",
     description: "",
-    is_active: true,
   });
 
-  async function handleSubmit() {
-    try {
-      await createMutation.mutateAsync({
-        ...formData,
-        service_id: Number(formData.service_id),
+  const reset = () => {
+    setForm({
+      id: null,
+      service_id: "",
+      title: "",
+      description: "",
+    });
+  };
+
+  const handleOpenCreate = () => {
+    reset();
+    setOpen(true);
+  };
+
+  const handleEdit = (item: any) => {
+    setForm({
+      id: item.id,
+      service_id: String(item.service_id),
+      title: item.title,
+      description: item.description || "",
+    });
+
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
+
+    const payload = {
+      service_id: Number(form.service_id),
+      title: form.title,
+      description: form.description,
+    };
+
+    if (form.id) {
+      await update.mutateAsync({
+        id: form.id,
+        payload,
       });
-
-      await refetch();
-
-      setOpen(false);
-
-      setFormData({
-        service_id: "",
-        title: "",
-        description: "",
-        is_active: true,
-      });
-    } catch (error) {
-      console.error(error);
+    } else {
+      await create.mutateAsync(payload);
     }
+
+    setOpen(false);
+    reset();
+  };
+
+  if (isLoading) {
+    return <div className="p-6">Loading...</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">
-            Service Forms
-          </h1>
+    <div className="p-6 space-y-4">
 
-          <p className="text-sm text-muted-foreground">
-            Manage dynamic service forms
-          </p>
-        </div>
-
-        <Dialog
-          open={open}
-          onOpenChange={setOpen}
-        >
-          <DialogTrigger asChild>
-            <Button>
-              Create Form
-            </Button>
-          </DialogTrigger>
-
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                Create Service Form
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>
-                  Service
-                </Label>
-
-                <Select
-                  value={formData.service_id}
-                  onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      service_id: value,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Service" />
-                  </SelectTrigger>
-
-                  <SelectContent>
-                    {services.map((service: any) => (
-                      <SelectItem
-                        key={service.id}
-                        value={String(service.id)}
-                      >
-                        {service.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>
-                  Title
-                </Label>
-
-                <Input
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      title: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>
-                  Description
-                </Label>
-
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      description: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                >
-                  Cancel
-                </Button>
-
-                <Button
-                  onClick={handleSubmit}
-                  disabled={createMutation.isPending}
-                >
-                  {createMutation.isPending
-                    ? "Saving..."
-                    : "Save"}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
+      {/* HEADER CARD */}
       <Card>
-        <CardHeader>
-          <CardTitle>
-            Forms List
+
+        <CardHeader className="flex flex-row items-center justify-between">
+
+          <CardTitle className="text-xl">
+            Service Forms
           </CardTitle>
+
+          <Button onClick={handleOpenCreate}>
+            + Create Form
+          </Button>
+
         </CardHeader>
 
         <CardContent>
-          <div className="overflow-x-auto">
+
+          {/* SEARCH */}
+          <div className="mb-4">
+            <Input
+              placeholder="Search forms..."
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+            />
+          </div>
+
+          {/* TABLE */}
+          <div className="border rounded-md">
+
             <Table>
+
               <TableHeader>
                 <TableRow>
+
                   <TableHead>ID</TableHead>
                   <TableHead>Service</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">
+                    Actions
+                  </TableHead>
+
                 </TableRow>
               </TableHeader>
 
               <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center"
-                    >
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : forms.length > 0 ? (
-                  forms.map((form: any) => (
-                    <TableRow key={form.id}>
+
+                {filteredForms.length > 0 ? (
+                  filteredForms.map((f: any) => (
+                    <TableRow key={f.id}>
+
                       <TableCell>
-                        {form.id}
+                        {f.id}
                       </TableCell>
 
                       <TableCell>
-                        {form.service?.name || form.service_name || form.service_id}
+                        {services.find(
+                          (s: any) =>
+                            s.id ==
+                            f.service_id
+                        )?.name ||
+                          f.service?.name ||
+                          f.service_id}
+                      </TableCell>
+
+                      <TableCell className="font-medium">
+                        {f.title}
                       </TableCell>
 
                       <TableCell>
-                        {form.title}
+                        {f.description}
                       </TableCell>
 
-                      <TableCell>
-                        {form.description || "-"}
+                      <TableCell className="text-right">
+
+                        <DropdownMenu>
+
+                          <DropdownMenuTrigger asChild>
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                            >
+                              ⋮
+                            </Button>
+
+                          </DropdownMenuTrigger>
+
+                          <DropdownMenuContent align="end">
+
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleEdit(f)
+                              }
+                            >
+                              Edit
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() =>
+                                remove.mutate(f.id)
+                              }
+                              className="text-red-600"
+                            >
+                              Delete
+                            </DropdownMenuItem>
+
+                          </DropdownMenuContent>
+
+                        </DropdownMenu>
+
                       </TableCell>
 
-                      <TableCell>
-                        <Badge
-                          variant={form.is_active ? "default" : "destructive"}
-                        >
-                          {form.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
                     <TableCell
                       colSpan={5}
-                      className="text-center"
+                      className="text-center py-10 text-gray-500"
                     >
-                      No forms found
+                      No results found
                     </TableCell>
                   </TableRow>
                 )}
+
               </TableBody>
+
             </Table>
+
           </div>
+
         </CardContent>
+
       </Card>
+
+      {/* MODAL */}
+      <Dialog open={open} onOpenChange={setOpen}>
+
+        <DialogContent>
+
+          <DialogHeader>
+
+            <DialogTitle>
+              {form.id
+                ? "Edit Service Form"
+                : "Create Service Form"}
+            </DialogTitle>
+
+          </DialogHeader>
+
+          <div className="space-y-3">
+
+            {/* SHADCN SELECT */}
+            <Select
+              value={form.service_id}
+              onValueChange={(value) =>
+                setForm({
+                  ...form,
+                  service_id: value,
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Service" />
+              </SelectTrigger>
+
+              <SelectContent>
+
+                {services.map((s: any) => (
+                  <SelectItem
+                    key={s.id}
+                    value={String(s.id)}
+                  >
+                    {s.name}
+                  </SelectItem>
+                ))}
+
+              </SelectContent>
+
+            </Select>
+
+            <Input
+              placeholder="Title"
+              value={form.title}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  title: e.target.value,
+                })
+              }
+            />
+
+            <Input
+              placeholder="Description"
+              value={form.description}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  description: e.target.value,
+                })
+              }
+            />
+
+            <div className="flex justify-end gap-2">
+
+              <Button
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+
+              <Button onClick={handleSubmit}>
+                {form.id
+                  ? "Update"
+                  : "Create"}
+              </Button>
+
+            </div>
+
+          </div>
+
+        </DialogContent>
+
+      </Dialog>
+
     </div>
   );
 }
