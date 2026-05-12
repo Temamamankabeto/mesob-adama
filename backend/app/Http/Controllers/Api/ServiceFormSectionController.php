@@ -12,7 +12,9 @@ class ServiceFormSectionController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => ServiceFormSection::latest()->get(),
+            'data' => ServiceFormSection::with('form')
+                ->latest()
+                ->get(),
         ]);
     }
 
@@ -31,7 +33,7 @@ class ServiceFormSectionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Section created successfully',
-            'data' => $section,
+            'data' => $section->load('form'),
         ]);
     }
 
@@ -39,7 +41,7 @@ class ServiceFormSectionController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $serviceFormSection,
+            'data' => $serviceFormSection->load('form'),
         ]);
     }
 
@@ -57,7 +59,7 @@ class ServiceFormSectionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Section updated successfully',
-            'data' => $serviceFormSection,
+            'data' => $serviceFormSection->load('form'),
         ]);
     }
 
