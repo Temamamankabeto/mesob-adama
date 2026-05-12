@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\ServiceFormController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\ServiceFormSectionController;
 use App\Http\Controllers\Api\UserServiceAssignmentController;
 
 // use App\Http\Controllers\Api\ServiceFormController;
@@ -28,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/service-forms/{serviceForm}', [ServiceController::class, 'destroyForm']);
     Route::patch('/service-forms/{serviceForm}/toggle', [ServiceController::class, 'toggleForm']);
 
+<<<<<<<<< Temporary merge branch 1
     Route::put(
         '/services/{service}',
         [ServiceController::class, 'update']
@@ -85,4 +87,11 @@ Route::middleware('auth:sanctum')->group(function () {
         '/service-officers',
         [UserServiceAssignmentController::class, 'officers']
     );
+=========
+    Route::get('/service-form-sections', [ServiceFormSectionController::class, 'index']);
+    Route::post('/service-form-sections', [ServiceFormSectionController::class, 'store']);
+    Route::get('/service-form-sections/{serviceFormSection}', [ServiceFormSectionController::class, 'show']);
+    Route::put('/service-form-sections/{serviceFormSection}', [ServiceFormSectionController::class, 'update']);
+    Route::delete('/service-form-sections/{serviceFormSection}', [ServiceFormSectionController::class, 'destroy']);
+>>>>>>>>> Temporary merge branch 2
 });
