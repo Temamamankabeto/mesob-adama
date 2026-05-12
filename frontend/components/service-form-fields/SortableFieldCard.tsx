@@ -1,11 +1,7 @@
 "use client";
 
-import {
-  useSortable,
-} from "@dnd-kit/sortable";
-
+import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
 import { GripVertical } from "lucide-react";
 
 import {
@@ -13,9 +9,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 
-export default function SortableFieldCard({
-  field,
-}: any) {
+export default function SortableFieldCard({ field }: any) {
   const {
     attributes,
     listeners,
@@ -32,20 +26,12 @@ export default function SortableFieldCard({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-    >
+    <div ref={setNodeRef} style={style}>
       <Card>
         <CardContent className="flex items-center justify-between p-4">
           <div>
-            <p className="font-semibold">
-              {field.label}
-            </p>
-
-            <p className="text-sm text-muted-foreground">
-              {field.type}
-            </p>
+            <p className="font-semibold">{field.label}</p>
+            <p className="text-sm text-muted-foreground">{field.type}</p>
           </div>
 
           <button
