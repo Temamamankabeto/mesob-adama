@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { serviceWindowService } from "@/services/service-window/service-window";
 
@@ -12,55 +8,67 @@ import {
   AssignWindowPayload,
 } from "@/types/service-window/service-window";
 
-/**
- * Get windows assigned to service
- */
-export function useServiceWindows(
-  serviceId?: number
-) {
+/*
+|--------------------------------------------------------------------------
+| GET SERVICE WINDOWS
+|--------------------------------------------------------------------------
+*/
+export function useServiceWindows(serviceId?: number) {
   return useQuery({
-    queryKey: [
-      "service-windows",
-      serviceId,
-    ],
+    queryKey: ["service-windows", serviceId],
 
-    queryFn: () =>
-      serviceWindowService.getByService(
-        serviceId!
-      ),
+    queryFn: () => {
+      if (!serviceId) return Promise.resolve({ data: [] });
+      return serviceWindowService.getByService(serviceId);
+    },
 
     enabled: !!serviceId,
   });
 }
 
-/**
- * Assign windows to service
- */
-export function useAssignServiceWindows() {
 
-  const queryClient =
-    useQueryClient();
+/**
+ * TOGGLE required flag (NEW)
+ */
+export function useToggleServiceWindowRequired() {
+  const queryClient = useQueryClient();
 
   return useMutation({
+    mutationFn: ({
+      serviceId,
+      windowId,
+    }: {
+      serviceId: number;
+      windowId: number;
+    }) =>
+      serviceWindowService.toggleRequired(serviceId, windowId),
 
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["service-windows", variables.serviceId],
+      });
+    },
+  });
+}
+/*
+|--------------------------------------------------------------------------
+| ASSIGN WINDOWS TO SERVICE
+|--------------------------------------------------------------------------
+*/
+export function useAssignServiceWindows() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: ({
       serviceId,
       payload,
     }: {
       serviceId: number;
-
       payload: AssignWindowPayload;
     }) =>
-      serviceWindowService.assign(
-        serviceId,
-        payload
-      ),
+      serviceWindowService.assign(serviceId, payload),
 
-    onSuccess: (
-      _,
-      variables
-    ) => {
-
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["services"],
       });
@@ -70,10 +78,33 @@ export function useAssignServiceWindows() {
       });
 
       queryClient.invalidateQueries({
-        queryKey: [
-          "service-windows",
-          variables.serviceId,
-        ],
+        queryKey: ["service-windows", variables.serviceId],
+      });
+    },
+  });
+}
+
+/*
+|--------------------------------------------------------------------------
+| REMOVE WINDOW FROM SERVICE
+|--------------------------------------------------------------------------
+*/
+export function useRemoveServiceWindow() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      serviceId,
+      windowId,
+    }: {
+      serviceId: number;
+      windowId: number;
+    }) =>
+      serviceWindowService.remove(serviceId, windowId),
+
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["service-windows", variables.serviceId],
       });
     },
   });
