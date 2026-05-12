@@ -62,7 +62,10 @@ export default function ServiceFormSectionsPage() {
     },
   });
 
-  const sections = data?.data || [];
+  const sections =
+    data?.data?.data ||
+    data?.data ||
+    [];
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -78,8 +81,8 @@ export default function ServiceFormSectionsPage() {
       return response.data;
     },
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
         queryKey: ["service-form-sections"],
       });
 
@@ -174,7 +177,7 @@ export default function ServiceFormSectionsPage() {
                     </TableCell>
 
                     <TableCell>
-                      {section.service_form_id}
+                      {section.service_form?.title || section.service_form_id}
                     </TableCell>
 
                     <TableCell>
@@ -182,7 +185,7 @@ export default function ServiceFormSectionsPage() {
                     </TableCell>
 
                     <TableCell>
-                      {section.description}
+                      {section.description || "-"}
                     </TableCell>
 
                     <TableCell>
