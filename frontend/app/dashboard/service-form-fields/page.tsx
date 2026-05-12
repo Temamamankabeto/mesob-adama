@@ -1,6 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import {
+  DndContext,
+  closestCenter,
+} from "@dnd-kit/core";
+
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 import {
   Button,
@@ -21,66 +32,95 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-
 import FieldForm from "@/components/service-form-fields/FieldForm";
+import SortableFieldCard from "@/components/service-form-fields/SortableFieldCard";
+
+import api from "@/lib/api";
 
 import {
   useCreateServiceFormField,
   useServiceFormFields,
 } from "@/hooks/service-form-field/use-service-form-field";
 
-import {
-  ServiceFormField,
-  ServiceFormFieldPayload,
-} from "@/types/service-form-field";
-
 export default function ServiceFormFieldsPage() {
-  const [open, setOpen] =
-    useState(false);
+  const [open, setOpen] = useState(false);
 
-  const [formData, setFormData] =
-    useState<ServiceFormFieldPayload>({
-      service_form_id: 0,
-      service_form_section_id: 0,
-      label: "",
-      name: "",
-      type: "",
-      is_required: false,
-      is_active: true,
-      sort_order: 0,
-    });
+  const [formData, setFormData] = useState({
+    service_form_id: 0,
+    service_form_section_id: 0,
+    label: "",
+    name: "",
+    type: "",
+    is_required: false,
+    is_active: true,
+    sort_order: 0,
+  });
 
   const {
     data: fields = [],
     isLoading,
+    refetch,
   } = useServiceFormFields();
 
-  const createMutation =
-    useCreateServiceFormField();
+  const [items, setItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    setItems(fields);
+  }, [fields]);
+
+  const createMutation = useCreateServiceFormField();
 
   async function handleCreate() {
     await createMutation.mutateAsync({
       ...formData,
-
-      service_form_id: Number(
-        formData.service_form_id
-      ),
-
-      service_form_section_id:
-        Number(
-          formData.service_form_section_id
-        ),
+      service_form_id: Number(formData.service_form_id),
+      service_form_section_id: Number(formData.service_form_section_id),
     });
 
+    await refetch();
+
     setOpen(false);
+  }
+
+  async function handleDragEnd(event: any) {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = items.findIndex(
+      (item: any) => item.id === active.id
+    );
+
+    const newIndex = items.findIndex(
+      (item: any) => item.id === over.id
+    );
+
+    const reorderedItems = arrayMove(
+      items,
+      oldIndex,
+      newIndex
+    );
+
+    setItems(reorderedItems);
+
+    await api.patch(
+      "/service-form-fields/reorder",
+      {
+        fields: reorderedItems.map(
+          (
+            item: any,
+            index: number
+          ) => ({
+            id: item.id,
+            sort_order: index + 1,
+          })
+        ),
+      }
+    );
+
+    await refetch();
   }
 
   return (
@@ -96,10 +136,7 @@ export default function ServiceFormFieldsPage() {
           </p>
         </div>
 
-        <Dialog
-          open={open}
-          onOpenChange={setOpen}
-        >
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               Create Field
@@ -117,9 +154,7 @@ export default function ServiceFormFieldsPage() {
               formData={formData}
               setFormData={setFormData}
               onSubmit={handleCreate}
-              loading={
-                createMutation.isPending
-              }
+              loading={createMutation.isPending}
             />
           </DialogContent>
         </Dialog>
@@ -128,88 +163,33 @@ export default function ServiceFormFieldsPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Fields List
+            Drag & Drop Fields
           </CardTitle>
         </CardHeader>
 
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  Form
-                </TableHead>
-
-                <TableHead>
-                  Section
-                </TableHead>
-
-                <TableHead>
-                  Label
-                </TableHead>
-
-                <TableHead>
-                  Name
-                </TableHead>
-
-                <TableHead>
-                  Type
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center"
-                  >
-                    Loading...
-                  </TableCell>
-                </TableRow>
-              ) : fields.length > 0 ? (
-                fields.map(
-                  (
-                    field: ServiceFormField
-                  ) => (
-                    <TableRow
+          {isLoading ? (
+            <p>Loading...</p>
+          ) : (
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={items.map((item: any) => item.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {items.map((field: any) => (
+                    <SortableFieldCard
                       key={field.id}
-                    >
-                      <TableCell>
-                        {field.form?.title}
-                      </TableCell>
-
-                      <TableCell>
-                        {field.section?.title}
-                      </TableCell>
-
-                      <TableCell>
-                        {field.label}
-                      </TableCell>
-
-                      <TableCell>
-                        {field.name}
-                      </TableCell>
-
-                      <TableCell>
-                        {field.type}
-                      </TableCell>
-                    </TableRow>
-                  )
-                )
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center"
-                  >
-                    No fields found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                      field={field}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
         </CardContent>
       </Card>
     </div>
