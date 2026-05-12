@@ -65,7 +65,7 @@ class ServiceFormSectionController extends Controller
             'success' => true,
             'message' => 'Section created successfully',
             'data' => $section,
-        ], 201);
+        ]);
     }
 
     /*
@@ -78,8 +78,7 @@ class ServiceFormSectionController extends Controller
     {
         return response()->json([
             'success' => true,
-            'message' => 'Section retrieved successfully',
-            'data' => $serviceFormSection->load('fields'),
+            'data' => $serviceFormSection,
         ]);
     }
 
@@ -105,7 +104,7 @@ class ServiceFormSectionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Section updated successfully',
-            'data' => $serviceFormSection,
+            'data' => $serviceFormSection->load('form'),
         ]);
     }
 
