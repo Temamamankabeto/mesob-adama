@@ -30,70 +30,71 @@ import {
 
 import SectionForm from "@/components/service-form-sections/SectionForm";
 
-import api from "@/lib/api";
+import {
+  useCreateServiceFormSection,
+  useServiceFormSections,
+} from "@/hooks/service-form-section/use-service-form-section";
 
 import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+  ServiceFormSection,
+  ServiceFormSectionPayload,
+} from "@/types/service-form-section";
 
 export default function ServiceFormSectionsPage() {
-  const queryClient = useQueryClient();
-
   const [open, setOpen] = useState(false);
 
-  const [formData, setFormData] = useState({
-    service_form_id: "",
-    title: "",
-    description: "",
-    sort_order: 0,
-    is_active: true,
-  });
+  const [formData, setFormData] =
+    useState<ServiceFormSectionPayload>({
+      service_form_id: 0,
+      title: "",
+      description: "",
+      sort_order: 0,
+      is_active: true,
+    });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["service-form-sections"],
-    queryFn: async () => {
-      const response = await api.get(
-        "/service-form-sections"
-      );
+  /*
+  |--------------------------------------------------------------------------
+  | HOOKS
+  |--------------------------------------------------------------------------
+  */
 
-      return response.data;
-    },
-  });
+  const {
+    data: sections = [],
+    isLoading,
+  } = useServiceFormSections();
 
-  const sections = data?.data || [];
+  const createMutation =
+    useCreateServiceFormSection();
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const response = await api.post(
-        "/service-form-sections",
-        {
-          ...formData,
-          service_form_id: Number(formData.service_form_id),
-          sort_order: Number(formData.sort_order),
-        }
-      );
+  /*
+  |--------------------------------------------------------------------------
+  | CREATE
+  |--------------------------------------------------------------------------
+  */
 
-      return response.data;
-    },
+  async function handleCreate() {
+    await createMutation.mutateAsync({
+      ...formData,
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["service-form-sections"],
-      });
+      service_form_id: Number(
+        formData.service_form_id
+      ),
 
-      setOpen(false);
+      sort_order: Number(
+        formData.sort_order
+      ),
+    });
 
-      setFormData({
-        service_form_id: "",
-        title: "",
-        description: "",
-        sort_order: 0,
-        is_active: true,
-      });
-    },
-  });
+    setOpen(false);
+
+    setFormData({
+      service_form_id: 0,
+      title: "",
+      description: "",
+      sort_order: 0,
+      is_active: true,
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -128,10 +129,10 @@ export default function ServiceFormSectionsPage() {
             <SectionForm
               formData={formData}
               setFormData={setFormData}
-              onSubmit={() =>
-                createMutation.mutate()
+              onSubmit={handleCreate}
+              loading={
+                createMutation.isPending
               }
-              loading={createMutation.isPending}
             />
           </DialogContent>
         </Dialog>
@@ -149,10 +150,22 @@ export default function ServiceFormSectionsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Service Form</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Sort Order</TableHead>
+
+                <TableHead>
+                  Service Form
+                </TableHead>
+
+                <TableHead>
+                  Title
+                </TableHead>
+
+                <TableHead>
+                  Description
+                </TableHead>
+
+                <TableHead>
+                  Sort Order
+                </TableHead>
               </TableRow>
             </TableHeader>
 
@@ -167,29 +180,38 @@ export default function ServiceFormSectionsPage() {
                   </TableCell>
                 </TableRow>
               ) : sections.length > 0 ? (
-                sections.map((section: any) => (
-                  <TableRow key={section.id}>
-                    <TableCell>
-                      {section.id}
-                    </TableCell>
+                sections.map(
+                  (
+                    section: ServiceFormSection
+                  ) => (
+                    <TableRow
+                      key={section.id}
+                    >
+                      <TableCell>
+                        {section.id}
+                      </TableCell>
 
-                    <TableCell>
-                      {section.service_form_id}
-                    </TableCell>
+                      <TableCell>
+                        {section.form
+                          ?.title ||
+                          section.service_form_id}
+                      </TableCell>
 
-                    <TableCell>
-                      {section.title}
-                    </TableCell>
+                      <TableCell>
+                        {section.title}
+                      </TableCell>
 
-                    <TableCell>
-                      {section.description}
-                    </TableCell>
+                      <TableCell>
+                        {section.description ||
+                          "-"}
+                      </TableCell>
 
-                    <TableCell>
-                      {section.sort_order}
-                    </TableCell>
-                  </TableRow>
-                ))
+                      <TableCell>
+                        {section.sort_order}
+                      </TableCell>
+                    </TableRow>
+                  )
+                )
               ) : (
                 <TableRow>
                   <TableCell
