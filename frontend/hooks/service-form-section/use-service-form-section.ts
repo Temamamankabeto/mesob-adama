@@ -15,8 +15,17 @@ import {
 export function useServiceFormSections() {
   return useQuery({
     queryKey: ["service-form-sections"],
-    queryFn: () =>
-      serviceFormSectionService.getAll(),
+
+    queryFn: async () => {
+      const response =
+        await serviceFormSectionService.getAll();
+
+      return Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.data?.data)
+          ? response.data.data
+          : [];
+    },
   });
 }
 
