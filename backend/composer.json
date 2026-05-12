@@ -33,7 +33,9 @@
         }
     },
     "autoload-dev": {
-        "psr-4": {
+        "files": [
+        "app/Helpers/audit.php"
+    ], "psr-4": {
             "Tests\\": "tests/"
         }
     },

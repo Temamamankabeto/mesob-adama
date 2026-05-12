@@ -3,9 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use App\Models\Traits\Auditable;
 class ServiceForm extends Model
 {
+        use Auditable;
     protected $fillable = [
 
         'service_id',

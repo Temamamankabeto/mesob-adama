@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use App\Models\Traits\Auditable;
 class ServiceApplication extends Model
 {
+      // ✅ ENABLE AUDIT
+    use Auditable;
+
     protected $fillable = [
 
         'tracking_number',
