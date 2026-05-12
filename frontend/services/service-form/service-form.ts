@@ -1,48 +1,80 @@
-import api, { unwrap } from "@/lib/api";
+import api from "@/lib/api";
 
-export const serviceFormService = {
-  async getAll() {
-    const response = await api.get(
-      "/service-forms"
-    );
+import {
+  ServiceForm,
+  ServiceFormPayload,
+} from "@/types/service-form/service-form";
 
-    return unwrap(response);
+export const ServiceFormAPI = {
+  /*
+  |--------------------------------------------------------------------------
+  | LIST
+  |--------------------------------------------------------------------------
+  */
+  list: async (): Promise<ServiceForm[]> => {
+    const response = await api.get("/service-forms");
+
+    return Array.isArray(response.data?.data)
+      ? response.data.data
+      : [];
   },
 
-  async getOne(id: number) {
+  /*
+  |--------------------------------------------------------------------------
+  | SHOW
+  |--------------------------------------------------------------------------
+  */
+  show: async (
+    id: number
+  ): Promise<ServiceForm> => {
     const response = await api.get(
       `/service-forms/${id}`
     );
 
-    return unwrap(response);
+    return response.data.data;
   },
 
-  async create(payload: any) {
+  /*
+  |--------------------------------------------------------------------------
+  | CREATE
+  |--------------------------------------------------------------------------
+  */
+  create: async (
+    payload: ServiceFormPayload
+  ): Promise<ServiceForm> => {
     const response = await api.post(
       "/service-forms",
       payload
     );
 
-    return unwrap(response);  
+    return response.data.data;
   },
 
-  async update(
+  /*
+  |--------------------------------------------------------------------------
+  | UPDATE
+  |--------------------------------------------------------------------------
+  */
+  update: async (
     id: number,
-    payload: any
-  ) {
+    payload: ServiceFormPayload
+  ): Promise<ServiceForm> => {
     const response = await api.put(
       `/service-forms/${id}`,
       payload
     );
 
-    return unwrap(response);
+    return response.data.data;
   },
 
-  async delete(id: number) {
-    const response = await api.delete(
-      `/service-forms/${id}`
-    );
-
-    return unwrap(response);
+  /*
+  |--------------------------------------------------------------------------
+  | DELETE
+  |--------------------------------------------------------------------------
+  */
+  remove: async (
+    id: number
+  ): Promise<void> => {
+    await api.delete(`/service-forms/${id}`);
   },
 };

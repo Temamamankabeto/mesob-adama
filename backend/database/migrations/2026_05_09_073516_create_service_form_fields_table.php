@@ -17,7 +17,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->string('label');
-
+            $table->string('description')->nullable();
             $table->string('name');
 
             $table->enum('type', [

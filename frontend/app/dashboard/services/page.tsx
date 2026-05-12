@@ -125,7 +125,7 @@ export default function ServicePage() {
 
   /*
   |--------------------------------------------------------------------------
-  | RESET
+  | RESET FORM
   |--------------------------------------------------------------------------
   */
 
@@ -291,6 +291,282 @@ export default function ServicePage() {
       }
     };
 
+  /*
+  |--------------------------------------------------------------------------
+  | REUSABLE FORM
+  |--------------------------------------------------------------------------
+  */
+
+  const ServiceForm = ({
+    isEdit = false,
+  }: {
+    isEdit?: boolean;
+  }) => (
+    <div className="space-y-4">
+
+      {/* NAME */}
+
+      <div className="space-y-2">
+
+        <Label>
+          Name
+        </Label>
+
+        <Input
+          value={formData.name}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              name:
+                e.target.value,
+            })
+          }
+        />
+
+      </div>
+
+      {/* DESCRIPTION */}
+
+      <div className="space-y-2">
+
+        <Label>
+          Description
+        </Label>
+
+        <Textarea
+          value={formData.description}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              description:
+                e.target.value,
+            })
+          }
+        />
+
+      </div>
+
+      {/* SERVICE FEE */}
+
+      <div className="space-y-2">
+
+        <Label>
+          Service Fee
+        </Label>
+
+        <Input
+          type="number"
+          value={formData.service_fee}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              service_fee:
+                Number(
+                  e.target.value
+                ),
+            })
+          }
+        />
+
+      </div>
+
+      {/* BACK OFFICER */}
+
+      <div className="flex items-center gap-3">
+
+        <Checkbox
+          checked={
+            formData.has_back_officer
+          }
+          onCheckedChange={(
+            checked
+          ) =>
+            setFormData({
+              ...formData,
+              has_back_officer:
+                !!checked,
+            })
+          }
+        />
+
+        <Label>
+          Has Back Officer
+        </Label>
+
+      </div>
+
+      {/* AVAILABILITY */}
+
+      <div className="space-y-3">
+
+        <Label>
+          Availability
+        </Label>
+
+        <div className="grid grid-cols-2 gap-3">
+
+          {(
+            [
+              "city",
+              "subcity",
+              "woreda",
+            ] as ServiceAvailability[]
+          ).map(
+            (item) => (
+
+              <div
+                key={item}
+                className="flex items-center gap-2"
+              >
+
+                <Checkbox
+                  checked={formData.availability.includes(
+                    item
+                  )}
+                  onCheckedChange={(
+                    checked
+                  ) => {
+
+                    if (
+                      checked
+                    ) {
+
+                      setFormData({
+                        ...formData,
+
+                        availability:
+                          [
+                            ...formData.availability,
+                            item,
+                          ],
+                      });
+
+                    } else {
+
+                      setFormData({
+                        ...formData,
+
+                        availability:
+                          formData.availability.filter(
+                            (
+                              i
+                            ) =>
+                              i !==
+                              item
+                          ),
+                      });
+                    }
+                  }}
+                />
+
+                <Label className="capitalize">
+                  {item}
+                </Label>
+
+              </div>
+            )
+          )}
+
+        </div>
+
+      </div>
+
+      {/* STATUS */}
+
+      <div className="space-y-2">
+
+        <Label>
+          Status
+        </Label>
+
+        <Select
+          value={
+            formData.status
+          }
+          onValueChange={(
+            value
+          ) =>
+            setFormData({
+              ...formData,
+              status:
+                value as
+                  | "active"
+                  | "inactive",
+            })
+          }
+        >
+
+          <SelectTrigger>
+
+            <SelectValue />
+
+          </SelectTrigger>
+
+          <SelectContent>
+
+            <SelectItem value="active">
+              Active
+            </SelectItem>
+
+            <SelectItem value="inactive">
+              Inactive
+            </SelectItem>
+
+          </SelectContent>
+
+        </Select>
+
+      </div>
+
+      {/* ACTIONS */}
+
+      <div className="flex justify-end gap-3 pt-4">
+
+        <Button
+          variant="outline"
+          onClick={() => {
+
+            if (isEdit) {
+
+              setEditOpen(false);
+
+            } else {
+
+              setCreateOpen(false);
+            }
+          }}
+        >
+          Cancel
+        </Button>
+
+        <Button
+          onClick={
+            isEdit
+              ? handleUpdate
+              : handleCreate
+          }
+          disabled={
+            isEdit
+              ? updateMutation.isPending
+              : createMutation.isPending
+          }
+        >
+
+          {isEdit
+            ? updateMutation.isPending
+              ? "Updating..."
+              : "Update"
+            : createMutation.isPending
+            ? "Creating..."
+            : "Create"}
+
+        </Button>
+
+      </div>
+
+    </div>
+  );
+
   return (
     <div className="space-y-6 p-6">
 
@@ -342,253 +618,7 @@ export default function ServicePage() {
 
             </DialogHeader>
 
-            <div className="space-y-4">
-
-              {/* NAME */}
-
-              <div className="space-y-2">
-
-                <Label>
-                  Name
-                </Label>
-
-                <Input
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      name:
-                        e.target.value,
-                    })
-                  }
-                />
-
-              </div>
-
-              {/* DESCRIPTION */}
-
-              <div className="space-y-2">
-
-                <Label>
-                  Description
-                </Label>
-
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      description:
-                        e.target.value,
-                    })
-                  }
-                />
-
-              </div>
-
-              {/* SERVICE FEE */}
-
-              <div className="space-y-2">
-
-                <Label>
-                  Service Fee
-                </Label>
-
-                <Input
-                  type="number"
-                  value={formData.service_fee}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      service_fee:
-                        Number(
-                          e.target.value
-                        ),
-                    })
-                  }
-                />
-
-              </div>
-
-              {/* BACK OFFICER */}
-
-              <div className="flex items-center gap-3">
-
-                <Checkbox
-                  checked={
-                    formData.has_back_officer
-                  }
-                  onCheckedChange={(
-                    checked
-                  ) =>
-                    setFormData({
-                      ...formData,
-                      has_back_officer:
-                        !!checked,
-                    })
-                  }
-                />
-
-                <Label>
-                  Has Back Officer
-                </Label>
-
-              </div>
-
-              {/* AVAILABILITY */}
-
-              <div className="space-y-3">
-
-                <Label>
-                  Availability
-                </Label>
-
-                <div className="grid grid-cols-2 gap-3">
-
-                  {(
-                    [
-                      "city",
-                      "subcity",
-                      "woreda",
-                    ] as ServiceAvailability[]
-                  ).map(
-                    (item) => (
-
-                      <div
-                        key={item}
-                        className="flex items-center gap-2"
-                      >
-
-                        <Checkbox
-                          checked={formData.availability.includes(
-                            item
-                          )}
-                          onCheckedChange={(
-                            checked
-                          ) => {
-
-                            if (
-                              checked
-                            ) {
-
-                              setFormData({
-                                ...formData,
-
-                                availability:
-                                  [
-                                    ...formData.availability,
-                                    item,
-                                  ],
-                              });
-
-                            } else {
-
-                              setFormData({
-                                ...formData,
-
-                                availability:
-                                  formData.availability.filter(
-                                    (
-                                      i
-                                    ) =>
-                                      i !==
-                                      item
-                                  ),
-                              });
-                            }
-                          }}
-                        />
-
-                        <Label className="capitalize">
-                          {item}
-                        </Label>
-
-                      </div>
-                    )
-                  )}
-
-                </div>
-
-              </div>
-
-              {/* STATUS */}
-
-              <div className="space-y-2">
-
-                <Label>
-                  Status
-                </Label>
-
-                <Select
-                  value={
-                    formData.status
-                  }
-                  onValueChange={(
-                    value
-                  ) =>
-                    setFormData({
-                      ...formData,
-                      status:
-                        value as
-                          | "active"
-                          | "inactive",
-                    })
-                  }
-                >
-
-                  <SelectTrigger>
-
-                    <SelectValue />
-
-                  </SelectTrigger>
-
-                  <SelectContent>
-
-                    <SelectItem value="active">
-                      Active
-                    </SelectItem>
-
-                    <SelectItem value="inactive">
-                      Inactive
-                    </SelectItem>
-
-                  </SelectContent>
-
-                </Select>
-
-              </div>
-
-              {/* ACTIONS */}
-
-              <div className="flex justify-end gap-3 pt-4">
-
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setCreateOpen(false)
-                  }
-                >
-                  Cancel
-                </Button>
-
-                <Button
-                  onClick={
-                    handleCreate
-                  }
-                  disabled={
-                    createMutation.isPending
-                  }
-                >
-
-                  {createMutation.isPending
-                    ? "Creating..."
-                    : "Create"}
-
-                </Button>
-
-              </div>
-
-            </div>
+            <ServiceForm />
 
           </DialogContent>
 
@@ -795,12 +825,6 @@ export default function ServicePage() {
 
           setEditOpen(open);
 
-          /*
-          |--------------------------------------------------------------------------
-          | RESET WHEN CLOSED
-          |--------------------------------------------------------------------------
-          */
-
           if (!open) {
 
             setSelectedService(null);
@@ -820,105 +844,7 @@ export default function ServicePage() {
 
           </DialogHeader>
 
-          <div className="space-y-4">
-
-            {/* NAME */}
-
-            <div className="space-y-2">
-
-              <Label>
-                Name
-              </Label>
-
-              <Input
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    name:
-                      e.target.value,
-                  })
-                }
-              />
-
-            </div>
-
-            {/* DESCRIPTION */}
-
-            <div className="space-y-2">
-
-              <Label>
-                Description
-              </Label>
-
-              <Textarea
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    description:
-                      e.target.value,
-                  })
-                }
-              />
-
-            </div>
-
-            {/* SERVICE FEE */}
-
-            <div className="space-y-2">
-
-              <Label>
-                Service Fee
-              </Label>
-
-              <Input
-                type="number"
-                value={formData.service_fee}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    service_fee:
-                      Number(
-                        e.target.value
-                      ),
-                  })
-                }
-              />
-
-            </div>
-
-            {/* ACTIONS */}
-
-            <div className="flex justify-end gap-3 pt-4">
-
-              <Button
-                variant="outline"
-                onClick={() =>
-                  setEditOpen(false)
-                }
-              >
-                Cancel
-              </Button>
-
-              <Button
-                onClick={
-                  handleUpdate
-                }
-                disabled={
-                  updateMutation.isPending
-                }
-              >
-
-                {updateMutation.isPending
-                  ? "Updating..."
-                  : "Update"}
-
-              </Button>
-
-            </div>
-
-          </div>
+          <ServiceForm isEdit />
 
         </DialogContent>
 
