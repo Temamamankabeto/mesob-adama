@@ -11,6 +11,7 @@ import {
 
 import { useServices } from "@/hooks/services/use-service";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -20,7 +21,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
 import {
   Dialog,
   DialogContent,
