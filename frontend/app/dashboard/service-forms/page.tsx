@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { Eye, LayoutTemplate, Pencil, Trash2 } from "lucide-react";
 
 import {
   useServiceForms,
@@ -8,7 +10,6 @@ import {
   useUpdateServiceForm,
   useDeleteServiceForm,
 } from "@/hooks/services/useServiceForms";
-
 import { useServices } from "@/hooks/services/use-service";
 
 import { Badge } from "@/components/ui/badge";
@@ -38,13 +39,6 @@ import {
 } from "@/components/ui/table";
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -53,376 +47,228 @@ import {
 } from "@/components/ui/select";
 
 export default function ServiceFormsPage() {
+  const { data, isLoading } = useServiceForms();
+  const { data: servicesData } = useServices();
 
-  const { data, isLoading } =
-    useServiceForms();
+  const create = useCreateServiceForm();
+  const update = useUpdateServiceForm();
+  const remove = useDeleteServiceForm();
 
-  const { data: servicesData } =
-    useServices();
+  const services = Array.isArray(servicesData)
+    ? servicesData
+    : servicesData?.data?.data || servicesData?.data || [];
 
-  const create =
-    useCreateServiceForm();
+  const forms = Array.isArray(data) ? data : data?.data || [];
 
-  const update =
-    useUpdateServiceForm();
-
-  const remove =
-    useDeleteServiceForm();
-
-  /*
-  |--------------------------------------------------------------------------
-  | SAFE DATA
-  |--------------------------------------------------------------------------
-  */
-
-  const services =
-    Array.isArray(servicesData)
-      ? servicesData
-      : servicesData?.data?.data ||
-        servicesData?.data ||
-        [];
-
-  const forms =
-    Array.isArray(data)
-      ? data
-      : data?.data || [];
-
-  /*
-  |--------------------------------------------------------------------------
-  | SEARCH
-  |--------------------------------------------------------------------------
-  */
-
-  const [search, setSearch] =
-    useState("");
-
-  const filteredForms =
-    useMemo(() => {
-      return forms.filter((f: any) => {
-
-        const serviceName =
-          services.find(
-            (s: any) =>
-              s.id == f.service_id
-          )?.name || "";
-
-        const keyword =
-          search.toLowerCase();
-
-        return (
-          f.title
-            ?.toLowerCase()
-            .includes(keyword) ||
-
-          f.description
-            ?.toLowerCase()
-            .includes(keyword) ||
-
-          serviceName
-            ?.toLowerCase()
-            .includes(keyword)
-        );
-      });
-    }, [forms, search, services]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | MODAL STATE
-  |--------------------------------------------------------------------------
-  */
-
-  const [open, setOpen] =
-    useState(false);
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
 
   const [form, setForm] = useState({
     id: null as number | null,
     service_id: "",
     title: "",
     description: "",
+    is_active: true,
   });
 
-  const reset = () => {
+  const filteredForms = useMemo(() => {
+    const keyword = search.toLowerCase();
+
+    return forms.filter((item: any) => {
+      const serviceName =
+        services.find((service: any) => service.id == item.service_id)?.name ||
+        item.service?.name ||
+        "";
+
+      return (
+        item.title?.toLowerCase().includes(keyword) ||
+        item.description?.toLowerCase().includes(keyword) ||
+        serviceName?.toLowerCase().includes(keyword)
+      );
+    });
+  }, [forms, search, services]);
+
+  function reset() {
     setForm({
       id: null,
       service_id: "",
       title: "",
       description: "",
+      is_active: true,
     });
-  };
+  }
 
-  const handleOpenCreate = () => {
+  function openCreate() {
     reset();
     setOpen(true);
-  };
+  }
 
-  const handleEdit = (item: any) => {
+  function openEdit(item: any) {
     setForm({
       id: item.id,
       service_id: String(item.service_id),
       title: item.title,
       description: item.description || "",
+      is_active: item.is_active !== false,
     });
 
     setOpen(true);
-  };
+  }
 
-  const handleSubmit = async () => {
-
+  async function submit() {
     const payload = {
       service_id: Number(form.service_id),
       title: form.title,
       description: form.description,
+      is_active: form.is_active,
     };
 
     if (form.id) {
-      await update.mutateAsync({
-        id: form.id,
-        payload,
-      });
+      await update.mutateAsync({ id: form.id, payload });
     } else {
       await create.mutateAsync(payload);
     }
 
     setOpen(false);
     reset();
-  };
-
-  if (isLoading) {
-    return <div className="p-6">Loading...</div>;
   }
 
+  if (isLoading) return <div className="p-6">Loading...</div>;
+
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-6">
+      <Card className="rounded-3xl">
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-xl">Service Forms</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Create forms, then open builder to manage steps, sections, fields, and conditions.
+            </p>
+          </div>
 
-      {/* HEADER CARD */}
-      <Card>
-
-        <CardHeader className="flex flex-row items-center justify-between">
-
-          <CardTitle className="text-xl">
-            Service Forms
-          </CardTitle>
-
-          <Button onClick={handleOpenCreate}>
-            + Create Form
-          </Button>
-
+          <Button onClick={openCreate}>Create Form</Button>
         </CardHeader>
 
         <CardContent>
-
-          {/* SEARCH */}
           <div className="mb-4">
-            <Input
-              placeholder="Search forms..."
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-            />
+            <Input placeholder="Search forms..." value={search} onChange={(event) => setSearch(event.target.value)} />
           </div>
 
-          {/* TABLE */}
-          <div className="border rounded-md">
-
+          <div className="rounded-2xl border">
             <Table>
-
               <TableHeader>
                 <TableRow>
-
-                  <TableHead>ID</TableHead>
                   <TableHead>Service</TableHead>
                   <TableHead>Title</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">
-                    Actions
-                  </TableHead>
-
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
-
-                {filteredForms.length > 0 ? (
-                  filteredForms.map((f: any) => (
-                    <TableRow key={f.id}>
-
+                {filteredForms.length ? (
+                  filteredForms.map((item: any) => (
+                    <TableRow key={item.id}>
                       <TableCell>
-                        {f.id}
-                      </TableCell>
-
-                      <TableCell>
-                        {services.find(
-                          (s: any) =>
-                            s.id ==
-                            f.service_id
-                        )?.name ||
-                          f.service?.name ||
-                          f.service_id}
-                      </TableCell>
-
-                      <TableCell className="font-medium">
-                        {f.title}
+                        {services.find((service: any) => service.id == item.service_id)?.name ||
+                          item.service?.name ||
+                          item.service_id}
                       </TableCell>
 
                       <TableCell>
-                        {f.description}
+                        <div className="font-medium">{item.title}</div>
+                        <div className="text-xs text-muted-foreground">{item.description || "No description"}</div>
                       </TableCell>
 
-                      <TableCell className="text-right">
-
-                        <DropdownMenu>
-
-                          <DropdownMenuTrigger asChild>
-
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                            >
-                              ⋮
-                            </Button>
-
-                          </DropdownMenuTrigger>
-
-                          <DropdownMenuContent align="end">
-
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleEdit(f)
-                              }
-                            >
-                              Edit
-                            </DropdownMenuItem>
-
-                            <DropdownMenuItem
-                              onClick={() =>
-                                remove.mutate(f.id)
-                              }
-                              className="text-red-600"
-                            >
-                              Delete
-                            </DropdownMenuItem>
-
-                          </DropdownMenuContent>
-
-                        </DropdownMenu>
-
+                      <TableCell>
+                        <Badge variant={item.is_active === false ? "secondary" : "default"}>
+                          {item.is_active === false ? "Inactive" : "Active"}
+                        </Badge>
                       </TableCell>
 
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/dashboard/service-forms/${item.id}/builder`}>
+                              <LayoutTemplate className="mr-2 h-4 w-4" />
+                              Builder
+                            </Link>
+                          </Button>
+
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+
+                          <Button variant="ghost" size="icon" onClick={() => remove.mutate(item.id)}>
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center py-10 text-gray-500"
-                    >
-                      No results found
+                    <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
+                      No service forms found.
                     </TableCell>
                   </TableRow>
                 )}
-
               </TableBody>
-
             </Table>
-
           </div>
-
         </CardContent>
-
       </Card>
 
-      {/* MODAL */}
       <Dialog open={open} onOpenChange={setOpen}>
-
         <DialogContent>
-
           <DialogHeader>
-
-            <DialogTitle>
-              {form.id
-                ? "Edit Service Form"
-                : "Create Service Form"}
-            </DialogTitle>
-
+            <DialogTitle>{form.id ? "Edit Service Form" : "Create Service Form"}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-3">
-
-            {/* SHADCN SELECT */}
-            <Select
-              value={form.service_id}
-              onValueChange={(value) =>
-                setForm({
-                  ...form,
-                  service_id: value,
-                })
-              }
-            >
+          <div className="space-y-4">
+            <Select value={form.service_id} onValueChange={(value) => setForm({ ...form, service_id: value })}>
               <SelectTrigger>
-                <SelectValue placeholder="Select Service" />
+                <SelectValue placeholder="Select service" />
               </SelectTrigger>
 
               <SelectContent>
-
-                {services.map((s: any) => (
-                  <SelectItem
-                    key={s.id}
-                    value={String(s.id)}
-                  >
-                    {s.name}
+                {services.map((service: any) => (
+                  <SelectItem key={service.id} value={String(service.id)}>
+                    {service.name}
                   </SelectItem>
                 ))}
-
               </SelectContent>
-
             </Select>
 
-            <Input
-              placeholder="Title"
-              value={form.title}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  title: e.target.value,
-                })
-              }
-            />
+            <Input placeholder="Title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
 
             <Input
               placeholder="Description"
               value={form.description}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  description: e.target.value,
-                })
-              }
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
             />
 
-            <div className="flex justify-end gap-2">
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={form.is_active}
+                onChange={(event) => setForm({ ...form, is_active: event.target.checked })}
+              />
+              Active
+            </label>
 
-              <Button
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
 
-              <Button onClick={handleSubmit}>
-                {form.id
-                  ? "Update"
-                  : "Create"}
+              <Button onClick={submit} disabled={!form.service_id || !form.title}>
+                {form.id ? "Update" : "Create"}
               </Button>
-
             </div>
-
           </div>
-
         </DialogContent>
-
       </Dialog>
-
     </div>
   );
 }
