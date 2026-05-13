@@ -3,13 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
-// ✅ ADD THIS
 use App\Models\Traits\Auditable;
 
 class Service extends Model
 {
-    // ✅ ENABLE AUDIT
     use Auditable;
 
     protected $fillable = [
@@ -27,49 +24,20 @@ class Service extends Model
         'service_fee' => 'float',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | WINDOWS
-    |--------------------------------------------------------------------------
-    */
-
     public function windows()
     {
-        return $this->belongsToMany(
-            Window::class,
-            'service_window'
-        )
-            ->withPivot([
-                'step_order',
-                'is_required',
-            ])
+        return $this->belongsToMany(Window::class, 'service_window')
+            ->withPivot(['step_order', 'is_required'])
             ->withTimestamps()
             ->orderBy('service_window.step_order');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | ASSIGNED USERS
-    |--------------------------------------------------------------------------
-    */
-
     public function assignedUsers()
     {
-        return $this->belongsToMany(
-            User::class,
-            'user_service_assignments'
-        )
-            ->withPivot([
-                'is_active',
-            ])
+        return $this->belongsToMany(User::class, 'user_service_assignments')
+            ->withPivot(['is_active'])
             ->withTimestamps();
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | FRONT OFFICERS
-    |--------------------------------------------------------------------------
-    */
 
     public function frontOfficers()
     {
@@ -81,12 +49,6 @@ class Service extends Model
             ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | BACK OFFICERS
-    |--------------------------------------------------------------------------
-    */
-
     public function backOfficers()
     {
         return $this->assignedUsers()
@@ -97,29 +59,25 @@ class Service extends Model
             ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | FORMS
-    |--------------------------------------------------------------------------
-    */
-
     public function forms()
     {
-        return $this->hasMany(
-            ServiceForm::class
-        );
+        return $this->hasMany(ServiceForm::class);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | APPLICATIONS
-    |--------------------------------------------------------------------------
-    */
+    public function form()
+    {
+        return $this->hasOne(ServiceForm::class)
+            ->where('is_active', true)
+            ->latestOfMany();
+    }
 
     public function applications()
     {
-        return $this->hasMany(
-            ServiceApplication::class
-        );
+        return $this->hasMany(ServiceApplication::class);
+    }
+
+    public function legacyApplications()
+    {
+        return $this->hasMany(Application::class);
     }
 }
