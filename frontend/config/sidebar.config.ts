@@ -1,15 +1,35 @@
 import {
+  LayoutDashboard,
+  Users,
+  MapPinned,
+  BriefcaseBusiness,
+  AppWindow,
+  Layers3,
+  FolderKanban,
+  History,
+  ScrollText,
+  UserCheck,
+  ShieldCheck,
+  UserCog,
+  Building2,
+  MonitorCog,
+  FileSearch,
   ClipboardList,
   FileText,
-  LayoutDashboard,
-  Map,
   Settings,
-  ShieldCheck,
-  UserCheck,
-  Users,
 } from "lucide-react";
+
 import type { LucideIcon } from "lucide-react";
-import { dashboardConfig, normalizeRole, type AppRoleKey } from "@/config/dashboard.config";
+
+import {
+  dashboardConfig,
+  normalizeRole,
+  type AppRoleKey,
+} from "@/config/dashboard.config";
+
+/* -------------------------------------------------------------------------- */
+/*                                   TYPES                                    */
+/* -------------------------------------------------------------------------- */
 
 export type SidebarChildItem = {
   label: string;
@@ -36,138 +56,400 @@ export type RoleSidebar = {
   sections: SidebarSection[];
 };
 
-const s = (title: string, items: SidebarItem[]): SidebarSection => ({ title, items });
+/* -------------------------------------------------------------------------- */
+/*                                  HELPERS                                   */
+/* -------------------------------------------------------------------------- */
 
-const dashboardItem = (role: AppRoleKey): SidebarItem => ({
+const s = (
+  title: string,
+  items: SidebarItem[]
+): SidebarSection => ({
+  title,
+  items,
+});
+
+const dashboardItem = (
+  role: AppRoleKey
+): SidebarItem => ({
   label: "Dashboard",
   href: dashboardConfig[role].route,
   icon: LayoutDashboard,
 });
 
+/* -------------------------------------------------------------------------- */
+/*                             USER MANAGEMENT                                */
+/* -------------------------------------------------------------------------- */
+
 const userManagement: SidebarItem[] = [
-  { label: "Users", href: "/dashboard/users", icon: Users, permission: "users.read" },
-  { label: "Roles", href: "/dashboard/roles", icon: Users, permission: "roles.read" },
+  {
+    label: "User Management",
+    icon: Users,
+    children: [
+      {
+        label: "Users",
+        href: "/dashboard/users",
+        permission: "users.read",
+      },
+
+      {
+        label: "Roles & Permissions",
+        href: "/dashboard/roles",
+        permission: "roles.read",
+      },
+    ],
+  },
 ];
+
+/* -------------------------------------------------------------------------- */
+/*                           LOCATION MANAGEMENT                              */
+/* -------------------------------------------------------------------------- */
 
 const locationManagement: SidebarItem[] = [
-  { label: "Locations", href: "/dashboard/locations", icon: Map, permission: "cities.read" },
+  {
+    label: "Location Management",
+    icon: MapPinned,
+    children: [
+      {
+        label: "Locations",
+        href: "/dashboard/locations",
+        permission: "cities.read",
+      },
+    ],
+  },
 ];
+
+/* -------------------------------------------------------------------------- */
+/*                           SERVICE MANAGEMENT                               */
+/* -------------------------------------------------------------------------- */
 
 const serviceManagement: SidebarItem[] = [
-  { label: "Services", href: "/dashboard/services", icon: LayoutDashboard, permission: "services.read" },
-  { label: "Service Windows", href: "/dashboard/service-window", icon: LayoutDashboard, permission: "windows.read" },
-  { label: "Service Window Management", href: "/dashboard/service-window/lists", icon: LayoutDashboard, permission: "windows.read" },
-  { label: "Window", href: "/dashboard/windows", icon: LayoutDashboard, permission: "windows.read" },
-  { label: "User Services", href: "/dashboard/user-services", icon: Settings, permission: "services.read" },
-  { label: "Officers Services", href: "/dashboard/services/officers", icon: Settings, permission: "services.read" },
+  {
+    label: "Service Management",
+    icon: BriefcaseBusiness,
+    children: [
+      {
+        label: "Services",
+        href: "/dashboard/services",
+        permission: "services.read",
+      },
+
+      {
+        label: "User Services",
+        href: "/dashboard/user-services",
+        permission: "services.read",
+      },
+
+      {
+        label: "Officer Services",
+        href: "/dashboard/services/officers",
+        permission: "services.read",
+      },
+    ],
+  },
+
+  {
+    label: "Window Management",
+    icon: AppWindow,
+    children: [
+      {
+        label: "Windows",
+        href: "/dashboard/windows",
+        permission: "windows.read",
+      },
+
+      {
+        label: "Service Windows",
+        href: "/dashboard/service-window",
+        permission: "windows.read",
+      },
+
+      {
+        label: "Window Assignments",
+        href: "/dashboard/service-window/lists",
+        permission: "windows.read",
+      },
+    ],
+  },
 ];
+
+/* -------------------------------------------------------------------------- */
+/*                         APPLICATION MANAGEMENT                             */
+/* -------------------------------------------------------------------------- */
 
 const applicationManagement: SidebarItem[] = [
-  { label: "Form Builder", href: "/dashboard/service-forms", icon: ClipboardList, permission: "service_forms.read" },
-  { label: "Form Sections", href: "/dashboard/service-form-sections", icon: Settings, permission: "service_forms.read" },
-  { label: "Application Summary", href: "/dashboard/applications/summary", icon: LayoutDashboard, permission: "applications.summary" },
-  { label: "Service Applications", href: "/dashboard/service-applications", icon: FileText, permission: "service_applications.read" },
+  {
+    label: "Form Builder",
+    icon: Layers3,
+    children: [
+      {
+        label: "Service Forms",
+        href: "/dashboard/service-forms",
+        permission: "service_forms.read",
+      },
+
+      {
+        label: "Form Sections",
+        href: "/dashboard/service-form-sections",
+        permission: "service_forms.read",
+      },
+    ],
+  },
+
+  {
+    label: "Applications",
+    icon: FolderKanban,
+    children: [
+      {
+        label: "Application Summary",
+        href: "/dashboard/applications/summary",
+        permission: "applications.summary",
+      },
+
+      {
+        label: "Service Applications",
+        href: "/dashboard/service-applications",
+        permission: "service_applications.read",
+      },
+
+      {
+        label: "Officer Queue",
+        href: "/dashboard/officer/applications",
+        permission: "service_applications.review",
+      },
+    ],
+  },
 ];
 
-const officerApplications: SidebarItem[] = [
-  { label: "Officer Queue", href: "/dashboard/officer/applications", icon: UserCheck, permission: "service_applications.review" },
-];
+/* -------------------------------------------------------------------------- */
+/*                               AUDIT LOGS                                   */
+/* -------------------------------------------------------------------------- */
 
 const auditItems: SidebarItem[] = [
-  { label: "Audit Logs", href: "/dashboard/audit-logs", icon: FileText, permission: "audit_logs.read" },
+  {
+    label: "Audit & Logs",
+    icon: History,
+    children: [
+      {
+        label: "Audit Logs",
+        href: "/dashboard/audit-logs",
+        permission: "audit_logs.read",
+      },
+    ],
+  },
 ];
+
+/* -------------------------------------------------------------------------- */
+/*                             CUSTOMER ITEMS                                 */
+/* -------------------------------------------------------------------------- */
 
 const customerItems: SidebarItem[] = [
-  { label: "My Applications", href: "/my-applications", icon: FileText, permission: "applications.own" },
-  { label: "Track Application", href: "/track-application", icon: ClipboardList, permission: "applications.track" },
+  {
+    label: "My Applications",
+    icon: ScrollText,
+    children: [
+      {
+        label: "Application List",
+        href: "/my-applications",
+        permission: "applications.own",
+      },
+
+      {
+        label: "Track Application",
+        href: "/track-application",
+        permission: "applications.track",
+      },
+    ],
+  },
 ];
 
-const adminSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role)]),
-  s("Users & Roles", userManagement),
-  s("Locations", locationManagement),
-  s("Services", serviceManagement),
-  s("Applications", [...applicationManagement, ...officerApplications]),
-  s("Audit", auditItems),
+/* -------------------------------------------------------------------------- */
+/*                              ROLE SECTIONS                                 */
+/* -------------------------------------------------------------------------- */
+
+const adminSections = (
+  role: AppRoleKey
+): SidebarSection[] => [
+  s("MAIN", [dashboardItem(role)]),
+
+  s("MANAGEMENT", [
+    ...userManagement,
+    ...locationManagement,
+    ...serviceManagement,
+  ]),
+
+  s("APPLICATIONS", applicationManagement),
+
+  s("SYSTEM", auditItems),
 ];
 
-const managerSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role)]),
-  s("Users & Roles", userManagement),
-  s("Services", serviceManagement),
-  s("Applications", [...applicationManagement, ...officerApplications]),
-  s("Audit", auditItems),
+const managerSections = (
+  role: AppRoleKey
+): SidebarSection[] => [
+  s("MAIN", [dashboardItem(role)]),
+
+  s("MANAGEMENT", [
+    ...userManagement,
+    ...serviceManagement,
+  ]),
+
+  s("APPLICATIONS", applicationManagement),
+
+  s("SYSTEM", auditItems),
 ];
 
-const officerSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role)]),
-  s("Applications", officerApplications),
+const officerSections = (
+  role: AppRoleKey
+): SidebarSection[] => [
+  s("MAIN", [dashboardItem(role)]),
+
+  s("APPLICATIONS", [
+    {
+      label: "Officer Applications",
+      icon: UserCheck,
+      children: [
+        {
+          label: "Officer Queue",
+          href: "/dashboard/officer/applications",
+          permission:
+            "service_applications.review",
+        },
+      ],
+    },
+  ]),
 ];
 
-export const sidebarConfig: Record<AppRoleKey, RoleSidebar> = {
+/* -------------------------------------------------------------------------- */
+/*                               ROLE CONFIG                                  */
+/* -------------------------------------------------------------------------- */
+
+export const sidebarConfig: Record<
+  AppRoleKey,
+  RoleSidebar
+> = {
   "super-admin": {
     title: "Super Admin",
     icon: ShieldCheck,
     sections: adminSections("super-admin"),
   },
-  manager: {
-    title: "Manager",
-    icon: ShieldCheck,
-    sections: managerSections("manager"),
-  },
+
   admin: {
     title: "Admin",
-    icon: ShieldCheck,
+    icon: UserCog,
     sections: adminSections("admin"),
   },
+
+  manager: {
+    title: "Manager",
+    icon: Building2,
+    sections: managerSections("manager"),
+  },
+
   "front-officer": {
     title: "Front Officer",
     icon: UserCheck,
-    sections: officerSections("front-officer"),
+    sections: officerSections(
+      "front-officer"
+    ),
   },
+
   "back-officer": {
     title: "Back Officer",
-    icon: UserCheck,
-    sections: officerSections("back-officer"),
+    icon: MonitorCog,
+    sections: officerSections(
+      "back-officer"
+    ),
   },
+
   customer: {
     title: "Customer",
-    icon: UserCheck,
+    icon: FileSearch,
     sections: [
-      s("Main", [dashboardItem("customer")]),
-      s("Applications", customerItems),
+      s("MAIN", [
+        dashboardItem("customer"),
+      ]),
+
+      s("APPLICATIONS", customerItems),
     ],
   },
 };
 
-export function getSidebarForRole(role?: string | null): RoleSidebar {
-  return sidebarConfig[normalizeRole(role)];
+/* -------------------------------------------------------------------------- */
+/*                            GET SIDEBAR ROLE                                */
+/* -------------------------------------------------------------------------- */
+
+export function getSidebarForRole(
+  role?: string | null
+): RoleSidebar {
+  return sidebarConfig[
+    normalizeRole(role)
+  ];
 }
 
-function itemAllowed(item: SidebarItem, permissions: string[]) {
-  return !item.permission || permissions.includes(item.permission);
+/* -------------------------------------------------------------------------- */
+/*                         FILTER BY PERMISSIONS                              */
+/* -------------------------------------------------------------------------- */
+
+function itemAllowed(
+  item: SidebarItem,
+  permissions: string[]
+) {
+  return (
+    !item.permission ||
+    permissions.includes(item.permission)
+  );
 }
 
-export function filterSidebarByPermissions(roleSidebar: RoleSidebar, permissions: string[] = []) {
+export function filterSidebarByPermissions(
+  roleSidebar: RoleSidebar,
+  permissions: string[] = []
+) {
   return roleSidebar.sections
     .map((section) => {
       const items = section.items
         .map((item) => {
+          /* -------------------- SIMPLE MENU -------------------- */
+
           if (!item.children?.length) {
-            return itemAllowed(item, permissions) ? item : null;
+            return itemAllowed(
+              item,
+              permissions
+            )
+              ? item
+              : null;
           }
 
-          const children = item.children.filter((child) => !child.permission || permissions.includes(child.permission));
+          /* -------------------- SUB MENU ----------------------- */
 
-          if (!children.length && !itemAllowed(item, permissions)) {
+          const children =
+            item.children.filter(
+              (child) =>
+                !child.permission ||
+                permissions.includes(
+                  child.permission
+                )
+            );
+
+          if (
+            !children.length &&
+            !itemAllowed(item, permissions)
+          ) {
             return null;
           }
 
-          return { ...item, children };
+          return {
+            ...item,
+            children,
+          };
         })
         .filter(Boolean) as SidebarItem[];
 
-      return { ...section, items };
+      return {
+        ...section,
+        items,
+      };
     })
-    .filter((section) => section.items.length > 0);
+    .filter(
+      (section) =>
+        section.items.length > 0
+    );
 }
