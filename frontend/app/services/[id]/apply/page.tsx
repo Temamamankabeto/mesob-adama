@@ -1,13 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-
-import {
-  useParams,
-  useRouter,
-} from "next/navigation";
-
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   Card,
@@ -15,9 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
 import { Button } from "@/components/ui/button";
-
 import { Progress } from "@/components/ui/progress";
 
 import {
@@ -26,146 +20,120 @@ import {
 } from "@/hooks/application/use-application";
 
 import DynamicFieldRenderer from "@/components/application/DynamicFieldRenderer";
+import { ServiceFormField, ServiceFormSection, ServiceFormStep } from "@/types/application-workflow";
+
+function getSectionId(field: ServiceFormField) {
+  return field.section_id ?? field.service_form_section_id ?? 0;
+}
 
 export default function ApplyPage() {
-
   const params = useParams();
-
   const router = useRouter();
-
   const serviceId = Number(params.id);
 
-  const [formValues, setFormValues] =
-    useState<any>({});
+  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
+  const [files, setFiles] = useState<Record<string, File | null>>({});
+  const [currentStep, setCurrentStep] = useState(0);
 
-  const [files, setFiles] =
-    useState<any>({});
-
-  const [currentStep, setCurrentStep] =
-    useState(0);
-
-  const {
-    data,
-    isLoading,
-  } = useApplicationForm(serviceId);
-
-  const applyMutation =
-    useApplyService(serviceId);
+  const { data, isLoading } = useApplicationForm(serviceId);
+  const applyMutation = useApplyService(serviceId);
 
   const form = data?.data;
+  const fields: ServiceFormField[] = form?.fields || [];
+  const sections: ServiceFormSection[] = form?.sections || [];
+  const steps: ServiceFormStep[] = form?.steps || [];
 
-  const fields =
-    form?.fields || [];
+  const groupedSteps = useMemo(() => {
+    if (steps.length) {
+      return steps
+        .slice()
+        .sort((a, b) => Number(a.step_order || a.sort_order || 0) - Number(b.step_order || b.sort_order || 0))
+        .map((step) => {
+          const stepSections = sections.filter((section) => section.service_form_step_id === step.id);
+          const sectionIds = new Set(stepSections.map((section) => section.id));
 
-  const steps = useMemo(() => {
+          return {
+            title: step.title,
+            sections: stepSections.length ? stepSections : sections,
+            fields: fields.filter((field) => !sectionIds.size || sectionIds.has(getSectionId(field))),
+          };
+        });
+    }
 
-    if (!fields.length) return [];
+    if (sections.length) {
+      return sections
+        .slice()
+        .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+        .map((section) => ({
+          title: section.title,
+          sections: [section],
+          fields: fields.filter((field) => getSectionId(field) === section.id),
+        }));
+    }
 
-    const grouped: Record<string, any[]> = {};
+    return [
+      {
+        title: "Application Information",
+        sections: [],
+        fields,
+      },
+    ];
+  }, [fields, sections, steps]);
 
-    fields.forEach((field: any) => {
+  const current = groupedSteps[currentStep];
+  const progress = groupedSteps.length > 0 ? ((currentStep + 1) / groupedSteps.length) * 100 : 0;
 
-      const key =
-        field.section ||
-        "Application Information";
-
-      if (!grouped[key]) {
-        grouped[key] = [];
-      }
-
-      grouped[key].push(field);
-    });
-
-    return Object.entries(grouped);
-  }, [fields]);
-
-  const currentFields =
-    steps[currentStep]?.[1] || [];
-
-  const progress =
-    steps.length > 0
-      ? ((currentStep + 1) / steps.length) * 100
-      : 0;
-
-  const handleChange = (
-    name: string,
-    value: any
-  ) => {
-
+  function handleChange(name: string, value: any) {
     if (value instanceof File) {
-
-      setFiles({
-        ...files,
-        [name]: value,
-      });
-
+      setFiles((currentFiles) => ({ ...currentFiles, [name]: value }));
       return;
     }
 
-    setFormValues({
-      ...formValues,
-      [name]: value,
+    setFormValues((currentValues) => ({ ...currentValues, [name]: value }));
+  }
+
+  function validateCurrentStep() {
+    const missing = current?.fields?.find((field) => {
+      if (!field.is_required) return false;
+      if (["file", "image"].includes(field.type)) return !files[field.name];
+
+      return formValues[field.name] === undefined || formValues[field.name] === null || formValues[field.name] === "";
     });
-  };
 
-  const nextStep = () => {
-
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+    if (missing) {
+      toast.error(`${missing.label} is required`);
+      return false;
     }
-  };
 
-  const previousStep = () => {
+    return true;
+  }
 
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  function nextStep() {
+    if (!validateCurrentStep()) return;
+    if (currentStep < groupedSteps.length - 1) setCurrentStep((step) => step + 1);
+  }
 
-  const handleSubmit = async (
-    e: React.FormEvent
-  ) => {
-
-    e.preventDefault();
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!validateCurrentStep()) return;
 
     try {
+      const response = await applyMutation.mutateAsync({
+        values: formValues,
+        files,
+      });
 
-      const payload =
-        new FormData();
+      const trackingNumber = response?.data?.tracking_number;
 
-      Object.keys(formValues).forEach(
-        (key) => {
-          payload.append(
-            key,
-            formValues[key]
-          );
-        }
-      );
+      toast.success("Application submitted successfully");
 
-      Object.keys(files).forEach(
-        (key) => {
-          payload.append(
-            key,
-            files[key]
-          );
-        }
-      );
-
-      await applyMutation.mutateAsync(
-        payload
-      );
-
-      router.push(
-        "/my-applications"
-      );
-
-    } catch (error) {
-      console.error(error);
+      router.push(trackingNumber ? `/track-application?tracking=${trackingNumber}` : "/my-applications");
+    } catch (error: any) {
+      toast.error(error?.message || "Submission failed");
     }
-  };
+  }
 
   if (isLoading) {
-
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -173,29 +141,31 @@ export default function ApplyPage() {
     );
   }
 
+  if (!form) {
+    return (
+      <div className="mx-auto max-w-2xl p-6">
+        <Card className="rounded-3xl">
+          <CardContent className="p-8 text-center text-muted-foreground">No active form found for this service.</CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-muted/30">
-
       <div className="mx-auto max-w-5xl p-6">
-
         <Card className="rounded-3xl">
-
           <CardHeader className="space-y-4">
-
-            <div className="flex items-center justify-between">
-
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-3xl">
-                  Apply for Service
-                </CardTitle>
-
+                <CardTitle className="text-3xl">{form.title || "Apply for Service"}</CardTitle>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Complete the dynamic enterprise application form.
+                  {form.description || "Complete the application form."}
                 </p>
               </div>
 
               <div className="text-sm text-muted-foreground">
-                Step {currentStep + 1} of {steps.length || 1}
+                Step {currentStep + 1} of {groupedSteps.length || 1}
               </div>
             </div>
 
@@ -203,55 +173,35 @@ export default function ApplyPage() {
           </CardHeader>
 
           <CardContent>
-
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-8"
-            >
-
+            <form onSubmit={submit} className="space-y-8">
               <div className="rounded-2xl border bg-muted/20 p-6">
-
-                <h2 className="mb-6 text-xl font-semibold">
-                  {steps[currentStep]?.[0] ||
-                    "Application Form"}
-                </h2>
+                <h2 className="mb-6 text-xl font-semibold">{current?.title || "Application Form"}</h2>
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-
-                  {currentFields.map(
-                    (field: any) => (
-
+                  {(current?.fields || [])
+                    .slice()
+                    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+                    .map((field) => (
                       <div
                         key={field.id}
-                        className={
-                          field.width === "full"
-                            ? "md:col-span-2"
-                            : ""
-                        }
+                        className={field.width === "full" || !field.width ? "md:col-span-2" : ""}
                       >
                         <DynamicFieldRenderer
                           field={field}
-                          value={
-                            formValues[
-                              field.name
-                            ]
-                          }
-                          onChange={
-                            handleChange
-                          }
+                          value={formValues[field.name]}
+                          values={formValues}
+                          onChange={handleChange}
                         />
                       </div>
-                    )
-                  )}
+                    ))}
                 </div>
               </div>
 
               <div className="flex items-center justify-between">
-
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={previousStep}
+                  onClick={() => setCurrentStep((step) => Math.max(0, step - 1))}
                   disabled={currentStep === 0}
                   className="rounded-2xl"
                 >
@@ -259,30 +209,14 @@ export default function ApplyPage() {
                   Previous
                 </Button>
 
-                {currentStep <
-                steps.length - 1 ? (
-
-                  <Button
-                    type="button"
-                    onClick={nextStep}
-                    className="rounded-2xl"
-                  >
+                {currentStep < groupedSteps.length - 1 ? (
+                  <Button type="button" onClick={nextStep} className="rounded-2xl">
                     Next
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-
                 ) : (
-
-                  <Button
-                    type="submit"
-                    disabled={
-                      applyMutation.isPending
-                    }
-                    className="rounded-2xl"
-                  >
-                    {applyMutation.isPending
-                      ? "Submitting..."
-                      : "Submit Application"}
+                  <Button type="submit" disabled={applyMutation.isPending} className="rounded-2xl">
+                    {applyMutation.isPending ? "Submitting..." : "Submit Application"}
                   </Button>
                 )}
               </div>

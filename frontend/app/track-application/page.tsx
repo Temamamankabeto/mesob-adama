@@ -1,82 +1,104 @@
-// "use client";
-//         {application && (
+"use client";
 
-//           <div className="grid gap-6 lg:grid-cols-[1fr_350px]">
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
+import { toast } from "sonner";
 
-//             <Card className="rounded-3xl">
+import ApplicationFilesList from "@/components/application/ApplicationFilesList";
+import ApplicationStatusBadge from "@/components/application/ApplicationStatusBadge";
+import ApplicationWorkflowTimeline from "@/components/application/ApplicationWorkflowTimeline";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useTrackApplication } from "@/hooks/application/use-application";
 
-//               <CardContent className="p-8 space-y-6">
+export default function TrackApplicationPage() {
+  const params = useSearchParams();
+  const initialTracking = params.get("tracking") || "";
 
-//                 <div>
+  const [trackingNumber, setTrackingNumber] = useState(initialTracking);
+  const [application, setApplication] = useState<any>(null);
 
-//                   <h2 className="text-2xl font-bold">
-//                     {
-//                       application.service.name
-//                     }
-//                   </h2>
+  const track = useTrackApplication();
 
-//                   <p className="text-muted-foreground">
-//                     Tracking Number: {
-//                       application.tracking_number
-//                     }
-//                   </p>
-//                 </div>
+  async function submit(event?: React.FormEvent) {
+    event?.preventDefault();
 
-//                 <div className="grid gap-4 md:grid-cols-3">
+    if (!trackingNumber.trim()) {
+      toast.error("Enter tracking number");
+      return;
+    }
 
-//                   <div className="rounded-2xl border p-4">
-//                     <p className="text-sm text-muted-foreground">
-//                       Status
-//                     </p>
-//                     <h3 className="mt-1 text-lg font-bold capitalize">
-//                       {application.status}
-//                     </h3>
-//                   </div>
+    try {
+      const response = await track.mutateAsync({ tracking_number: trackingNumber.trim() });
+      setApplication(response.data);
+    } catch (error: any) {
+      toast.error(error?.message || "Application not found");
+      setApplication(null);
+    }
+  }
 
-//                   <div className="rounded-2xl border p-4">
-//                     <p className="text-sm text-muted-foreground">
-//                       Current Window
-//                     </p>
-//                     <h3 className="mt-1 text-lg font-bold">
-//                       {
-//                         application.current_window?.name ||
-//                         "Completed"
-//                       }
-//                     </h3>
-//                   </div>
+  useEffect(() => {
+    if (initialTracking) submit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTracking]);
 
-//                   <div className="rounded-2xl border p-4">
-//                     <p className="text-sm text-muted-foreground">
-//                       Submitted
-//                     </p>
-//                     <h3 className="mt-1 text-lg font-bold">
-//                       {new Date(
-//                         application.submitted_at
-//                       ).toLocaleDateString()}
-//                     </h3>
-//                   </div>
-//                 </div>
-//               </CardContent>
-//             </Card>
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 p-6">
+      <Card className="rounded-3xl">
+        <CardHeader>
+          <CardTitle>Track Application</CardTitle>
+          <p className="text-sm text-muted-foreground">Enter your tracking number to check status.</p>
+        </CardHeader>
 
-//             <Card className="rounded-3xl">
+        <CardContent>
+          <form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row">
+            <Input
+              value={trackingNumber}
+              onChange={(event) => setTrackingNumber(event.target.value)}
+              placeholder="Example: ADA-2026-000001"
+            />
+            <Button disabled={track.isPending}>
+              <Search className="mr-2 h-4 w-4" />
+              Track
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-//               <CardContent className="p-8">
+      {application && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold">{application.tracking_number}</h1>
+              <p className="text-sm text-muted-foreground">{application.service?.name}</p>
+            </div>
 
-//                 <h3 className="mb-5 text-xl font-bold">
-//                   Timeline
-//                 </h3>
+            <ApplicationStatusBadge status={application.status} />
+          </div>
 
-//                 <ApplicationTimeline
-//                   histories={
-//                     application.histories
-//                   }
-//                 />
-//               </CardContent>
-//             </Card>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Card className="rounded-3xl">
+              <CardHeader>
+                <CardTitle>Workflow</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ApplicationWorkflowTimeline workflow={application.workflow} histories={application.histories} />
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-3xl">
+              <CardHeader>
+                <CardTitle>Files</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ApplicationFilesList files={application.files} />
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

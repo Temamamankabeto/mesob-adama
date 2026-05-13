@@ -11,36 +11,17 @@ import {
 } from "@/types/home/home";
 
 export const homeService = {
+  async getHomepage(): Promise<HomepageResponse> {
+    const response = await api.get("/public/homepage");
 
-  /**
-   * Homepage data
-   */
-  async getHomepage():
-    Promise<HomepageResponse> {
-
-    const response = await api.get(
-      "/public/homepage"
-    );
-
-    return unwrap<HomepageResponse>(
-      response
-    );
+    return unwrap<HomepageResponse>(response);
   },
 
-  /**
-   * Track application
-   */
-  async trackApplication(
-    payload: TrackApplicationPayload
-  ): Promise<TrackApplicationResponse> {
+  async trackApplication(payload: TrackApplicationPayload): Promise<TrackApplicationResponse> {
+    const response = await api.post("/public/track-application", {
+      tracking_number: (payload as any).tracking_number ?? (payload as any).application_number,
+    });
 
-    const response = await api.post(
-      "/public/track-application",
-      payload
-    );
-
-    return unwrap<TrackApplicationResponse>(
-      response
-    );
+    return unwrap<TrackApplicationResponse>(response);
   },
 };
