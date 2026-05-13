@@ -2,36 +2,52 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Api\ApplicationController;
+use App\Http\Controllers\Api\Admin\ServiceApplicationController;
 use App\Http\Controllers\Api\Admin\ServiceFormController;
 use App\Http\Controllers\Api\Admin\ServiceFormFieldController;
+use App\Http\Controllers\Api\Admin\ServiceFormFieldConditionController;
+use App\Http\Controllers\Api\Admin\ServiceFormSectionController;
+use App\Http\Controllers\Api\Admin\ServiceFormStepController;
 use App\Http\Controllers\Api\Admin\ApplicationDashboardController;
-
 use App\Http\Controllers\Api\Public\PublicApplicationController;
 use App\Http\Controllers\Api\Public\ApplicationTrackingController;
-
 use App\Http\Controllers\Api\Officer\OfficerApplicationController;
+use App\Http\Controllers\Api\Officer\CertificateController;
 
 /*
 |--------------------------------------------------------------------------
-| ADMIN FORM BUILDER
+| AUTHENTICATED CUSTOMER APPLICATIONS
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/applications', [ApplicationController::class, 'index']);
+    Route::post('/applications', [ApplicationController::class, 'store']);
+    Route::get('/applications/{application}', [ApplicationController::class, 'show']);
+    Route::put('/applications/{application}', [ApplicationController::class, 'update']);
+    Route::delete('/applications/{application}', [ApplicationController::class, 'destroy']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN FORM BUILDER + APPLICATION BACK OFFICE
 |--------------------------------------------------------------------------
 */
 
 Route::middleware('auth:sanctum')
     ->prefix('admin')
     ->group(function () {
+        Route::apiResource('service-forms', ServiceFormController::class);
+        Route::apiResource('service-form-sections', ServiceFormSectionController::class);
+        Route::apiResource('service-form-steps', ServiceFormStepController::class);
+        Route::apiResource('service-form-fields', ServiceFormFieldController::class);
+        Route::apiResource('service-form-field-conditions', ServiceFormFieldConditionController::class);
 
-        Route::get('/service-forms', [ServiceFormController::class, 'index']);
-        Route::post('/service-forms', [ServiceFormController::class, 'store']);
-        Route::get('/service-forms/{serviceForm}', [ServiceFormController::class, 'show']);
-        Route::put('/service-forms/{serviceForm}', [ServiceFormController::class, 'update']);
-        Route::delete('/service-forms/{serviceForm}', [ServiceFormController::class, 'destroy']);
-
-        Route::get('/service-form-fields', [ServiceFormFieldController::class, 'index']);
-        Route::post('/service-form-fields', [ServiceFormFieldController::class, 'store']);
-        Route::get('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'show']);
-        Route::put('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'update']);
-        Route::delete('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'destroy']);
+        Route::get('/service-applications', [ServiceApplicationController::class, 'index']);
+        Route::get('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'show']);
+        Route::put('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'update']);
+        Route::delete('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'destroy']);
 
         Route::get('/applications/summary', [
             ApplicationDashboardController::class,
@@ -47,7 +63,6 @@ Route::middleware('auth:sanctum')
 
 Route::prefix('public')
     ->group(function () {
-
         Route::get('/services/{service}/form', [
             PublicApplicationController::class,
             'form',
@@ -73,7 +88,6 @@ Route::prefix('public')
 Route::middleware('auth:sanctum')
     ->prefix('officer')
     ->group(function () {
-
         Route::get('/applications/queue', [
             OfficerApplicationController::class,
             'queue',
@@ -104,8 +118,8 @@ Route::middleware('auth:sanctum')
             'complete',
         ]);
 
-        Route::get(
-    '/applications/{application}/certificate',
-    [CertificateController::class, 'download']
-);
+        Route::get('/applications/{application}/certificate', [
+            CertificateController::class,
+            'download',
+        ]);
     });

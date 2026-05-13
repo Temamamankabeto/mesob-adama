@@ -18,6 +18,9 @@ class Application extends Model
     ];
 
     protected $casts = [
+        'customer_id' => 'integer',
+        'service_id' => 'integer',
+        'assigned_to' => 'integer',
         'submitted_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
@@ -35,30 +38,5 @@ class Application extends Model
     public function assignee()
     {
         return $this->belongsTo(User::class, 'assigned_to');
-    }
-
-    public function statusLogs()
-    {
-        return $this->hasMany(ApplicationStatusLog::class);
-    }
-
-    public function assignments()
-    {
-        return $this->hasMany(ApplicationAssignment::class);
-    }
-
-    public function comments()
-    {
-        return $this->hasMany(ApplicationComment::class);
-    }
-
-    public function documents()
-    {
-        return $this->hasMany(ApplicationDocument::class);
-    }
-
-    public function formValues()
-    {
-        return $this->hasMany(ApplicationFormValue::class);
     }
 }

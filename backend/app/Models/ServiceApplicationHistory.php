@@ -11,23 +11,26 @@ class ServiceApplicationHistory extends Model
         'from_status',
         'to_status',
         'action',
+        'action_type',
         'remark',
+        'comment',
+        'metadata',
         'actor_id',
+    ];
+
+    protected $casts = [
+        'application_id' => 'integer',
+        'actor_id' => 'integer',
+        'metadata' => 'array',
     ];
 
     public function application()
     {
-        return $this->belongsTo(
-            ServiceApplication::class,
-            'application_id'
-        );
+        return $this->belongsTo(ServiceApplication::class, 'application_id');
     }
 
     public function actor()
     {
-        return $this->belongsTo(
-            User::class,
-            'actor_id'
-        );
+        return $this->belongsTo(User::class, 'actor_id');
     }
 }
