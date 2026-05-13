@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ServiceFormController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\UserServiceAssignmentController;
 use App\Http\Controllers\Api\ServiceFormSectionController;
+use App\Http\Controllers\Api\ServiceFormFieldController;
 
 // use App\Http\Controllers\Api\ServiceFormController;
 
@@ -115,5 +116,32 @@ Route::put(
 Route::delete(
     '/service-form-sections/{serviceFormSection}',
     [ServiceFormSectionController::class, 'destroy']
+);
+
+
+
+Route::get(
+    '/service-form-fields',
+    [ServiceFormFieldController::class, 'index']
+);
+
+Route::post(
+    '/service-form-fields',
+    [ServiceFormFieldController::class, 'store']
+);
+
+Route::get(
+    '/service-form-fields/{serviceFormField}',
+    [ServiceFormFieldController::class, 'show']
+);
+
+Route::put(
+    '/service-form-fields/{serviceFormField}',
+    [ServiceFormFieldController::class, 'update']
+);
+
+Route::delete(
+    '/service-form-fields/{serviceFormField}',
+    [ServiceFormFieldController::class, 'destroy']
 );
 });
