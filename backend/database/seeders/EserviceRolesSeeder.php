@@ -11,9 +11,8 @@ class EserviceRolesSeeder extends Seeder
     {
         $roles = [
             'super_admin',
-            'city_admin',
-            'subcity_admin',
-            'woreda_admin',
+            'manager', //(at all level)
+            'admin', //(at all level)
             'front_officer',  //(at all level)
             'back_officer', //(at all level)
             'customer'

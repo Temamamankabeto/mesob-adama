@@ -112,7 +112,50 @@ class RolesPermissionsSeeder extends Seeder
             'super_admin' => $all,
 
             // SUBCITY ADMIN
-            'subcity_admin' => [
+            'admin' => [
+
+                'auth.me',
+
+                'users.read',
+                'users.create',
+                'users.update',
+                'users.activate',
+                'users.deactivate',
+                'users.reset_password',
+                'users.assign_role',
+
+                'roles.read',
+
+                'permissions.read',
+
+                'subcities.read',
+
+                'woredas.read',
+
+                // SERVICES
+                'services.read',
+                'services.create',
+                'services.update',
+
+                // WINDOWS
+                'windows.read',
+                'windows.create',
+                'windows.update',
+                'windows.delete',
+
+               
+             //permission
+             'permissions.read',  
+             'permission.create ',
+             'permission.update',
+              'permission.delete',
+
+                'reports.subcity',
+                'reports.woreda',
+
+                'audit_logs.read',
+            ],
+            'manager' => [
 
                 'auth.me',
 
@@ -156,35 +199,7 @@ class RolesPermissionsSeeder extends Seeder
                 'audit_logs.read',
             ],
 
-            // WOREDA ADMIN
-            'woreda_admin' => [
-
-                'auth.me',
-
-                'users.read',
-                'users.create',
-                'users.update',
-                'users.activate',
-                'users.deactivate',
-                'users.reset_password',
-                'users.assign_role',
-
-                'roles.read',
-
-                'permissions.read',
-
-                'woredas.read',
-
-                // SERVICES
-                'services.read',
-                'services.create',
-                'services.update',
-
-                'reports.woreda',
-
-                'audit_logs.read',
-            ],
-
+           
             // CITY FRONT OFFICER
             'front_officer' => [
                 'auth.me',
@@ -243,19 +258,13 @@ class RolesPermissionsSeeder extends Seeder
             ],
 
             [
-                'name' => 'Subcity Admin',
-                'email' => 'subcity@eservice.com',
+                'name' => 'Admin',
+                'email' => 'admin@eservice.com',
                 'phone' => '0911000002',
-                'role' => 'subcity_admin',
+                'role' => 'admin',
             ],
 
-            [
-                'name' => 'Woreda Admin',
-                'email' => 'woreda@eservice.com',
-                'phone' => '0911000003',
-                'role' => 'woreda_admin',
-            ],
-
+           
             [
                 'name' => 'Front Officer',
                 'email' => 'frontofficer@eservice.com',
