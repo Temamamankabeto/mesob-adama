@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\AppRoles;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 
@@ -9,20 +10,10 @@ class EserviceRolesSeeder extends Seeder
 {
     public function run(): void
     {
-        $roles = [
-            'super_admin',
-            'city_admin',
-            'subcity_admin',
-            'woreda_admin',
-            'front_officer',  //(at all level)
-            'back_officer', //(at all level)
-            'customer'
-        ];
-
-        foreach ($roles as $role) {
+        foreach (AppRoles::all() as $role) {
             Role::firstOrCreate([
                 'name' => $role,
-                'guard_name' => 'sanctum'
+                'guard_name' => 'sanctum',
             ]);
         }
     }

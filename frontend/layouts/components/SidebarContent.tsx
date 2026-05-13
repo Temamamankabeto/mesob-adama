@@ -7,6 +7,7 @@ import { ChevronRight } from "lucide-react";
 import { authService } from "@/services/auth/auth.service";
 import { filterSidebarByPermissions, getSidebarForRole } from "@/config/sidebar.config";
 import { normalizeRole } from "@/config/dashboard.config";
+import { locationLevelLabel, roleLabel } from "@/config/roles.config";
 import { cn } from "@/lib/utils";
 
 type SidebarContentProps = {
@@ -27,6 +28,11 @@ export default function SidebarContent({ collapsed = false }: SidebarContentProp
   const RoleIcon = roleSidebar.icon;
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
+  const locationScope =
+    (user as any)?.location_level
+      ? locationLevelLabel((user as any).location_level)
+      : (user as any)?.woreda?.name || (user as any)?.subcity?.name || (user as any)?.city?.name || "";
+
   function toggleMenu(label: string) {
     setOpenMenus((current) => ({ ...current, [label]: !current[label] }));
   }
@@ -45,8 +51,11 @@ export default function SidebarContent({ collapsed = false }: SidebarContentProp
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold">eService</h1>
-              <p className="truncate text-xs text-sidebar-foreground/70">{roleSidebar.title}</p>
+              <h1 className="truncate text-sm font-bold">MESOB eService</h1>
+              <p className="truncate text-xs text-sidebar-foreground/70">
+                {roleLabel(role)}
+                {locationScope ? ` · ${locationScope}` : ""}
+              </p>
             </div>
           )}
         </div>

@@ -4,11 +4,16 @@ namespace App\Services;
 
 use App\Models\ServiceApplication;
 use App\Models\ServiceApplicationHistory;
+use App\Support\AccessScope;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ServiceApplicationService
 {
+    public function __construct(
+        protected AccessScope $scope
+    ) {}
+
     public function list(Request $request)
     {
         $query = ServiceApplication::with([
@@ -17,6 +22,10 @@ class ServiceApplicationService
             'currentWindow',
             'currentOfficer',
         ]);
+
+        if ($request->user()) {
+            $this->scope->applyServiceApplicationScope($query, $request->user());
+        }
 
         foreach (['status', 'priority', 'service_id', 'customer_id', 'current_window_id'] as $filter) {
             if ($request->filled($filter)) {

@@ -1,26 +1,43 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { normalizeRoleName } from "@/config/roles.config";
 
-const PUBLIC_PATHS = ["/login", "/forgot-password", "/reset-password"];
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/services",
+  "/track-application",
+];
+
+const MANAGEMENT_ROLES = ["super_admin", "manager", "admin"];
+const OFFICER_ROLES = ["front_officer", "back_officer"];
 
 const ROUTE_ROLE_RULES: Array<{ prefixes: string[]; roles: string[] }> = [
   {
-    prefixes: ["/packages", "/dashboard/packages"],
-    roles: ["Admin", "General Admin", "General Administrator"],
+    prefixes: ["/dashboard/users", "/dashboard/roles", "/dashboard/audit-logs"],
+    roles: MANAGEMENT_ROLES,
   },
   {
-    prefixes: ["/package-orders", "/dashboard/package-orders"],
-    roles: ["Manager", "Cafeteria Manager", "Admin", "General Admin", "General Administrator"],
+    prefixes: [
+      "/dashboard/service-forms",
+      "/dashboard/service-form-sections",
+      "/dashboard/service-applications",
+      "/dashboard/applications/summary",
+    ],
+    roles: MANAGEMENT_ROLES,
   },
   {
-    prefixes: ["/package-payments", "/dashboard/package-payments"],
-    roles: ["Finance", "Finance Manager", "Cashier", "Admin", "General Admin", "General Administrator"],
+    prefixes: ["/dashboard/officer/applications"],
+    roles: [...MANAGEMENT_ROLES, ...OFFICER_ROLES],
+  },
+  {
+    prefixes: ["/my-applications"],
+    roles: ["customer"],
   },
 ];
-
-function normalize(value: string) {
-  return value.trim().toLowerCase().replace(/[_-]+/g, " ");
-}
 
 function parseRoles(raw?: string) {
   if (!raw) return [];
@@ -29,36 +46,31 @@ function parseRoles(raw?: string) {
     const decoded = decodeURIComponent(raw);
     const parsed = JSON.parse(decoded);
 
-    if (Array.isArray(parsed)) return parsed.map((role) => String(role));
-    if (typeof parsed === "string") return [parsed];
+    if (Array.isArray(parsed)) return parsed.map((role) => normalizeRoleName(String(role)));
+    if (typeof parsed === "string") return [normalizeRoleName(parsed)];
   } catch {
     // fallback below
   }
 
   return raw
     .split(",")
-    .map((role) => role.trim())
+    .map((role) => normalizeRoleName(role.trim()))
     .filter(Boolean);
 }
 
-function hasAllowedRole(userRoles: string[], allowedRoles: string[]) {
-  const normalizedUserRoles = userRoles.map(normalize);
-  return allowedRoles.some((role) =>
-    normalizedUserRoles.includes(normalize(role))
-  );
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
+  if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 
   const matchedRule = ROUTE_ROLE_RULES.find((rule) =>
-    rule.prefixes.some(
-      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-    )
+    rule.prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
   );
 
   if (!matchedRule) {
@@ -71,13 +83,11 @@ export function middleware(request: NextRequest) {
 
   const userRoles = parseRoles(rolesCookie);
 
-  // Now roles are saved to cookies during login.
-  // If roles are missing, redirect to login instead of silently allowing access.
   if (userRoles.length === 0) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (!hasAllowedRole(userRoles, matchedRule.roles)) {
+  if (!matchedRule.roles.some((role) => userRoles.includes(normalizeRoleName(role)))) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
@@ -86,11 +96,14 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/packages/:path*",
-    "/package-orders/:path*",
-    "/package-payments/:path*",
-    "/dashboard/packages/:path*",
-    "/dashboard/package-orders/:path*",
-    "/dashboard/package-payments/:path*",
+    "/dashboard/users/:path*",
+    "/dashboard/roles/:path*",
+    "/dashboard/audit-logs/:path*",
+    "/dashboard/service-forms/:path*",
+    "/dashboard/service-form-sections/:path*",
+    "/dashboard/service-applications/:path*",
+    "/dashboard/applications/summary/:path*",
+    "/dashboard/officer/applications/:path*",
+    "/my-applications/:path*",
   ],
 };
