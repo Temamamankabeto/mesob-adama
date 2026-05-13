@@ -14,21 +14,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useApplications } from "@/hooks/application-workflow/use-application-workflow";
+import { useOfficerApplicationQueue } from "@/hooks/application-workflow/use-application-workflow";
 
-export default function MyApplicationsPage() {
-  const { data = [], isLoading } = useApplications();
+export default function OfficerApplicationsPage() {
+  const { data = [], isLoading } = useOfficerApplicationQueue();
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">My Applications</h1>
-        <p className="text-sm text-muted-foreground">Your submitted applications and current statuses.</p>
+        <h1 className="text-2xl font-bold">Officer Queue</h1>
+        <p className="text-sm text-muted-foreground">Review and process assigned service applications.</p>
       </div>
 
       <Card className="rounded-3xl">
         <CardHeader>
-          <CardTitle>Applications</CardTitle>
+          <CardTitle>Queue</CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -36,10 +36,10 @@ export default function MyApplicationsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Number</TableHead>
+                  <TableHead>Tracking</TableHead>
                   <TableHead>Service</TableHead>
+                  <TableHead>Customer</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Submitted</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -54,17 +54,17 @@ export default function MyApplicationsPage() {
                 ) : data.length ? (
                   data.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.application_number}</TableCell>
+                      <TableCell className="font-medium">{item.tracking_number}</TableCell>
                       <TableCell>{item.service?.name || item.service_id}</TableCell>
+                      <TableCell>{item.customer?.name || item.customer_id}</TableCell>
                       <TableCell>
                         <ApplicationStatusBadge status={item.status} />
                       </TableCell>
-                      <TableCell>{item.submitted_at ? new Date(item.submitted_at).toLocaleString() : "-"}</TableCell>
                       <TableCell className="text-right">
                         <Button asChild variant="outline" size="sm">
-                          <Link href={`/my-applications/${item.id}`}>
+                          <Link href={`/dashboard/officer/applications/${item.id}`}>
                             <Eye className="mr-2 h-4 w-4" />
-                            View
+                            Review
                           </Link>
                         </Button>
                       </TableCell>
@@ -73,7 +73,7 @@ export default function MyApplicationsPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                      No applications found.
+                      No applications in your queue.
                     </TableCell>
                   </TableRow>
                 )}

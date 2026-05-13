@@ -174,17 +174,49 @@ export const sidebarConfig: Record<
           icon: FileText,
 
           children: [
+
+            
+
+            {
+              label: " Form Builder",
+              href: "/dashboard/service-forms",
+              permission: "permissions.read",
+            },
+
             {
               label: "Form Sections",
               href: "/dashboard/service-form-sections",
               permission: "cities.read",
             },
-
+              
             {
-              label: "Service Forms",
-              href: "/dashboard/service-forms",
+              label: "Application Summary",
+              href: "/dashboard/applications/summary",
               permission: "permissions.read",
             },
+
+            {
+              label: "Service Applications",
+              href: "/dashboard/applications/summary",
+              permission: "permissions.read",
+            },
+            {
+              label: "Service Applications",
+              href: "/dashboard/service-applications",
+              permission: "permissions.read",
+            },
+
+            
+
+            {
+              label: "Officer Queue",
+              href: "/dashboard/officer/applications",
+              permission: "permissions.read",
+            }
+
+
+            
+           
           ],
         },
       ]),
