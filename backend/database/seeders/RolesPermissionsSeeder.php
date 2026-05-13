@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Support\AppRoles;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
@@ -16,11 +17,8 @@ class RolesPermissionsSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $permissions = [
-
-            // AUTH
             'auth.me',
 
-            // USERS
             'users.read',
             'users.create',
             'users.update',
@@ -30,69 +28,75 @@ class RolesPermissionsSeeder extends Seeder
             'users.reset_password',
             'users.assign_role',
 
-            // ROLES
             'roles.read',
             'roles.create',
             'roles.update',
             'roles.delete',
             'roles.assign_permissions',
 
-                // PERMISSIONS
             'permissions.read',
             'permissions.create',
             'permissions.update',
             'permissions.delete',
 
-            // CITIES
             'cities.read',
             'cities.create',
             'cities.update',
             'cities.delete',
 
-            // SUBCITIES
             'subcities.read',
             'subcities.create',
             'subcities.update',
             'subcities.delete',
 
-            // WOREDAS
             'woredas.read',
             'woredas.create',
             'woredas.update',
             'woredas.delete',
 
-            // SERVICES
             'services.read',
             'services.create',
             'services.update',
             'services.delete',
 
-            // AUDIT
-            'audit_logs.read',
-
-            // REPORTS
-            'reports.city',
-            'reports.subcity',
-            'reports.woreda',
-            'reports.officer',
-            'reports.customer',
-
-       // WINDOWS
             'windows.read',
             'windows.create',
             'windows.update',
             'windows.delete',
 
-             //permission
-             'permissions.read',  
-             'permission.create ',
-             'permission.update',
-            'permission.delete',
+            'service_forms.read',
+            'service_forms.create',
+            'service_forms.update',
+            'service_forms.delete',
+            'service_forms.builder',
+
+            'service_applications.read',
+            'service_applications.create',
+            'service_applications.update',
+            'service_applications.delete',
+            'service_applications.review',
+            'service_applications.approve',
+            'service_applications.reject',
+            'service_applications.return',
+            'service_applications.complete',
+            'service_applications.certificate',
+
+            'applications.read',
+            'applications.create',
+            'applications.update',
+            'applications.delete',
+            'applications.track',
+            'applications.summary',
+            'applications.own',
+
+            'audit_logs.read',
+
+            'reports.city',
+            'reports.subcity',
+            'reports.woreda',
+            'reports.officer',
+            'reports.customer',
         ];
-
-       
-
-
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate([
@@ -101,210 +105,171 @@ class RolesPermissionsSeeder extends Seeder
             ]);
         }
 
-        $all = Permission::where(
-            'guard_name',
-            'sanctum'
-        )->pluck('name')->toArray();
+        $all = Permission::where('guard_name', 'sanctum')
+            ->pluck('name')
+            ->values()
+            ->all();
 
-        $roleMap = [
+        $managerPermissions = [
+            'auth.me',
 
-            // SUPER ADMIN
-            'super_admin' => $all,
+            'users.read',
+            'users.create',
+            'users.update',
+            'users.activate',
+            'users.deactivate',
+            'users.reset_password',
+            'users.assign_role',
 
-            // SUBCITY ADMIN
-            'subcity_admin' => [
+            'roles.read',
+            'permissions.read',
 
-                'auth.me',
+            'cities.read',
+            'subcities.read',
+            'woredas.read',
 
-                'users.read',
-                'users.create',
-                'users.update',
-                'users.activate',
-                'users.deactivate',
-                'users.reset_password',
-                'users.assign_role',
+            'services.read',
+            'services.create',
+            'services.update',
 
-                'roles.read',
+            'windows.read',
+            'windows.create',
+            'windows.update',
 
-                'permissions.read',
+            'service_forms.read',
+            'service_forms.create',
+            'service_forms.update',
+            'service_forms.delete',
+            'service_forms.builder',
 
-                'subcities.read',
+            'service_applications.read',
+            'service_applications.update',
+            'service_applications.review',
+            'service_applications.approve',
+            'service_applications.reject',
+            'service_applications.return',
+            'service_applications.complete',
+            'service_applications.certificate',
 
-                'woredas.read',
+            'applications.read',
+            'applications.update',
+            'applications.summary',
 
-                // SERVICES
-                'services.read',
-                'services.create',
-                'services.update',
+            'audit_logs.read',
 
-                // WINDOWS
-                'windows.read',
-                'windows.create',
-                'windows.update',
-                'windows.delete',
-
-               
-             //permission
-             'permissions.read',  
-             'permission.create ',
-             'permission.update',
-              'permission.delete',
-
-                'reports.subcity',
-                'reports.woreda',
-
-                'audit_logs.read',
-            ],
-
-            // WOREDA ADMIN
-            'woreda_admin' => [
-
-                'auth.me',
-
-                'users.read',
-                'users.create',
-                'users.update',
-                'users.activate',
-                'users.deactivate',
-                'users.reset_password',
-                'users.assign_role',
-
-                'roles.read',
-
-                'permissions.read',
-
-                'woredas.read',
-
-                // SERVICES
-                'services.read',
-                'services.create',
-                'services.update',
-
-                'reports.woreda',
-
-                'audit_logs.read',
-            ],
-
-            // CITY FRONT OFFICER
-            'front_officer' => [
-                'auth.me',
-
-                'users.read',
-
-                // SERVICES
-                'services.read',
-
-                'reports.officer',
-            ],
-
-            // CITY BACK OFFICER
-            'back_officer' => [
-                'auth.me',
-
-                'users.read',
-
-                // SERVICES
-                'services.read',
-
-                'reports.officer',
-            ],
- 
-
-           
-
-            // CUSTOMER
-            'customer' => [
-                'auth.me',
-
-                'reports.customer',
-            ],
+            'reports.city',
+            'reports.subcity',
+            'reports.woreda',
         ];
 
-        foreach (
-            $roleMap as $roleName => $permissionsForRole
-        ) {
+        $adminPermissions = [
+            'auth.me',
+
+            'users.read',
+            'users.create',
+            'users.update',
+            'users.activate',
+            'users.deactivate',
+            'users.reset_password',
+            'users.assign_role',
+
+            'roles.read',
+            'permissions.read',
+
+            'cities.read',
+            'subcities.read',
+            'woredas.read',
+
+            'services.read',
+            'services.create',
+            'services.update',
+
+            'windows.read',
+            'windows.create',
+            'windows.update',
+
+            'service_forms.read',
+            'service_forms.create',
+            'service_forms.update',
+            'service_forms.builder',
+
+            'service_applications.read',
+            'service_applications.update',
+            'service_applications.review',
+
+            'applications.read',
+            'applications.update',
+            'applications.summary',
+
+            'audit_logs.read',
+        ];
+
+        $frontOfficerPermissions = [
+            'auth.me',
+            'users.read',
+            'services.read',
+            'service_forms.read',
+            'service_applications.read',
+            'service_applications.create',
+            'service_applications.update',
+            'service_applications.review',
+            'service_applications.return',
+            'applications.read',
+            'applications.create',
+            'applications.track',
+            'reports.officer',
+        ];
+
+        $backOfficerPermissions = [
+            'auth.me',
+            'users.read',
+            'services.read',
+            'service_applications.read',
+            'service_applications.update',
+            'service_applications.review',
+            'service_applications.approve',
+            'service_applications.reject',
+            'service_applications.return',
+            'service_applications.complete',
+            'service_applications.certificate',
+            'applications.read',
+            'applications.update',
+            'reports.officer',
+        ];
+
+        $customerPermissions = [
+            'auth.me',
+            'services.read',
+            'service_forms.read',
+            'service_applications.create',
+            'applications.own',
+            'applications.track',
+            'reports.customer',
+        ];
+
+        $roleMap = [
+            AppRoles::SUPER_ADMIN => $all,
+            AppRoles::MANAGER => $managerPermissions,
+            AppRoles::ADMIN => $adminPermissions,
+            AppRoles::FRONT_OFFICER => $frontOfficerPermissions,
+            AppRoles::BACK_OFFICER => $backOfficerPermissions,
+            AppRoles::CUSTOMER => $customerPermissions,
+        ];
+
+        foreach ($roleMap as $roleName => $permissionsForRole) {
             $role = Role::firstOrCreate([
                 'name' => $roleName,
                 'guard_name' => 'sanctum',
             ]);
 
-            $role->syncPermissions(
-                $permissionsForRole
-            );
+            $role->syncPermissions($permissionsForRole);
         }
 
-        $users = [
+        // Keep user creation out of this seeder to avoid unique email/phone
+        // collisions when existing production/demo users are already present.
+        // Users should be created through /api/admin/users or a dedicated
+        // environment-specific seeder.
 
-            [
-                'name' => 'Super Admin',
-                'email' => 'superadmin@eservice.com',
-                'phone' => '0911000001',
-                'role' => 'super_admin',
-            ],
-
-            [
-                'name' => 'Subcity Admin',
-                'email' => 'subcity@eservice.com',
-                'phone' => '0911000002',
-                'role' => 'subcity_admin',
-            ],
-
-            [
-                'name' => 'Woreda Admin',
-                'email' => 'woreda@eservice.com',
-                'phone' => '0911000003',
-                'role' => 'woreda_admin',
-            ],
-
-            [
-                'name' => 'Front Officer',
-                'email' => 'frontofficer@eservice.com',
-                'phone' => '0911000004',
-                'role' => 'front_officer',
-            ],
-
-            [
-                'name' => 'Back Officer',
-                'email' => 'backofficer@eservice.com',
-                'phone' => '0911000005',
-                'role' => 'back_officer',
-            ],
-
-            [
-                'name' => 'Customer User',
-                'email' => 'customer@eservice.com',
-                'phone' => '0911000006',
-                'role' => 'customer',
-            ],
-        ];
-
-        foreach ($users as $seedUser) {
-
-            $user = User::updateOrCreate(
-
-                [
-                    'email' => $seedUser['email'],
-                ],
-
-                [
-                    'name' => $seedUser['name'],
-
-                    'phone' => $seedUser['phone'],
-
-                    'password' => Hash::make(
-                        'Password@123'
-                    ),
-
-                    'is_active' => true,
-                ]
-            );
-
-            $user->syncRoles([
-                $seedUser['role']
-            ]);
-        }
-
-        app(PermissionRegistrar::class)
-            ->forgetCachedPermissions();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

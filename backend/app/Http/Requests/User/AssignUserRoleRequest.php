@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\User;
 
+use App\Support\AppRoles;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,8 +19,19 @@ class AssignUserRoleRequest extends FormRequest
             'role' => [
                 'required',
                 'string',
-                Rule::exists('roles', 'name')->where(fn ($q) => $q->where('guard_name', 'sanctum')),
+                Rule::in(AppRoles::all()),
+                Rule::exists('roles', 'name')
+                    ->where(fn ($query) => $query->where('guard_name', 'sanctum')),
             ],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('role')) {
+            $this->merge([
+                'role' => AppRoles::normalize($this->input('role')),
+            ]);
+        }
     }
 }

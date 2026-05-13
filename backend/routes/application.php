@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\ApplicationController;
+use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\ServiceApplicationController;
 use App\Http\Controllers\Api\Admin\ServiceFormController;
 use App\Http\Controllers\Api\Admin\ServiceFormFieldController;
@@ -38,6 +39,8 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')
     ->prefix('admin')
     ->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+
         Route::apiResource('service-forms', ServiceFormController::class);
         Route::apiResource('service-form-sections', ServiceFormSectionController::class);
         Route::apiResource('service-form-steps', ServiceFormStepController::class);

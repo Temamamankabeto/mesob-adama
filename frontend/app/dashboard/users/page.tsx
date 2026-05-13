@@ -9,8 +9,8 @@ import {
 } from "@/hooks/user/useUsers";
 
 import { useToggleUserStatus } from "@/hooks/user/useToggleUserStatus";
+import { locationLevelLabel, roleLabel } from "@/config/roles.config";
 
-/* UI */
 import {
   Card,
   CardContent,
@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/card";
 
 import { Button } from "@/components/ui/button";
-
 import { Input } from "@/components/ui/input";
 
 import {
@@ -31,7 +30,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-/* Dropdown */
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,11 +42,9 @@ import { MoreVertical, Search } from "lucide-react";
 export default function UsersPage() {
   const router = useRouter();
 
-  /* PAGINATION + SEARCH STATE */
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
-  /* FETCH USERS */
   const { data, isLoading } = useUsers(page, search);
 
   const users = data?.data || [];
@@ -64,18 +60,20 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-
-      {/* HEADER */}
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Users</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Users</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage users by role and location scope.
+          </p>
+        </div>
 
         <Button onClick={() => router.push("/dashboard/users/add")}>
-          + Add User
+          Add User
         </Button>
       </div>
 
-      {/* SEARCH */}
       <Card>
         <CardContent className="pt-6">
           <div className="relative max-w-sm">
@@ -84,8 +82,8 @@ export default function UsersPage() {
             <Input
               placeholder="Search users..."
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+              onChange={(event) => {
+                setSearch(event.target.value);
                 setPage(1);
               }}
               className="pl-10"
@@ -94,14 +92,12 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
-      {/* TABLE */}
       <Card>
         <CardHeader>
           <CardTitle>User List</CardTitle>
         </CardHeader>
 
         <CardContent>
-
           <Table>
             <TableHeader>
               <TableRow>
@@ -109,6 +105,7 @@ export default function UsersPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Level</TableHead>
                 <TableHead>City</TableHead>
                 <TableHead>Subcity</TableHead>
                 <TableHead>Woreda</TableHead>
@@ -118,171 +115,110 @@ export default function UsersPage() {
             </TableHeader>
 
             <TableBody>
-
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10">
+                  <TableCell colSpan={10} className="py-10 text-center">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10">
+                  <TableCell colSpan={10} className="py-10 text-center">
                     No users found
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((u: any) => (
-                  <TableRow key={u.id}>
+                users.map((user: any) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.phone}</TableCell>
 
-                    <TableCell>{u.name}</TableCell>
+                    <TableCell>
+                      {(user.role_names || [user.role]).filter(Boolean).map((role: string) => (
+                        <span key={role} className="mr-1 rounded bg-blue-100 px-2 py-1 text-xs text-blue-700">
+                          {roleLabel(role)}
+                        </span>
+                      ))}
+                    </TableCell>
 
-                    <TableCell>{u.email}</TableCell>
+                    <TableCell>{locationLevelLabel(user.location_level) || "-"}</TableCell>
+                    <TableCell>{user.city?.name || "-"}</TableCell>
+                    <TableCell>{user.subcity?.name || "-"}</TableCell>
+                    <TableCell>{user.woreda?.name || "-"}</TableCell>
 
-                    <TableCell>{u.phone}</TableCell>
-
-               <TableCell>
-  {u.role_names?.length > 0 ? (
-    u.role_names.map((role: string, i: number) => (
-      <span
-        key={i}
-        className="px-2 py-1 mr-1 rounded text-xs bg-blue-100 text-blue-700"
-      >
-        {role}
-      </span>
-    ))
-  ) : (
-    "-"
-  )}
-</TableCell>
-                    <TableCell>{u.city?.name || "Adama"}</TableCell>
-                    <TableCell>{u.subcity?.name || "-"}</TableCell>
-                    <TableCell>{u.woreda?.name || "-"}</TableCell>
-
-                    {/* STATUS */}
                     <TableCell>
                       <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          Boolean(u.is_active)
+                        className={`rounded px-2 py-1 text-xs font-medium ${
+                          Boolean(user.is_active)
                             ? "bg-green-100 text-green-700"
                             : "bg-red-100 text-red-700"
                         }`}
                       >
-                        {Boolean(u.is_active)
-                          ? "Active"
-                          : "Disabled"}
+                        {Boolean(user.is_active) ? "Active" : "Disabled"}
                       </span>
                     </TableCell>
 
-                    {/* ACTION MENU */}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
-                            <MoreVertical className="w-5 h-5" />
+                            <MoreVertical className="h-5 w-5" />
                           </Button>
                         </DropdownMenuTrigger>
 
                         <DropdownMenuContent align="end">
-
-                          {/* VIEW */}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(`/dashboard/users/${u.id}`)
-                            }
-                          >
+                          <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}`)}>
                             View
                           </DropdownMenuItem>
 
-                          {/* EDIT */}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(
-                                `/dashboard/users/${u.id}/edit`
-                              )
-                            }
-                          >
+                          <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}/edit`)}>
                             Edit
                           </DropdownMenuItem>
 
-                          {/* CHANGE PASSWORD */}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(
-                                `/dashboard/users/${u.id}/change-password`
-                              )
-                            }
-                          >
+                          <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}/change-password`)}>
                             Change Password
                           </DropdownMenuItem>
 
-                          {/* ENABLE/DISABLE */}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              toggleStatus.mutate(u.id)
-                            }
-                          >
-                            {u.is_active
-                              ? "Disable User"
-                              : "Enable User"}
+                          <DropdownMenuItem onClick={() => toggleStatus.mutate(user.id)}>
+                            {user.is_active ? "Disable User" : "Enable User"}
                           </DropdownMenuItem>
 
-                          {/* DELETE */}
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDelete(u.id)}
-                          >
+                          <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(user.id)}>
                             Delete
                           </DropdownMenuItem>
-
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-
                   </TableRow>
                 ))
               )}
-
             </TableBody>
           </Table>
 
-          {/* PAGINATION */}
-          <div className="flex items-center justify-between mt-6">
-
+          <div className="mt-6 flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Showing page {meta?.current_page || 1} of{" "}
-              {meta?.last_page || 1}
+              Showing page {meta?.current_page || 1} of {meta?.last_page || 1}
             </div>
 
             <div className="flex gap-2">
-
-              {/* PREV */}
               <Button
                 variant="outline"
                 disabled={meta?.current_page === 1}
-                onClick={() =>
-                  setPage((prev) => Math.max(prev - 1, 1))
-                }
+                onClick={() => setPage((previous) => Math.max(previous - 1, 1))}
               >
                 Prev
               </Button>
 
-              {/* NEXT */}
               <Button
                 variant="outline"
-                disabled={
-                  meta?.current_page === meta?.last_page
-                }
-                onClick={() =>
-                  setPage((prev) => prev + 1)
-                }
+                disabled={meta?.current_page === meta?.last_page}
+                onClick={() => setPage((previous) => previous + 1)}
               >
                 Next
               </Button>
-
             </div>
           </div>
-
         </CardContent>
       </Card>
     </div>

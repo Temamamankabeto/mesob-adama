@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Role;
 
+use App\Support\AppRoles;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,10 +20,19 @@ class StoreRoleRequest extends FormRequest
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('roles', 'name')->where(
-                    fn ($q) => $q->where('guard_name', 'sanctum')
-                ),
+                Rule::in(AppRoles::all()),
+                Rule::unique('roles', 'name')
+                    ->where(fn ($query) => $query->where('guard_name', 'sanctum')),
             ],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('name')) {
+            $this->merge([
+                'name' => AppRoles::normalize($this->input('name')),
+            ]);
+        }
     }
 }

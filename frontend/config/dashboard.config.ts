@@ -1,26 +1,20 @@
 import {
-  Building2,
   ClipboardCheck,
   FileCheck2,
-  FileText,
-  Landmark,
   LayoutDashboard,
   ShieldCheck,
   UserCheck,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { normalizeRoleName } from "@/config/roles.config";
 
 export type AppRoleKey =
   | "super-admin"
-  | "subcity-admin"
-  | "woreda-admin"
-  | "city-front-officer"
-  | "city-back-officer"
-  | "subcity-front-officer"
-  | "subcity-back-officer"
-  | "woreda-front-officer"
-  | "woreda-back-officer"
+  | "manager"
+  | "admin"
+  | "front-officer"
+  | "back-officer"
   | "customer";
 
 export type DashboardDefinition = {
@@ -30,117 +24,57 @@ export type DashboardDefinition = {
   subtitle: string;
   route: string;
   icon: LucideIcon;
-  cards: { label: string; value: string; description: string }[];
 };
 
 export const roleHome: Record<AppRoleKey, string> = {
-  "super-admin": "/dashboard/super-admin",
-  "subcity-admin": "/dashboard/subcity-admin",
-  "woreda-admin": "/dashboard/woreda-admin",
-  "city-front-officer": "/dashboard/city-front-officer",
-  "city-back-officer": "/dashboard/city-back-officer",
-  "subcity-front-officer": "/dashboard/subcity-front-officer",
-  "subcity-back-officer": "/dashboard/subcity-back-officer",
-  "woreda-front-officer": "/dashboard/woreda-front-officer",
-  "woreda-back-officer": "/dashboard/woreda-back-officer",
-  customer: "/dashboard/customer",
+  "super-admin": "/dashboard",
+  manager: "/dashboard",
+  admin: "/dashboard",
+  "front-officer": "/dashboard",
+  "back-officer": "/dashboard",
+  customer: "/dashboard",
 };
-
-const adminCards = [
-  { label: "Users", value: "Manage", description: "Create, update, activate, and deactivate users." },
-  { label: "Roles", value: "RBAC", description: "Assign roles and permissions by responsibility." },
-  { label: "Locations", value: "City", description: "Manage city, subcity, and woreda access." },
-  { label: "Audit", value: "Trace", description: "Review sensitive actions and system activity." },
-];
-
-const officerCards = [
-  { label: "Assigned Requests", value: "0", description: "Service requests assigned to your desk." },
-  { label: "Pending Tasks", value: "0", description: "Applications waiting for action." },
-  { label: "Completed", value: "0", description: "Processed applications." },
-  { label: "Returned", value: "0", description: "Applications returned for correction." },
-];
 
 export const dashboardConfig: Record<AppRoleKey, DashboardDefinition> = {
   "super-admin": {
     key: "super-admin",
     roleName: "Super Admin",
-    title: "City Super Admin Dashboard",
-    subtitle: "City-wide user, role, permission, location, report, and audit control.",
+    title: "Super Admin Dashboard",
+    subtitle: "System-wide user, role, permission, location, report, and audit control.",
     route: roleHome["super-admin"],
     icon: ShieldCheck,
-    cards: adminCards,
   },
-  "subcity-admin": {
-    key: "subcity-admin",
-    roleName: "Subcity Admin",
-    title: "Subcity Admin Dashboard",
-    subtitle: "Manage users and operations inside the assigned subcity.",
-    route: roleHome["subcity-admin"],
-    icon: Building2,
-    cards: adminCards,
+  manager: {
+    key: "manager",
+    roleName: "Manager",
+    title: "Manager Dashboard",
+    subtitle: "Location-scoped operations, approvals, applications, and reports.",
+    route: roleHome.manager,
+    icon: Users,
   },
-  "woreda-admin": {
-    key: "woreda-admin",
-    roleName: "Woreda Admin",
-    title: "Woreda Admin Dashboard",
-    subtitle: "Manage officers, customers, and service activity in the assigned woreda.",
-    route: roleHome["woreda-admin"],
-    icon: Landmark,
-    cards: adminCards,
+  admin: {
+    key: "admin",
+    roleName: "Admin",
+    title: "Admin Dashboard",
+    subtitle: "Location-scoped user, service, workflow, and report management.",
+    route: roleHome.admin,
+    icon: LayoutDashboard,
   },
-  "city-front-officer": {
-    key: "city-front-officer",
-    roleName: "City Front Officer",
-    title: "City Front Officer Dashboard",
-    subtitle: "Register customers, receive applications, verify documents, and forward requests.",
-    route: roleHome["city-front-officer"],
+  "front-officer": {
+    key: "front-officer",
+    roleName: "Front Officer",
+    title: "Front Officer Dashboard",
+    subtitle: "Receive applications, verify documents, and forward requests.",
+    route: roleHome["front-officer"],
     icon: ClipboardCheck,
-    cards: officerCards,
   },
-  "city-back-officer": {
-    key: "city-back-officer",
-    roleName: "City Back Officer",
-    title: "City Back Officer Dashboard",
-    subtitle: "Review applications, process requests, approve, reject, or return applications.",
-    route: roleHome["city-back-officer"],
+  "back-officer": {
+    key: "back-officer",
+    roleName: "Back Officer",
+    title: "Back Officer Dashboard",
+    subtitle: "Review applications, approve, reject, return, or complete tasks.",
+    route: roleHome["back-officer"],
     icon: FileCheck2,
-    cards: officerCards,
-  },
-  "subcity-front-officer": {
-    key: "subcity-front-officer",
-    roleName: "Subcity Front Officer",
-    title: "Subcity Front Officer Dashboard",
-    subtitle: "Receive and verify subcity-level service applications.",
-    route: roleHome["subcity-front-officer"],
-    icon: ClipboardCheck,
-    cards: officerCards,
-  },
-  "subcity-back-officer": {
-    key: "subcity-back-officer",
-    roleName: "Subcity Back Officer",
-    title: "Subcity Back Officer Dashboard",
-    subtitle: "Process and complete assigned subcity service requests.",
-    route: roleHome["subcity-back-officer"],
-    icon: FileCheck2,
-    cards: officerCards,
-  },
-  "woreda-front-officer": {
-    key: "woreda-front-officer",
-    roleName: "Woreda Front Officer",
-    title: "Woreda Front Officer Dashboard",
-    subtitle: "Register walk-in customers and receive woreda service applications.",
-    route: roleHome["woreda-front-officer"],
-    icon: ClipboardCheck,
-    cards: officerCards,
-  },
-  "woreda-back-officer": {
-    key: "woreda-back-officer",
-    roleName: "Woreda Back Officer",
-    title: "Woreda Back Officer Dashboard",
-    subtitle: "Review, approve, reject, return, or complete woreda service workflow tasks.",
-    route: roleHome["woreda-back-officer"],
-    icon: FileCheck2,
-    cards: officerCards,
   },
   customer: {
     key: "customer",
@@ -149,38 +83,24 @@ export const dashboardConfig: Record<AppRoleKey, DashboardDefinition> = {
     subtitle: "Submit applications, track status, receive notifications, and download documents.",
     route: roleHome.customer,
     icon: UserCheck,
-    cards: [
-      { label: "My Applications", value: "0", description: "Submitted service applications." },
-      { label: "Pending", value: "0", description: "Applications waiting for processing." },
-      { label: "Approved", value: "0", description: "Approved services and documents." },
-      { label: "Returned", value: "0", description: "Applications needing correction." },
-    ],
   },
 };
 
 export const dashboardList = Object.values(dashboardConfig);
 
 export function normalizeRole(role?: string | null): AppRoleKey {
-  const value = String(role ?? "")
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/_/g, " ")
-    .replace(/-/g, " ")
-    .trim();
+  const normalized = normalizeRoleName(role);
 
-  if (value.includes("super") || value.includes("general admin") || value.includes("city admin")) return "super-admin";
-  if (value.includes("subcity") && value.includes("admin")) return "subcity-admin";
-  if (value.includes("woreda") && value.includes("admin")) return "woreda-admin";
-  if (value.includes("city") && value.includes("front")) return "city-front-officer";
-  if (value.includes("city") && value.includes("back")) return "city-back-officer";
-  if (value.includes("subcity") && value.includes("front")) return "subcity-front-officer";
-  if (value.includes("subcity") && value.includes("back")) return "subcity-back-officer";
-  if (value.includes("woreda") && value.includes("front")) return "woreda-front-officer";
-  if (value.includes("woreda") && value.includes("back")) return "woreda-back-officer";
-  if (value.includes("customer")) return "customer";
-  if (value.includes("front")) return "woreda-front-officer";
-  if (value.includes("back")) return "woreda-back-officer";
-  return "super-admin";
+  const map: Record<string, AppRoleKey> = {
+    super_admin: "super-admin",
+    manager: "manager",
+    admin: "admin",
+    front_officer: "front-officer",
+    back_officer: "back-officer",
+    customer: "customer",
+  };
+
+  return map[normalized] ?? "super-admin";
 }
 
 export function getDashboardForRole(role?: string | null) {

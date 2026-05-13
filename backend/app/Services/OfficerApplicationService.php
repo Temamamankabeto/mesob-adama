@@ -5,27 +5,40 @@ namespace App\Services;
 use App\Models\ServiceApplication;
 use App\Models\ServiceApplicationHistory;
 use App\Models\User;
+use App\Support\AccessScope;
 use Illuminate\Support\Facades\DB;
 
 class OfficerApplicationService
 {
+    public function __construct(
+        protected AccessScope $scope
+    ) {}
+
     public function queue(User $officer)
     {
-        return ServiceApplication::with([
+        $query = ServiceApplication::with([
             'service',
             'customer',
             'currentWindow',
         ])
-            ->whereHas('service.assignedUsers', function ($query) use ($officer) {
-                $query->where('users.id', $officer->id);
-            })
             ->whereIn('status', [
                 'submitted',
                 'under_review',
                 'returned',
-            ])
-            ->latest()
-            ->paginate(10);
+            ]);
+
+        $this->scope->applyServiceApplicationScope($query, $officer);
+
+        $query->where(function ($query) use ($officer) {
+            $query
+                ->whereHas('service.assignedUsers', function ($assignedQuery) use ($officer) {
+                    $assignedQuery->where('users.id', $officer->id);
+                })
+                ->orWhereNull('assigned_to')
+                ->orWhere('assigned_to', $officer->id);
+        });
+
+        return $query->latest()->paginate(10);
     }
 
     public function show(ServiceApplication $application)
