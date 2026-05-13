@@ -11,9 +11,12 @@ class DatabaseSeeder extends Seeder
         $this->call([
             EserviceRolesSeeder::class,
             RolesPermissionsSeeder::class,
+             
+            RoleConversionSeeder::class,
             LocationSeeder::class,
             WindowSeeder::class,
             ServiceSeeder::class,
+              ScopedUserSeeder::class,
         ]);
     }
 }

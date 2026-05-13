@@ -1,16 +1,22 @@
 import {
   LayoutDashboard,
   Users,
-  ShieldCheck,
-  Map,
-  FileText,
-  UserCheck,
-  Settings,
-  Briefcase,
-  Workflow,
+  MapPinned,
+  BriefcaseBusiness,
+  AppWindow,
   Layers3,
+  FolderKanban,
+  History,
   ScrollText,
+  UserCheck,
+  ShieldCheck,
+  UserCog,
   Building2,
+  MonitorCog,
+  FileSearch,
+  ClipboardList,
+  FileText,
+  Settings,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -21,9 +27,9 @@ import {
   type AppRoleKey,
 } from "@/config/dashboard.config";
 
-/* =========================================================
- TYPES
-========================================================= */
+/* -------------------------------------------------------------------------- */
+/*                                   TYPES                                    */
+/* -------------------------------------------------------------------------- */
 
 export type SidebarChildItem = {
   label: string;
@@ -33,8 +39,8 @@ export type SidebarChildItem = {
 
 export type SidebarItem = {
   label: string;
-  icon: LucideIcon;
   href?: string;
+  icon: LucideIcon;
   permission?: string;
   children?: SidebarChildItem[];
 };
@@ -50,9 +56,9 @@ export type RoleSidebar = {
   sections: SidebarSection[];
 };
 
-/* =========================================================
- HELPERS
-========================================================= */
+/* -------------------------------------------------------------------------- */
+/*                                  HELPERS                                   */
+/* -------------------------------------------------------------------------- */
 
 const s = (
   title: string,
@@ -70,330 +76,306 @@ const dashboardItem = (
   icon: LayoutDashboard,
 });
 
-/* =========================================================
- SIDEBAR CONFIG
-========================================================= */
+/* -------------------------------------------------------------------------- */
+/*                             USER MANAGEMENT                                */
+/* -------------------------------------------------------------------------- */
+
+const userManagement: SidebarItem[] = [
+  {
+    label: "User Management",
+    icon: Users,
+    children: [
+      {
+        label: "Users",
+        href: "/dashboard/users",
+        permission: "users.read",
+      },
+
+      {
+        label: "Roles & Permissions",
+        href: "/dashboard/roles",
+        permission: "roles.read",
+      },
+    ],
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/*                           LOCATION MANAGEMENT                              */
+/* -------------------------------------------------------------------------- */
+
+const locationManagement: SidebarItem[] = [
+  {
+    label: "Location Management",
+    icon: MapPinned,
+    children: [
+      {
+        label: "Locations",
+        href: "/dashboard/locations",
+        permission: "cities.read",
+      },
+    ],
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/*                           SERVICE MANAGEMENT                               */
+/* -------------------------------------------------------------------------- */
+
+const serviceManagement: SidebarItem[] = [
+  {
+    label: "Service Management",
+    icon: BriefcaseBusiness,
+    children: [
+      {
+        label: "Services",
+        href: "/dashboard/services",
+        permission: "services.read",
+      },
+
+      {
+        label: "User Services",
+        href: "/dashboard/user-services",
+        permission: "services.read",
+      },
+
+      {
+        label: "Officer Services",
+        href: "/dashboard/services/officers",
+        permission: "services.read",
+      },
+    ],
+  },
+
+  {
+    label: "Window Management",
+    icon: AppWindow,
+    children: [
+      {
+        label: "Windows",
+        href: "/dashboard/windows",
+        permission: "windows.read",
+      },
+
+      {
+        label: "Service Windows",
+        href: "/dashboard/service-window",
+        permission: "windows.read",
+      },
+
+      {
+        label: "Window Assignments",
+        href: "/dashboard/service-window/lists",
+        permission: "windows.read",
+      },
+    ],
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/*                         APPLICATION MANAGEMENT                             */
+/* -------------------------------------------------------------------------- */
+
+const applicationManagement: SidebarItem[] = [
+  {
+    label: "Form Builder",
+    icon: Layers3,
+    children: [
+      {
+        label: "Service Forms",
+        href: "/dashboard/service-forms",
+        permission: "service_forms.read",
+      },
+
+      {
+        label: "Form Sections",
+        href: "/dashboard/service-form-sections",
+        permission: "service_forms.read",
+      },
+    ],
+  },
+
+  {
+    label: "Applications",
+    icon: FolderKanban,
+    children: [
+      {
+        label: "Application Summary",
+        href: "/dashboard/applications/summary",
+        permission: "applications.summary",
+      },
+
+      {
+        label: "Service Applications",
+        href: "/dashboard/service-applications",
+        permission: "service_applications.read",
+      },
+
+      {
+        label: "Officer Queue",
+        href: "/dashboard/officer/applications",
+        permission: "service_applications.review",
+      },
+    ],
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/*                               AUDIT LOGS                                   */
+/* -------------------------------------------------------------------------- */
+
+const auditItems: SidebarItem[] = [
+  {
+    label: "Audit & Logs",
+    icon: History,
+    children: [
+      {
+        label: "Audit Logs",
+        href: "/dashboard/audit-logs",
+        permission: "audit_logs.read",
+      },
+    ],
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/*                             CUSTOMER ITEMS                                 */
+/* -------------------------------------------------------------------------- */
+
+const customerItems: SidebarItem[] = [
+  {
+    label: "My Applications",
+    icon: ScrollText,
+    children: [
+      {
+        label: "Application List",
+        href: "/my-applications",
+        permission: "applications.own",
+      },
+
+      {
+        label: "Track Application",
+        href: "/track-application",
+        permission: "applications.track",
+      },
+    ],
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/*                              ROLE SECTIONS                                 */
+/* -------------------------------------------------------------------------- */
+
+const adminSections = (
+  role: AppRoleKey
+): SidebarSection[] => [
+  s("MAIN", [dashboardItem(role)]),
+
+  s("MANAGEMENT", [
+    ...userManagement,
+    ...locationManagement,
+    ...serviceManagement,
+  ]),
+
+  s("APPLICATIONS", applicationManagement),
+
+  s("SYSTEM", auditItems),
+];
+
+const managerSections = (
+  role: AppRoleKey
+): SidebarSection[] => [
+  s("MAIN", [dashboardItem(role)]),
+
+  s("MANAGEMENT", [
+    ...userManagement,
+    ...serviceManagement,
+  ]),
+
+  s("APPLICATIONS", applicationManagement),
+
+  s("SYSTEM", auditItems),
+];
+
+const officerSections = (
+  role: AppRoleKey
+): SidebarSection[] => [
+  s("MAIN", [dashboardItem(role)]),
+
+  s("APPLICATIONS", [
+    {
+      label: "Officer Applications",
+      icon: UserCheck,
+      children: [
+        {
+          label: "Officer Queue",
+          href: "/dashboard/officer/applications",
+          permission:
+            "service_applications.review",
+        },
+      ],
+    },
+  ]),
+];
+
+/* -------------------------------------------------------------------------- */
+/*                               ROLE CONFIG                                  */
+/* -------------------------------------------------------------------------- */
 
 export const sidebarConfig: Record<
   AppRoleKey,
   RoleSidebar
 > = {
-  /* =====================================================
-   SUPER ADMIN
-  ===================================================== */
-
   "super-admin": {
     title: "Super Admin",
     icon: ShieldCheck,
-
-    sections: [
-      /* OVERVIEW */
-      s("Overview", [
-        dashboardItem("super-admin"),
-      ]),
-
-      /* ACCESS MANAGEMENT */
-      s("Access Management", [
-        {
-          label: "User Management",
-          icon: Users,
-
-          children: [
-            {
-              label: "Users",
-              href: "/dashboard/users",
-              permission: "users.read",
-            },
-
-            {
-              label: "Roles",
-              href: "/dashboard/roles",
-              permission: "roles.read",
-            },
-          ],
-        },
-      ]),
-
-      /* SERVICE MANAGEMENT */
-      s("Service Management", [
-        {
-          label: "Services",
-          icon: Briefcase,
-
-          children: [
-            {
-              label: "All Services",
-              href: "/dashboard/services",
-              permission: "permissions.read",
-            },
-
-            {
-              label: "Windows",
-              href: "/dashboard/windows",
-              permission: "permissions.read",
-            },
-
-            {
-              label: "User Services",
-              href: "/dashboard/user-services",
-              permission: "cities.read",
-            },
-
-            {
-              label: "Officer Services",
-              href: "/dashboard/services/officers",
-              permission: "cities.read",
-            },
-          ],
-        },
-
-        {
-          label: "Workflow",
-          icon: Workflow,
-
-          children: [
-            {
-              label: "Service Workflow",
-              href: "/dashboard/service-window",
-              permission: "permissions.read",
-            },
-
-            {
-              label: "Workflow Management",
-              href: "/dashboard/service-window/lists",
-              permission: "permissions.read",
-            },
-          ],
-        },
-      ]),
-
-      /* FORM BUILDER */
-      s("Form Builder", [
-        {
-          label: "Dynamic Forms",
-          icon: FileText,
-
-          children: [
-
-            
-
-            {
-              label: " Form Builder",
-              href: "/dashboard/service-forms",
-              permission: "permissions.read",
-            },
-
-            {
-              label: "Form Sections",
-              href: "/dashboard/service-form-sections",
-              permission: "cities.read",
-            },
-              
-            {
-              label: "Application Summary",
-              href: "/dashboard/applications/summary",
-              permission: "permissions.read",
-            },
-
-            {
-              label: "Service Applications",
-              href: "/dashboard/applications/summary",
-              permission: "permissions.read",
-            },
-            {
-              label: "Service Applications",
-              href: "/dashboard/service-applications",
-              permission: "permissions.read",
-            },
-
-            
-
-            {
-              label: "Officer Queue",
-              href: "/dashboard/officer/applications",
-              permission: "permissions.read",
-            }
-
-
-            
-           
-          ],
-        },
-      ]),
-
-      /* SYSTEM */
-      s("System", [
-        {
-          label: "Audit Logs",
-          href: "/dashboard/audit-logs",
-          icon: ScrollText,
-          permission: "audit_logs.read",
-        },
-      ]),
-    ],
+    sections: adminSections("super-admin"),
   },
 
-  /* =====================================================
-   SUBCITY ADMIN
-  ===================================================== */
+  admin: {
+    title: "Admin",
+    icon: UserCog,
+    sections: adminSections("admin"),
+  },
 
-  "subcity-admin": {
-    title: "Subcity Admin",
+  manager: {
+    title: "Manager",
     icon: Building2,
-
-    sections: [
-      s("Overview", [
-        dashboardItem("subcity-admin"),
-      ]),
-
-      s("Administration", [
-        {
-          label: "Management",
-          icon: Users,
-
-          children: [
-            {
-              label: "Users",
-              href: "/dashboard/users",
-              permission: "users.read",
-            },
-
-            {
-              label: "Locations",
-              href: "/dashboard/locations",
-              permission: "subcities.read",
-            },
-          ],
-        },
-      ]),
-    ],
+    sections: managerSections("manager"),
   },
 
-  /* =====================================================
-   WOREDA ADMIN
-  ===================================================== */
-
-  "woreda-admin": {
-    title: "Woreda Admin",
-    icon: Building2,
-
-    sections: [
-      s("Overview", [
-        dashboardItem("woreda-admin"),
-      ]),
-
-      s("Administration", [
-        {
-          label: "Management",
-          icon: Users,
-
-          children: [
-            {
-              label: "Users",
-              href: "/dashboard/users",
-              permission: "users.read",
-            },
-
-            {
-              label: "Locations",
-              href: "/dashboard/locations",
-              permission: "woredas.read",
-            },
-          ],
-        },
-      ]),
-    ],
-  },
-
-  /* =====================================================
-   FRONT OFFICERS
-  ===================================================== */
-
-  "city-front-officer": {
+  "front-officer": {
     title: "Front Officer",
     icon: UserCheck,
-
-    sections: [
-      s("Overview", [
-        dashboardItem("city-front-officer"),
-      ]),
-    ],
+    sections: officerSections(
+      "front-officer"
+    ),
   },
 
-  "city-back-officer": {
+  "back-officer": {
     title: "Back Officer",
-    icon: UserCheck,
-
-    sections: [
-      s("Overview", [
-        dashboardItem("city-back-officer"),
-      ]),
-    ],
+    icon: MonitorCog,
+    sections: officerSections(
+      "back-officer"
+    ),
   },
-
-  "subcity-front-officer": {
-    title: "Front Officer",
-    icon: UserCheck,
-
-    sections: [
-      s("Overview", [
-        dashboardItem("subcity-front-officer"),
-      ]),
-    ],
-  },
-
-  "subcity-back-officer": {
-    title: "Back Officer",
-    icon: UserCheck,
-
-    sections: [
-      s("Overview", [
-        dashboardItem("subcity-back-officer"),
-      ]),
-    ],
-  },
-
-  "woreda-front-officer": {
-    title: "Front Officer",
-    icon: UserCheck,
-
-    sections: [
-      s("Overview", [
-        dashboardItem("woreda-front-officer"),
-      ]),
-    ],
-  },
-
-  "woreda-back-officer": {
-    title: "Back Officer",
-    icon: UserCheck,
-
-    sections: [
-      s("Overview", [
-        dashboardItem("woreda-back-officer"),
-      ]),
-    ],
-  },
-
-  /* =====================================================
-   CUSTOMER
-  ===================================================== */
 
   customer: {
     title: "Customer",
-    icon: UserCheck,
-
+    icon: FileSearch,
     sections: [
-      s("Overview", [
+      s("MAIN", [
         dashboardItem("customer"),
       ]),
+
+      s("APPLICATIONS", customerItems),
     ],
   },
 };
 
-/* =========================================================
- GET SIDEBAR
-========================================================= */
+/* -------------------------------------------------------------------------- */
+/*                            GET SIDEBAR ROLE                                */
+/* -------------------------------------------------------------------------- */
 
 export function getSidebarForRole(
   role?: string | null
@@ -403,56 +385,69 @@ export function getSidebarForRole(
   ];
 }
 
-/* =========================================================
- FILTER PERMISSIONS
-========================================================= */
+/* -------------------------------------------------------------------------- */
+/*                         FILTER BY PERMISSIONS                              */
+/* -------------------------------------------------------------------------- */
+
+function itemAllowed(
+  item: SidebarItem,
+  permissions: string[]
+) {
+  return (
+    !item.permission ||
+    permissions.includes(item.permission)
+  );
+}
 
 export function filterSidebarByPermissions(
   roleSidebar: RoleSidebar,
   permissions: string[] = []
-): SidebarSection[] {
+) {
   return roleSidebar.sections
-    .map((section) => ({
-      ...section,
-
-      items: section.items
+    .map((section) => {
+      const items = section.items
         .map((item) => {
-          /* CHILDREN FILTER */
-          if (item.children?.length) {
-            const filteredChildren =
-              item.children.filter(
-                (child) =>
-                  !child.permission ||
-                  permissions.includes(
-                    child.permission
-                  )
-              );
+          /* -------------------- SIMPLE MENU -------------------- */
 
-            return {
-              ...item,
-              children: filteredChildren,
-            };
-          }
-
-          return item;
-        })
-
-        /* REMOVE EMPTY */
-        .filter((item) => {
-          if (item.children) {
-            return item.children.length > 0;
-          }
-
-          return (
-            !item.permission ||
-            permissions.includes(
-              item.permission
+          if (!item.children?.length) {
+            return itemAllowed(
+              item,
+              permissions
             )
-          );
-        }),
-    }))
+              ? item
+              : null;
+          }
 
-    /* REMOVE EMPTY SECTIONS */
+          /* -------------------- SUB MENU ----------------------- */
+
+          const children =
+            item.children.filter(
+              (child) =>
+                !child.permission ||
+                permissions.includes(
+                  child.permission
+                )
+            );
+
+          if (
+            !children.length &&
+            !itemAllowed(item, permissions)
+          ) {
+            return null;
+          }
+
+          return {
+            ...item,
+            children,
+          };
+        })
+        .filter(Boolean) as SidebarItem[];
+
+      return {
+        ...section,
+        items,
+      };
+    })
     .filter(
       (section) =>
         section.items.length > 0
