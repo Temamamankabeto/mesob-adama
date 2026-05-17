@@ -8,13 +8,21 @@ import {
   deleteSubcity,
 } from "@/services/locations/service";
 
-// LIST
-export const useSubcities = (page: number = 1) =>
-  useQuery({
-    queryKey: ["subcities", page],
-    queryFn: () => getSubcities(page),
-  });
+export const useSubcities = () => {
+  return useQuery({
+    queryKey: ["subcities"],
 
+    queryFn: async () => {
+      const res = await getSubcities();
+
+      console.log("Subcities Response:", res);
+
+      return res?.data?.data || res?.data || [];
+    },
+
+    staleTime: 1000 * 60 * 5,
+  });
+};
 // CREATE
 export const useCreateSubcity = () => {
   const qc = useQueryClient();

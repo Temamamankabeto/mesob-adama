@@ -9,9 +9,9 @@ import { useCities } from "@/hooks/location/useCities";
 import { useSubcities } from "@/hooks/location/useSubcities";
 import { useWoredas } from "@/hooks/location/useWoredas";
 import { useRoles } from "@/hooks/roles/useRoles";
+
 import {
   getRoleOption,
-  locationLevelLabel,
   LOCATION_LEVELS,
   LocationLevel,
   roleLabel,
@@ -63,6 +63,7 @@ const checkPassword = (password: string) => {
   const min8 = password.length >= 8;
   const hasUpper = /[A-Z]/.test(password);
   const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
   const score = [min8, hasUpper, hasSpecial].filter(Boolean).length;
 
   return {
@@ -73,28 +74,54 @@ const checkPassword = (password: string) => {
 
 export default function AddUserPage() {
   const router = useRouter();
+
   const createUser = useCreateUser();
 
-  const { data: citiesData } = useCities(1);
-  const { data: subcitiesData } = useSubcities(1);
-  const { data: woredasData } = useWoredas(1);
-  const { roles } = useRoles();
+  // ✅ FIXED
+  const { data: cities = [] } = useCities();
+  const { data: subcities = [] } = useSubcities();
+  const { data: woredas = [] } = useWoredas();
 
-  const cities = citiesData?.data || [];
-  const subcities = subcitiesData?.data || [];
-  const woredas = woredasData?.data || [];
+  const { roles } = useRoles();
 
   const [form, setForm] = useState<Form>(initialForm);
 
-  const selectedRole = useMemo(() => getRoleOption(form.role), [form.role]);
-  const passwordState = useMemo(() => checkPassword(form.password), [form.password]);
+  const selectedRole = useMemo(
+    () => getRoleOption(form.role),
+    [form.role]
+  );
 
-  const filteredSubcities = subcities.filter((subcity: any) => Number(subcity.city_id) === Number(form.city_id));
-  const filteredWoredas = woredas.filter((woreda: any) => Number(woreda.subcity_id) === Number(form.subcity_id));
+  const passwordState = useMemo(
+    () => checkPassword(form.password),
+    [form.password]
+  );
 
-  const requiresCity = selectedRole.isScoped && ["city", "subcity", "woreda"].includes(form.location_level);
-  const requiresSubcity = selectedRole.isScoped && ["subcity", "woreda"].includes(form.location_level);
-  const requiresWoreda = selectedRole.isScoped && form.location_level === "woreda";
+  // ✅ FILTERED DATA
+  const filteredSubcities = subcities.filter(
+    (subcity: any) =>
+      Number(subcity.city_id) === Number(form.city_id)
+  );
+
+  const filteredWoredas = woredas.filter(
+    (woreda: any) =>
+      Number(woreda.subcity_id) === Number(form.subcity_id)
+  );
+
+  const requiresCity =
+    selectedRole.isScoped &&
+    ["city", "subcity", "woreda"].includes(
+      form.location_level
+    );
+
+  const requiresSubcity =
+    selectedRole.isScoped &&
+    ["subcity", "woreda"].includes(
+      form.location_level
+    );
+
+  const requiresWoreda =
+    selectedRole.isScoped &&
+    form.location_level === "woreda";
 
   const canSubmit =
     form.name &&
@@ -105,7 +132,8 @@ export default function AddUserPage() {
     form.password === form.confirm_password &&
     passwordState.valid &&
     form.role &&
-    (!selectedRole.isScoped || form.location_level) &&
+    (!selectedRole.isScoped ||
+      form.location_level) &&
     (!requiresCity || form.city_id) &&
     (!requiresSubcity || form.subcity_id) &&
     (!requiresWoreda || form.woreda_id);
@@ -121,27 +149,41 @@ export default function AddUserPage() {
       return false;
     }
 
-    if (selectedRole.isScoped && !form.location_level) {
-      toast.error("Location level is required for this role");
+    if (
+      selectedRole.isScoped &&
+      !form.location_level
+    ) {
+      toast.error(
+        "Location level is required"
+      );
       return false;
     }
 
     if (requiresCity && !form.city_id) {
-      toast.error("City is required for this level");
+      toast.error("City is required");
       return false;
     }
 
-    if (requiresSubcity && !form.subcity_id) {
-      toast.error("Subcity is required for this level");
+    if (
+      requiresSubcity &&
+      !form.subcity_id
+    ) {
+      toast.error("Subcity is required");
       return false;
     }
 
-    if (requiresWoreda && !form.woreda_id) {
-      toast.error("Woreda is required for this level");
+    if (
+      requiresWoreda &&
+      !form.woreda_id
+    ) {
+      toast.error("Woreda is required");
       return false;
     }
 
-    if (form.password !== form.confirm_password) {
+    if (
+      form.password !==
+      form.confirm_password
+    ) {
       toast.error("Passwords do not match");
       return false;
     }
@@ -158,22 +200,45 @@ export default function AddUserPage() {
         email: form.email,
         phone: form.phone,
         password: form.password,
-        date_of_birth: form.date_of_birth || undefined,
+        date_of_birth:
+          form.date_of_birth || undefined,
         address: form.address || undefined,
         gender: form.gender || undefined,
         role: form.role,
-        location_level: selectedRole.isScoped ? form.location_level : undefined,
-        city_id: requiresCity ? form.city_id : undefined,
-        subcity_id: requiresSubcity ? form.subcity_id : undefined,
-        woreda_id: requiresWoreda ? form.woreda_id : undefined,
+
+        location_level:
+          selectedRole.isScoped
+            ? form.location_level
+            : undefined,
+
+        city_id: requiresCity
+          ? form.city_id
+          : undefined,
+
+        subcity_id: requiresSubcity
+          ? form.subcity_id
+          : undefined,
+
+        woreda_id: requiresWoreda
+          ? form.woreda_id
+          : undefined,
       },
       {
         onSuccess: () => {
-          toast.success("User created successfully");
-          router.push("/dashboard/users");
+          toast.success(
+            "User created successfully"
+          );
+
+          router.push(
+            "/dashboard/users"
+          );
         },
+
         onError: (error: any) => {
-          toast.error(error?.message || "Failed to create user");
+          toast.error(
+            error?.message ||
+              "Failed to create user"
+          );
         },
       }
     );
@@ -183,204 +248,445 @@ export default function AddUserPage() {
     <div className="p-6">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Create User</CardTitle>
+          <CardTitle>
+            Create User
+          </CardTitle>
+
           <p className="text-sm text-muted-foreground">
-            Role controls responsibility. Location level controls where the user can work.
+            Role controls responsibility.
+            Location level controls
+            working area.
           </p>
         </CardHeader>
 
         <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* NAME */}
           <div>
-            <label className="text-sm font-medium">Name</label>
-            <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            <label className="text-sm font-medium">
+              Name
+            </label>
+
+            <Input
+              value={form.name}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  name: event.target.value,
+                })
+              }
+            />
           </div>
 
+          {/* EMAIL */}
           <div>
-            <label className="text-sm font-medium">Email</label>
-            <Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+            <label className="text-sm font-medium">
+              Email
+            </label>
+
+            <Input
+              value={form.email}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  email: event.target.value,
+                })
+              }
+            />
           </div>
 
+          {/* PHONE */}
           <div>
-            <label className="text-sm font-medium">Phone</label>
-            <Input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
+            <label className="text-sm font-medium">
+              Phone
+            </label>
+
+            <Input
+              value={form.phone}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  phone: event.target.value,
+                })
+              }
+            />
           </div>
 
+          {/* GENDER */}
           <div>
-            <label className="text-sm font-medium">Gender</label>
+            <label className="text-sm font-medium">
+              Gender
+            </label>
+
             <select
               className="w-full rounded-md border p-2"
               value={form.gender}
-              onChange={(event) => setForm({ ...form, gender: event.target.value as any })}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  gender:
+                    event.target
+                      .value as any,
+                })
+              }
             >
-              <option value="">Select Gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
+              <option value="">
+                Select Gender
+              </option>
+
+              <option value="male">
+                Male
+              </option>
+
+              <option value="female">
+                Female
+              </option>
+
+              <option value="other">
+                Other
+              </option>
             </select>
           </div>
 
+          {/* PASSWORD */}
           <div>
-            <label className="text-sm font-medium">Password</label>
+            <label className="text-sm font-medium">
+              Password
+            </label>
+
             <Input
               type="password"
               value={form.password}
-              onChange={(event) => setForm({ ...form, password: event.target.value })}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  password:
+                    event.target.value,
+                })
+              }
             />
+
             <div className="mt-2 h-2 rounded bg-muted">
-              <div className="h-2 rounded bg-primary" style={{ width: `${passwordState.percent}%` }} />
+              <div
+                className="h-2 rounded bg-primary"
+                style={{
+                  width: `${passwordState.percent}%`,
+                }}
+              />
             </div>
           </div>
 
+          {/* CONFIRM PASSWORD */}
           <div>
-            <label className="text-sm font-medium">Confirm Password</label>
+            <label className="text-sm font-medium">
+              Confirm Password
+            </label>
+
             <Input
               type="password"
-              value={form.confirm_password}
-              onChange={(event) => setForm({ ...form, confirm_password: event.target.value })}
+              value={
+                form.confirm_password
+              }
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  confirm_password:
+                    event.target.value,
+                })
+              }
             />
           </div>
 
+          {/* DOB */}
           <div>
-            <label className="text-sm font-medium">Date of Birth</label>
+            <label className="text-sm font-medium">
+              Date of Birth
+            </label>
+
             <Input
               type="date"
               value={form.date_of_birth}
-              onChange={(event) => setForm({ ...form, date_of_birth: event.target.value })}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  date_of_birth:
+                    event.target.value,
+                })
+              }
             />
           </div>
 
+          {/* ADDRESS */}
           <div>
-            <label className="text-sm font-medium">Address</label>
-            <Input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
+            <label className="text-sm font-medium">
+              Address
+            </label>
+
+            <Input
+              value={form.address}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  address:
+                    event.target.value,
+                })
+              }
+            />
           </div>
 
+          {/* ROLE */}
           <div>
-            <label className="text-sm font-medium">Role</label>
+            <label className="text-sm font-medium">
+              Role
+            </label>
+
             <select
               className="w-full rounded-md border p-2"
               value={form.role}
               onChange={(event) => {
-                const role = getRoleOption(event.target.value);
+                const role =
+                  getRoleOption(
+                    event.target.value
+                  );
 
                 setForm({
                   ...form,
-                  role: event.target.value,
-                  location_level: role.isScoped ? "city" : "",
+                  role:
+                    event.target.value,
+
+                  location_level:
+                    role.isScoped
+                      ? "city"
+                      : "",
+
                   city_id: "",
                   subcity_id: "",
                   woreda_id: "",
                 });
               }}
             >
-              <option value="">Select Role</option>
+              <option value="">
+                Select Role
+              </option>
+
               {roles?.map((role: any) => (
-                <option key={role.id || role.name} value={role.name}>
-                  {role.label || roleLabel(role.name)}
+                <option
+                  key={
+                    role.id ||
+                    role.name
+                  }
+                  value={role.name}
+                >
+                  {role.label ||
+                    roleLabel(
+                      role.name
+                    )}
                 </option>
               ))}
             </select>
           </div>
 
+          {/* LOCATION LEVEL */}
           {selectedRole.isScoped && (
             <div>
-              <label className="text-sm font-medium">Location Level *</label>
+              <label className="text-sm font-medium">
+                Location Level
+              </label>
+
               <select
                 className="w-full rounded-md border p-2"
-                value={form.location_level}
+                value={
+                  form.location_level
+                }
                 onChange={(event) =>
                   setForm({
                     ...form,
-                    location_level: event.target.value as LocationLevel,
+
+                    location_level:
+                      event.target
+                        .value as LocationLevel,
+
                     city_id: "",
                     subcity_id: "",
                     woreda_id: "",
                   })
                 }
               >
-                {LOCATION_LEVELS.map((level) => (
-                  <option key={level.value} value={level.value}>
-                    {level.label}
-                  </option>
-                ))}
+                {LOCATION_LEVELS.map(
+                  (level) => (
+                    <option
+                      key={level.value}
+                      value={
+                        level.value
+                      }
+                    >
+                      {level.label}
+                    </option>
+                  )
+                )}
               </select>
             </div>
           )}
 
+          {/* CITY */}
           {requiresCity && (
             <div>
-              <label className="text-sm font-medium">City *</label>
+              <label className="text-sm font-medium">
+                City
+              </label>
+
               <select
                 className="w-full rounded-md border p-2"
                 value={form.city_id}
                 onChange={(event) =>
                   setForm({
                     ...form,
-                    city_id: Number(event.target.value),
+
+                    city_id:
+                      event.target.value
+                        ? Number(
+                            event.target
+                              .value
+                          )
+                        : "",
+
                     subcity_id: "",
                     woreda_id: "",
                   })
                 }
               >
-                <option value="">Select City</option>
-                {cities.map((city: any) => (
-                  <option key={city.id} value={city.id}>
-                    {city.name}
-                  </option>
-                ))}
+                <option value="">
+                  Select City
+                </option>
+
+                {cities.map(
+                  (city: any) => (
+                    <option
+                      key={city.id}
+                      value={city.id}
+                    >
+                      {city.name}
+                    </option>
+                  )
+                )}
               </select>
             </div>
           )}
 
+          {/* SUBCITY */}
           {requiresSubcity && (
             <div>
-              <label className="text-sm font-medium">Subcity *</label>
+              <label className="text-sm font-medium">
+                Subcity
+              </label>
+
               <select
                 className="w-full rounded-md border p-2"
-                value={form.subcity_id}
-                disabled={!form.city_id}
+                value={
+                  form.subcity_id
+                }
+                disabled={
+                  !form.city_id
+                }
                 onChange={(event) =>
                   setForm({
                     ...form,
-                    subcity_id: Number(event.target.value),
+
+                    subcity_id:
+                      event.target.value
+                        ? Number(
+                            event.target
+                              .value
+                          )
+                        : "",
+
                     woreda_id: "",
                   })
                 }
               >
-                <option value="">Select Subcity</option>
-                {filteredSubcities.map((subcity: any) => (
-                  <option key={subcity.id} value={subcity.id}>
-                    {subcity.name}
-                  </option>
-                ))}
+                <option value="">
+                  Select Subcity
+                </option>
+
+                {filteredSubcities.map(
+                  (subcity: any) => (
+                    <option
+                      key={subcity.id}
+                      value={
+                        subcity.id
+                      }
+                    >
+                      {subcity.name}
+                    </option>
+                  )
+                )}
               </select>
             </div>
           )}
 
+          {/* WOREDA */}
           {requiresWoreda && (
             <div>
-              <label className="text-sm font-medium">Woreda *</label>
+              <label className="text-sm font-medium">
+                Woreda
+              </label>
+
               <select
                 className="w-full rounded-md border p-2"
                 value={form.woreda_id}
-                disabled={!form.subcity_id}
-                onChange={(event) => setForm({ ...form, woreda_id: Number(event.target.value) })}
+                disabled={
+                  !form.subcity_id
+                }
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+
+                    woreda_id:
+                      event.target.value
+                        ? Number(
+                            event.target
+                              .value
+                          )
+                        : "",
+                  })
+                }
               >
-                <option value="">Select Woreda</option>
-                {filteredWoredas.map((woreda: any) => (
-                  <option key={woreda.id} value={woreda.id}>
-                    {woreda.name}
-                  </option>
-                ))}
+                <option value="">
+                  Select Woreda
+                </option>
+
+                {filteredWoredas.map(
+                  (woreda: any) => (
+                    <option
+                      key={woreda.id}
+                      value={
+                        woreda.id
+                      }
+                    >
+                      {woreda.name}
+                    </option>
+                  )
+                )}
               </select>
             </div>
           )}
         </CardContent>
 
         <div className="flex justify-between border-t p-4">
-          <Button variant="outline" onClick={reset}>Reset</Button>
-          <Button disabled={!canSubmit} onClick={handleSubmit}>Create User</Button>
+          <Button
+            variant="outline"
+            onClick={reset}
+          >
+            Reset
+          </Button>
+
+          <Button
+            disabled={!canSubmit}
+            onClick={handleSubmit}
+          >
+            Create User
+          </Button>
         </div>
       </Card>
     </div>
   );
-}
+} 

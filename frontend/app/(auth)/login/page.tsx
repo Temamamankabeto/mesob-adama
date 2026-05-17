@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+
 import { Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,8 +23,9 @@ import { authService } from "@/services/auth/auth.service";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [login, setLogin] = useState(""); // email OR phone
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,18 +35,41 @@ export default function LoginPage() {
 
     try {
       const response = await authService.login({
-        login, // IMPORTANT CHANGE
+        login,
         password,
       });
 
+      // Save session (localStorage etc.)
       authService.saveSession(response);
+
+      // =========================
+      // FIX: SAVE TOKEN + ROLE IN COOKIE
+      // =========================
+
+      document.cookie = `token=${response.token}; path=/`;
+
+      // Safe role extraction (Spatie / API flexible)
+      const role =
+        response.user?.roles?.[0]?.name ||
+        response.user?.role ||
+        "customer";
+
+      document.cookie = `role=${role.toLowerCase()}; path=/`;
 
       toast.success("Logged in successfully");
 
-      router.replace("/dashboard");
+      // =========================
+      // REDIRECT BACK LOGIC
+      // =========================
+      const redirect =
+        searchParams.get("redirect") || "/dashboard";
+
+      router.replace(redirect);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Login failed"
+        error instanceof Error
+          ? error.message
+          : "Login failed"
       );
     } finally {
       setLoading(false);
@@ -55,7 +80,9 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Sign in
+          </CardTitle>
           <CardDescription>
             Login with email or phone number
           </CardDescription>
