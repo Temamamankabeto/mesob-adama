@@ -20,7 +20,12 @@ class ServiceWindowController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Service window board retrieved successfully',
-            'data' => $this->serviceWindowService->board($request->user()),
+            'data' => $this->serviceWindowService->board(
+                $request->user(),
+                $request->input('level', 'city'),
+                $request->integer('subcity_id') ?: null,
+                $request->integer('woreda_id') ?: null
+            ),
         ]);
     }
 
@@ -29,6 +34,7 @@ class ServiceWindowController extends Controller
         $data = $request->validate([
             'service_id' => ['required', 'integer', 'exists:services,id'],
             'window_id' => ['required', 'integer', 'exists:windows,id'],
+            'level' => ['required', 'string', 'in:city,subcity,woreda'],
             'step_order' => ['nullable', 'integer', 'min:1'],
             'is_required' => ['nullable', 'boolean'],
         ]);
@@ -37,6 +43,7 @@ class ServiceWindowController extends Controller
             $request->user(),
             (int) $data['service_id'],
             (int) $data['window_id'],
+            $data['level'],
             (int) ($data['step_order'] ?? 1),
             (bool) ($data['is_required'] ?? true)
         );
@@ -50,19 +57,24 @@ class ServiceWindowController extends Controller
 
     public function unassign(Request $request, Service $service): JsonResponse
     {
-        $this->serviceWindowService->unassign($request->user(), $service);
+        $data = $request->validate([
+            'level' => ['required', 'string', 'in:city,subcity,woreda'],
+        ]);
+
+        $this->serviceWindowService->unassign(
+            $request->user(),
+            $service,
+            $data['level']
+        );
 
         return response()->json([
             'success' => true,
             'message' => 'Service removed from window successfully',
-            'data' => $this->serviceWindowService->board($request->user()),
         ]);
     }
 
-    public function assign(
-        AssignWindowToServiceRequest $request,
-        Service $service
-    ): JsonResponse {
+    public function assign(AssignWindowToServiceRequest $request, Service $service): JsonResponse
+    {
         $updatedService = $this->serviceWindowService->assign(
             $request->user(),
             $service,
