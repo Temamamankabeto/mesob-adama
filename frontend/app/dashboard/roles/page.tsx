@@ -118,9 +118,9 @@ export default function RolesPage() {
               className="border rounded-md px-3 py-2 text-sm"
             />
 
-            <Button onClick={handleCreateRole}>
+            {/* <Button onClick={handleCreateRole}>
               Create Role
-            </Button>
+            </Button> */}
           </div>
         </CardHeader>
 

@@ -88,6 +88,8 @@ export default function ServiceOfficersPage() {
 
     <div className="space-y-6">
 
+      {/* HEADER */}
+
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
         <div>
@@ -101,6 +103,8 @@ export default function ServiceOfficersPage() {
           </p>
 
         </div>
+
+        {/* SEARCH */}
 
         <Input
           placeholder="Search officers..."
@@ -117,6 +121,8 @@ export default function ServiceOfficersPage() {
         />
 
       </div>
+
+      {/* CARD */}
 
       <Card>
 
@@ -138,6 +144,8 @@ export default function ServiceOfficersPage() {
 
             <div className="space-y-4">
 
+              {/* TABLE */}
+
               <div className="overflow-x-auto">
 
                 <Table>
@@ -145,6 +153,10 @@ export default function ServiceOfficersPage() {
                   <TableHeader>
 
                     <TableRow>
+
+                      <TableHead className="text-left">
+                        #
+                      </TableHead>
 
                       <TableHead>
                         Name
@@ -175,11 +187,33 @@ export default function ServiceOfficersPage() {
                     {officers.length > 0 ? (
 
                       officers.map(
-                        (officer) => (
+                        (
+                          officer,
+                          index
+                        ) => (
 
                           <TableRow
                             key={officer.id}
                           >
+
+                            {/* AUTO INCREMENT */}
+
+                            <TableCell>
+
+                              {meta
+                                ? (
+                                    (
+                                      meta.current_page - 1
+                                    ) *
+                                      meta.per_page +
+                                    index +
+                                    1
+                                  )
+                                : index + 1}
+
+                            </TableCell>
+
+                            {/* NAME */}
 
                             <TableCell className="font-medium">
 
@@ -187,11 +221,15 @@ export default function ServiceOfficersPage() {
 
                             </TableCell>
 
+                            {/* EMAIL */}
+
                             <TableCell>
 
                               {officer.email}
 
                             </TableCell>
+
+                            {/* ROLE */}
 
                             <TableCell>
 
@@ -202,6 +240,8 @@ export default function ServiceOfficersPage() {
                               </Badge>
 
                             </TableCell>
+
+                            {/* ASSIGNED SERVICES */}
 
                             <TableCell>
 
@@ -235,6 +275,8 @@ export default function ServiceOfficersPage() {
 
                             </TableCell>
 
+                            {/* ACTION */}
+
                             <TableCell className="text-right">
 
                               <Link
@@ -260,7 +302,7 @@ export default function ServiceOfficersPage() {
                       <TableRow>
 
                         <TableCell
-                          colSpan={5}
+                          colSpan={6}
                           className="text-center text-muted-foreground"
                         >
 
@@ -277,6 +319,8 @@ export default function ServiceOfficersPage() {
                 </Table>
 
               </div>
+
+              {/* PAGINATION */}
 
               {meta && (
 

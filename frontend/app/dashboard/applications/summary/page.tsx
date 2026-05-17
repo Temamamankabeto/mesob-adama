@@ -15,7 +15,7 @@ const cards = [
   { key: "total", label: "Total", icon: FileText },
   { key: "submitted", label: "Submitted", icon: Clock3 },
   { key: "under_review", label: "Under Review", icon: Clock3 },
-  { key: "returned", label: "Returned", icon: RotateCcw },
+  { key: "returned", label: "Appointed", icon: RotateCcw },
   { key: "approved", label: "Approved", icon: CheckCircle2 },
   { key: "rejected", label: "Rejected", icon: XCircle },
   { key: "completed", label: "Completed", icon: CheckCircle2 },
