@@ -20,6 +20,21 @@ class ScopedUserSeeder extends Seeder
     {
         $this->ensureRoles();
 
+        /*
+        |--------------------------------------------------------------------------
+        | SUPER ADMIN
+        |--------------------------------------------------------------------------
+        */
+
+        $this->createScopedUser(
+            name: 'Super Admin',
+            email: 'superadmin@mesob.local',
+            role: 'super_admin',
+            cityId: null,
+            subcityId: null,
+            woredaId: null
+        );
+
         $city = City::query()->orderBy('id')->first();
 
         if (!$city) {
@@ -27,14 +42,14 @@ class ScopedUserSeeder extends Seeder
             return;
         }
 
-        $created = 0;
+        $created = 1;
 
         /*
         |--------------------------------------------------------------------------
         | CITY LEVEL
         |--------------------------------------------------------------------------
-        | 1 manager, 1 admin, 5 front officers, 5 back officers
         */
+
         $created += $this->seedScope(
             scope: 'city',
             label: $this->slug($city->name),
@@ -48,9 +63,8 @@ class ScopedUserSeeder extends Seeder
         |--------------------------------------------------------------------------
         | SUBCITY LEVEL
         |--------------------------------------------------------------------------
-        | For every subcity:
-        | 1 manager, 1 admin, 5 front officers, 5 back officers
         */
+
         Subcity::query()
             ->with('city')
             ->orderBy('id')
@@ -70,9 +84,8 @@ class ScopedUserSeeder extends Seeder
         |--------------------------------------------------------------------------
         | WOREDA LEVEL
         |--------------------------------------------------------------------------
-        | For every woreda:
-        | 1 manager, 1 admin, 5 front officers, 5 back officers
         */
+
         Woreda::query()
             ->with('subcity')
             ->orderBy('id')
@@ -119,6 +132,12 @@ class ScopedUserSeeder extends Seeder
     ): int {
         $count = 0;
 
+        /*
+        |--------------------------------------------------------------------------
+        | MANAGER
+        |--------------------------------------------------------------------------
+        */
+
         $this->createScopedUser(
             name: "{$displayName} Manager",
             email: "{$scope}.{$label}.manager@mesob.local",
@@ -127,7 +146,14 @@ class ScopedUserSeeder extends Seeder
             subcityId: $subcityId,
             woredaId: $woredaId
         );
+
         $count++;
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN
+        |--------------------------------------------------------------------------
+        */
 
         $this->createScopedUser(
             name: "{$displayName} Admin",
@@ -137,31 +163,42 @@ class ScopedUserSeeder extends Seeder
             subcityId: $subcityId,
             woredaId: $woredaId
         );
+
         $count++;
 
-        for ($i = 1; $i <= 5; $i++) {
-            $this->createScopedUser(
-                name: "{$displayName} Front Officer {$i}",
-                email: "{$scope}.{$label}.front-officer-{$i}@mesob.local",
-                role: 'front_officer',
-                cityId: $cityId,
-                subcityId: $subcityId,
-                woredaId: $woredaId
-            );
-            $count++;
-        }
+        /*
+        |--------------------------------------------------------------------------
+        | FRONT OFFICER
+        |--------------------------------------------------------------------------
+        */
 
-        for ($i = 1; $i <= 5; $i++) {
-            $this->createScopedUser(
-                name: "{$displayName} Back Officer {$i}",
-                email: "{$scope}.{$label}.back-officer-{$i}@mesob.local",
-                role: 'back_officer',
-                cityId: $cityId,
-                subcityId: $subcityId,
-                woredaId: $woredaId
-            );
-            $count++;
-        }
+        $this->createScopedUser(
+            name: "{$displayName} Front Officer",
+            email: "{$scope}.{$label}.front-officer@mesob.local",
+            role: 'front_officer',
+            cityId: $cityId,
+            subcityId: $subcityId,
+            woredaId: $woredaId
+        );
+
+        $count++;
+
+        /*
+        |--------------------------------------------------------------------------
+        | BACK OFFICER
+        |--------------------------------------------------------------------------
+        */
+
+        $this->createScopedUser(
+            name: "{$displayName} Back Officer",
+            email: "{$scope}.{$label}.back-officer@mesob.local",
+            role: 'back_officer',
+            cityId: $cityId,
+            subcityId: $subcityId,
+            woredaId: $woredaId
+        );
+
+        $count++;
 
         return $count;
     }

@@ -33,12 +33,14 @@ class AuthController extends Controller
             ], 422);
         }
 
+        $plainPassword = $request->password;
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'address' => $request->address,
-            'password' => Hash::make($request->password),
+            'password' => Hash::make($plainPassword),
             'is_active' => true,
         ]);
 
@@ -53,10 +55,10 @@ class AuthController extends Controller
         ])->save();
 
         try {
-            $message = "Welcome {$user->name}! Your account is created. Email: {$user->email}. Password: {$request->password}";
+            $message = "Welcome {$user->name}! Your MESOB customer account is created. Phone: {$user->phone}. Password: {$plainPassword}";
             $sms->sendToPhone($user->phone, $message);
-        } catch (\Exception $exception) {
-            Log::error('SMS failed: ' . $exception->getMessage());
+        } catch (\Throwable $exception) {
+            Log::error('Registration SMS failed: ' . $exception->getMessage());
         }
 
         return response()->json(

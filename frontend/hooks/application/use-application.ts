@@ -14,8 +14,21 @@ export function useApplicationForm(serviceId: number) {
 
 export function useApplyService(serviceId: number) {
   return useMutation({
-    mutationFn: ({ values, files }: { values: Record<string, unknown>; files?: Record<string, File | null> }) =>
-      applicationService.apply(serviceId, values, files ?? {}),
+    mutationFn: ({
+      values,
+      files,
+      selection,
+    }: {
+      values: Record<string, unknown>;
+      files?: Record<string, File | null>;
+      selection: {
+        administrative_level: string;
+        city_id: number;
+        subcity_id?: number | null;
+        woreda_id?: number | null;
+      };
+    }) =>
+      applicationService.apply(serviceId, values, files ?? {}, selection),
   });
 }
 

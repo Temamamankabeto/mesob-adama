@@ -8,11 +8,14 @@ use App\Models\ServiceApplication;
 use App\Models\ServiceApplicationData;
 use App\Models\ServiceApplicationWorkflow;
 use App\Models\ServiceApplicationHistory;
+use App\Services\Concerns\ChecksServiceAvailability;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class PublicApplicationService
 {
+    use ChecksServiceAvailability;
+
     public function __construct(
         protected ApplicationFileService $fileService
     ) {}
@@ -40,6 +43,8 @@ class PublicApplicationService
             ]);
         }
 
+        $this->assertServiceAvailableForSelection($service, $payload);
+
         $form = $this->getForm($service);
 
         if (!$form) {
@@ -48,7 +53,11 @@ class PublicApplicationService
             ]);
         }
 
-        $this->validateRequiredFields($form->fields->where('is_active', true), $payload['data'] ?? [], $payload['files'] ?? []);
+        $this->validateRequiredFields(
+            $form->fields->where('is_active', true),
+            $payload['data'] ?? [],
+            $payload['files'] ?? []
+        );
 
         return DB::transaction(function () use ($service, $user, $payload) {
             $firstWindow = $service->windows()
@@ -58,6 +67,10 @@ class PublicApplicationService
             $application = ServiceApplication::create([
                 'tracking_number' => $this->generateTrackingNumber(),
                 'service_id' => $service->id,
+                'administrative_level' => $payload['administrative_level'],
+                'city_id' => $payload['city_id'],
+                'subcity_id' => $payload['subcity_id'] ?? null,
+                'woreda_id' => $payload['woreda_id'] ?? null,
                 'customer_id' => $user->id,
                 'current_window_id' => $firstWindow?->id,
                 'current_officer_id' => null,
@@ -79,9 +92,7 @@ class PublicApplicationService
                 $this->fileService->storeFiles($application, $payload['files'], $user);
             }
 
-            $windows = $service->windows()->orderBy('service_window.step_order')->get();
-
-            foreach ($windows as $window) {
+            foreach ($service->windows()->orderBy('service_window.step_order')->get() as $window) {
                 ServiceApplicationWorkflow::create([
                     'application_id' => $application->id,
                     'window_id' => $window->id,
@@ -97,19 +108,39 @@ class PublicApplicationService
                 'to_status' => 'submitted',
                 'action' => 'submitted',
                 'action_type' => 'submitted',
-                'remark' => 'Application submitted',
+                'remark' => 'Application submitted for ' . $payload['administrative_level'] . ' level',
                 'actor_id' => $user->id,
             ]);
 
             return $application->load([
                 'service',
                 'customer',
+                'city',
+                'subcity',
+                'woreda',
                 'data',
                 'files',
                 'workflows.window',
                 'histories.actor',
             ]);
         });
+    }
+
+    protected function assertServiceAvailableForSelection(Service $service, array $payload): void
+    {
+        $available = $this->serviceIsAvailableForSelection(
+            $service,
+            $payload['administrative_level'],
+            (int) $payload['city_id'],
+            isset($payload['subcity_id']) ? (int) $payload['subcity_id'] : null,
+            isset($payload['woreda_id']) ? (int) $payload['woreda_id'] : null
+        );
+
+        if (!$available) {
+            throw ValidationException::withMessages([
+                'service_id' => ['This service is not available for the selected location.'],
+            ]);
+        }
     }
 
     protected function validateRequiredFields($fields, array $data, array $files): void

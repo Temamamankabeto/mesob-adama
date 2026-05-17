@@ -12,6 +12,10 @@ class ServiceApplication extends Model
     protected $fillable = [
         'tracking_number',
         'service_id',
+        'administrative_level',
+        'city_id',
+        'subcity_id',
+        'woreda_id',
         'customer_id',
         'current_window_id',
         'current_officer_id',
@@ -31,6 +35,9 @@ class ServiceApplication extends Model
 
     protected $casts = [
         'service_id' => 'integer',
+        'city_id' => 'integer',
+        'subcity_id' => 'integer',
+        'woreda_id' => 'integer',
         'customer_id' => 'integer',
         'current_window_id' => 'integer',
         'current_officer_id' => 'integer',
@@ -92,5 +99,20 @@ class ServiceApplication extends Model
     public function currentOfficer()
     {
         return $this->belongsTo(User::class, 'current_officer_id');
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function subcity()
+    {
+        return $this->belongsTo(Subcity::class);
+    }
+
+    public function woreda()
+    {
+        return $this->belongsTo(Woreda::class);
     }
 }
