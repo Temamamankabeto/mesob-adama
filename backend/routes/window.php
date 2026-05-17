@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\WindowController;
 use App\Http\Controllers\Api\ServiceWindowController;
+use App\Http\Controllers\Api\OfficerWindowAssignmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -16,4 +17,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/services/{service}/windows', [ServiceWindowController::class, 'assign']);
     Route::get('/services/{service}/windows', [ServiceWindowController::class, 'show']);
+
+    Route::get('/officer-window-assignment/board', [OfficerWindowAssignmentController::class, 'board']);
+    Route::post('/officer-window-assignment/assign', [OfficerWindowAssignmentController::class, 'assign']);
+    Route::delete('/officer-window-assignment/unassign', [OfficerWindowAssignmentController::class, 'unassign']);
+    Route::get('/officer-window-assignment/windows/{window}/officers', [OfficerWindowAssignmentController::class, 'officers']);
 });

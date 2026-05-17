@@ -29,4 +29,24 @@ class Window extends Model
             ->withTimestamps()
             ->orderBy('service_window.step_order');
     }
+
+    public function officerAssignments()
+    {
+        return $this->hasMany(OfficerWindowAssignment::class);
+    }
+
+    public function assignedOfficers()
+    {
+        return $this->belongsToMany(User::class, 'officer_window_assignments', 'window_id', 'officer_id')
+            ->withPivot([
+                'assignment_level',
+                'city_id',
+                'subcity_id',
+                'woreda_id',
+                'is_active',
+                'assigned_by',
+                'assigned_at',
+            ])
+            ->withTimestamps();
+    }
 }

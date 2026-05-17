@@ -12,16 +12,11 @@ use App\Http\Controllers\Api\Admin\ServiceFormSectionController;
 use App\Http\Controllers\Api\Admin\ServiceFormStepController;
 use App\Http\Controllers\Api\Admin\ApplicationDashboardController;
 use App\Http\Controllers\Api\Customer\CustomerServiceApplicationController;
+use App\Http\Controllers\Api\OfficerApplicationShareController;
 use App\Http\Controllers\Api\Public\PublicApplicationController;
 use App\Http\Controllers\Api\Public\ApplicationTrackingController;
 use App\Http\Controllers\Api\Officer\OfficerApplicationController;
 use App\Http\Controllers\Api\Officer\CertificateController;
-
-/*
-|--------------------------------------------------------------------------
-| AUTHENTICATED CUSTOMER APPLICATIONS
-|--------------------------------------------------------------------------
-*/
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/applications', [ApplicationController::class, 'index']);
@@ -30,22 +25,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/applications/{application}', [ApplicationController::class, 'update']);
     Route::delete('/applications/{application}', [ApplicationController::class, 'destroy']);
 
-    Route::get('/customer/service-applications', [
-        CustomerServiceApplicationController::class,
-        'index',
-    ]);
-
-    Route::get('/customer/service-applications/{application}', [
-        CustomerServiceApplicationController::class,
-        'show',
-    ]);
+    Route::get('/customer/service-applications', [CustomerServiceApplicationController::class, 'index']);
+    Route::get('/customer/service-applications/{application}', [CustomerServiceApplicationController::class, 'show']);
 });
-
-/*
-|--------------------------------------------------------------------------
-| ADMIN FORM BUILDER + APPLICATION BACK OFFICE
-|--------------------------------------------------------------------------
-*/
 
 Route::middleware('auth:sanctum')
     ->prefix('admin')
@@ -63,92 +45,38 @@ Route::middleware('auth:sanctum')
         Route::put('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'update']);
         Route::delete('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'destroy']);
 
-        Route::get('/applications/summary', [
-            ApplicationDashboardController::class,
-            'summary',
-        ]);
+        Route::get('/applications/summary', [ApplicationDashboardController::class, 'summary']);
     });
-
-/*
-|--------------------------------------------------------------------------
-| PUBLIC APPLICATION
-|--------------------------------------------------------------------------
-*/
 
 Route::prefix('public')
     ->group(function () {
-        Route::get('/services/{service}/form', [
-            PublicApplicationController::class,
-            'form',
-        ]);
+        Route::get('/services/{service}/form', [PublicApplicationController::class, 'form']);
 
         Route::middleware('auth:sanctum')->post('/services/{service}/apply', [
             PublicApplicationController::class,
             'apply',
         ]);
 
-        Route::post('/track-application', [
-            ApplicationTrackingController::class,
-            'track',
-        ]);
+        Route::post('/track-application', [ApplicationTrackingController::class, 'track']);
     });
-
-/*
-|--------------------------------------------------------------------------
-| OFFICER APPLICATION PROCESSING
-|--------------------------------------------------------------------------
-*/
 
 Route::middleware('auth:sanctum')
     ->prefix('officer')
     ->group(function () {
-        Route::get('/applications/queue', [
-            OfficerApplicationController::class,
-            'queue',
-        ]);
+        Route::get('/applications/queue', [OfficerApplicationController::class, 'queue']);
+        Route::get('/applications/{application}', [OfficerApplicationController::class, 'show']);
 
-        Route::get('/applications/{application}', [
-            OfficerApplicationController::class,
-            'show',
-        ]);
+        Route::get('/sharing/windows', [OfficerApplicationShareController::class, 'windows']);
+        Route::get('/sharing/windows/{window}/officers', [OfficerApplicationShareController::class, 'officers']);
+        Route::post('/applications/{application}/share-to-officer', [OfficerApplicationShareController::class, 'share']);
 
-        Route::post('/applications/{application}/accept', [
-            OfficerApplicationController::class,
-            'accept',
-        ]);
+        Route::post('/applications/{application}/accept', [OfficerApplicationController::class, 'accept']);
+        Route::post('/applications/{application}/share', [OfficerApplicationController::class, 'share']);
+        Route::post('/applications/{application}/forward-to-back-officer', [OfficerApplicationController::class, 'forwardToBackOfficer']);
+        Route::post('/applications/{application}/approve', [OfficerApplicationController::class, 'approve']);
+        Route::post('/applications/{application}/reject', [OfficerApplicationController::class, 'reject']);
+        Route::post('/applications/{application}/return', [OfficerApplicationController::class, 'returnApplication']);
+        Route::post('/applications/{application}/complete', [OfficerApplicationController::class, 'complete']);
 
-        Route::post('/applications/{application}/share', [
-            OfficerApplicationController::class,
-            'share',
-        ]);
-
-        Route::post('/applications/{application}/forward-to-back-officer', [
-            OfficerApplicationController::class,
-            'forwardToBackOfficer',
-        ]);
-
-        Route::post('/applications/{application}/approve', [
-            OfficerApplicationController::class,
-            'approve',
-        ]);
-
-        Route::post('/applications/{application}/reject', [
-            OfficerApplicationController::class,
-            'reject',
-        ]);
-
-        Route::post('/applications/{application}/return', [
-            OfficerApplicationController::class,
-            'returnApplication',
-        ]);
-
-        Route::post('/applications/{application}/complete', [
-            OfficerApplicationController::class,
-            'complete',
-        ]);
-
-        Route::get('/applications/{application}/certificate', [
-            CertificateController::class,
-            'download',
-        ]);
+        Route::get('/applications/{application}/certificate', [CertificateController::class, 'download']);
     });

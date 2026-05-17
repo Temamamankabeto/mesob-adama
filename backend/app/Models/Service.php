@@ -39,18 +39,30 @@ class Service extends Model
     public function assignedUsers()
     {
         return $this->belongsToMany(User::class, 'user_service_assignments')
-            ->withPivot(['is_active'])
+            ->withPivot([
+                'officer_type',
+                'window_id',
+                'assignment_level',
+                'city_id',
+                'subcity_id',
+                'woreda_id',
+                'is_active',
+                'assigned_by',
+                'assigned_at',
+            ])
             ->withTimestamps();
     }
 
     public function frontOfficers()
     {
-        return $this->assignedUsers()->role('front_officer');
+        return $this->assignedUsers()
+            ->wherePivot('officer_type', 'front_officer');
     }
 
     public function backOfficers()
     {
-        return $this->assignedUsers()->role('back_officer');
+        return $this->assignedUsers()
+            ->wherePivot('officer_type', 'back_officer');
     }
 
     public function forms()
