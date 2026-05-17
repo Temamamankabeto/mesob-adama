@@ -1,109 +1,78 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { normalizeRoleName } from "@/config/roles.config";
-
-const PUBLIC_PATHS = [
-  "/",
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-  "/services",
-  "/track-application",
-];
-
-const MANAGEMENT_ROLES = ["super_admin", "manager", "admin"];
-const OFFICER_ROLES = ["front_officer", "back_officer"];
-
-const ROUTE_ROLE_RULES: Array<{ prefixes: string[]; roles: string[] }> = [
-  {
-    prefixes: ["/dashboard/users", "/dashboard/roles", "/dashboard/audit-logs"],
-    roles: MANAGEMENT_ROLES,
-  },
-  {
-    prefixes: [
-      "/dashboard/service-forms",
-      "/dashboard/service-form-sections",
-      "/dashboard/service-applications",
-      "/dashboard/applications/summary",
-    ],
-    roles: MANAGEMENT_ROLES,
-  },
-  {
-    prefixes: ["/dashboard/officer/applications"],
-    roles: [...MANAGEMENT_ROLES, ...OFFICER_ROLES],
-  },
-  {
-    prefixes: ["/my-applications"],
-    roles: ["customer"],
-  },
-];
-
-function parseRoles(raw?: string) {
-  if (!raw) return [];
-
-  try {
-    const decoded = decodeURIComponent(raw);
-    const parsed = JSON.parse(decoded);
-
-    if (Array.isArray(parsed)) return parsed.map((role) => normalizeRoleName(String(role)));
-    if (typeof parsed === "string") return [normalizeRoleName(parsed)];
-  } catch {
-    // fallback below
-  }
-
-  return raw
-    .split(",")
-    .map((role) => normalizeRoleName(role.trim()))
-    .filter(Boolean);
-}
-
-function isPublicPath(pathname: string) {
-  return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
-}
+import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const token = request.cookies.get("token")?.value;
 
-  if (isPublicPath(pathname)) {
-    return NextResponse.next();
+  // 🔥 SAFE ROLE READ (fix undefined crash + normalize)
+  const role = request.cookies
+    .get("role")
+    ?.value
+    ?.toLowerCase()
+    ?.trim();
+
+  const pathname = request.nextUrl.pathname;
+
+  /**
+   * =========================
+   * PUBLIC ROUTES
+   * =========================
+   */
+  const publicRoutes = ["/", "/login", "/register", "/about", "/services"];
+
+  const isServiceList = pathname === "/services";
+  const isServiceDetail = /^\/services\/\d+$/.test(pathname);
+  const isApplyPage = /^\/services\/\d+\/apply$/.test(pathname);
+
+  const isPublicRoute =
+    publicRoutes.includes(pathname) || isServiceDetail;
+
+  /**
+   * =========================
+   * 1. NOT LOGGED IN
+   * =========================
+   */
+  if (!token && !isPublicRoute) {
+    const url = new URL("/login", request.url);
+    url.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(url);
   }
 
-  const matchedRule = ROUTE_ROLE_RULES.find((rule) =>
-    rule.prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
-  );
+  /**
+   * =========================
+   * 2. APPLY PAGE PROTECTION
+   * ONLY CUSTOMER CAN APPLY
+   * =========================
+   */
+  if (isApplyPage) {
+    if (!token) {
+      const url = new URL("/login", request.url);
+      url.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(url);
+    }
 
-  if (!matchedRule) {
-    return NextResponse.next();
+    // 🔥 IMPORTANT FIX: fallback safe check
+    if (!role || role !== "customer") {
+      return NextResponse.redirect(
+        new URL("/unauthorized", request.url)
+      );
+    }
   }
 
-  const rolesCookie =
-    request.cookies.get("roles")?.value ||
-    request.cookies.get("role")?.value;
-
-  const userRoles = parseRoles(rolesCookie);
-
-  if (userRoles.length === 0) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (!matchedRule.roles.some((role) => userRoles.includes(normalizeRoleName(role)))) {
+  /**
+   * =========================
+   * 3. BLOCK LOGIN/REGISTER IF LOGGED IN
+   * =========================
+   */
+  if (token && (pathname === "/login" || pathname === "/register")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
 }
 
+/**
+ * Apply middleware only where needed
+ */
 export const config = {
-  matcher: [
-    "/dashboard/users/:path*",
-    "/dashboard/roles/:path*",
-    "/dashboard/audit-logs/:path*",
-    "/dashboard/service-forms/:path*",
-    "/dashboard/service-form-sections/:path*",
-    "/dashboard/service-applications/:path*",
-    "/dashboard/applications/summary/:path*",
-    "/dashboard/officer/applications/:path*",
-    "/my-applications/:path*",
-  ],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

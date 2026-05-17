@@ -61,11 +61,40 @@ class AuthController extends Controller
             Log::error('Registration SMS failed: ' . $exception->getMessage());
         }
 
-        return response()->json(
-            $this->authPayload($user, $accessToken, $refreshToken),
-            201
-        )->cookie($this->refreshCookie($refreshToken));
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'phone' => $request->phone,
+        'address' => $request->address,
+        'password' => Hash::make($request->password),
+        'is_active' => true,
+    ]);
+
+    /**
+     * ✅ ALWAYS assign default role
+     */
+    $user->syncRoles(['customer']); // 🔥 BEST PRACTICE (NOT assignRole)
+
+    $accessToken = $user->createToken('api-token')->plainTextToken;
+    $refreshToken = Str::random(64);
+
+    $user->forceFill([
+        'refresh_token' => hash('sha256', $refreshToken),
+        'refresh_token_expires_at' => now()->addDays(30),
+    ])->save();
+
+    try {
+        $message = "Welcome {$user->name}! Account created.";
+        $sms->sendToPhone($user->phone, $message);
+    } catch (\Exception $exception) {
+        Log::error('SMS failed: ' . $exception->getMessage());
     }
+
+    return response()->json(
+        $this->authPayload($user, $accessToken, $refreshToken),
+        201
+    )->cookie($this->refreshCookie($refreshToken));
+}
 
     public function login(Request $request)
     {
