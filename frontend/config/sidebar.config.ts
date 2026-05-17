@@ -62,11 +62,21 @@ const userManagementMenu: SidebarItem = {
   label: "User Management",
   icon: Users,
   children: [
-    { label: "Users", href: "/dashboard/users", permission: "users.read", scopes: adminScopes },
-    { label: "Create User", href: "/dashboard/users/add", permission: "users.create", scopes: adminScopes },
-    { label: "Activation Requests", href: "/dashboard/user-activation-requests", permission: "users.activate", scopes: adminScopes },
-    { label: "Roles", href: "/dashboard/roles", permission: "roles.read", scopes: cityAdminScopes },
-    { label: "Permissions", href: "/dashboard/permissions", permission: "permissions.read", scopes: cityAdminScopes },
+    {
+      label: "Users",
+      href: "/dashboard/users",
+      permission: "users.read",
+    },
+    {
+      label: "Roles",
+      href: "/dashboard/roles",
+      permission: "roles.read",
+    },
+    // {
+    //   label: "Permissions",
+    //   href: "/dashboard/permissions",
+    //   permission: "permissions.read",
+    // },
   ],
 };
 
