@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   useOfficerQueue,
   useApproveApplication,
-} from "@/hooks/officer-application/use-officer-application";
+} from "@/hooks/application/use-application";
 
 export default function OfficerApplicationsPage() {
 
@@ -23,7 +23,7 @@ export default function OfficerApplicationsPage() {
     useApproveApplication();
 
   const applications =
-    data?.data?.data || [];
+    (data as any)?.data?.data || [];
 
   if (isLoading) {
     return <div>Loading...</div>;

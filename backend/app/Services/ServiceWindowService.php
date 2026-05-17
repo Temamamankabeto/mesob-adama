@@ -12,12 +12,18 @@ use Illuminate\Validation\ValidationException;
 
 class ServiceWindowService
 {
-    public function board(?User $actor): array
+    public function board(User $actor, string $level = AppRoles::LEVEL_CITY, ?int $subcityId = null, ?int $woredaId = null): array
     {
-        $windows = $this->scopedWindows($actor)
-            ->map(function (Window $window) use ($actor) {
+        $this->assertCityAdmin($actor);
+        $level = $this->normalizeLevel($level);
+
+        $windows = $this->scopedWindows($level)
+            ->map(function (Window $window) use ($level, $subcityId, $woredaId) {
                 $services = $window->services
-                    ->filter(fn (Service $service) => $this->serviceAllowedForActor($service, $actor))
+                    ->filter(fn (Service $service) =>
+                        $service->pivot?->assignment_level === $level &&
+                        $this->serviceAvailableForLevel($service, $level, $subcityId, $woredaId)
+                    )
                     ->values()
                     ->map(fn (Service $service) => $this->servicePayload($service));
 
@@ -36,229 +42,175 @@ class ServiceWindowService
             ->values()
             ->all();
 
-        $unassignedServices = $this->scopedServices($actor)
+        $unassignedServices = $this->scopedServices($level, $subcityId, $woredaId)
             ->reject(fn (Service $service) => in_array($service->id, $assignedServiceIds, true))
             ->values()
             ->map(fn (Service $service) => $this->servicePayload($service));
 
         return [
-            'unassigned_services' => $unassignedServices,
+            'level' => $level,
             'services' => $unassignedServices,
+            'unassigned_services' => $unassignedServices,
             'windows' => $windows,
-            'scope' => [
-                'level' => $this->actorLevel($actor),
-                'label' => $this->scopeLabel($actor),
-                'city_id' => $actor?->city_id,
-                'subcity_id' => $actor?->subcity_id,
-                'woreda_id' => $actor?->woreda_id,
-            ],
         ];
     }
 
-    public function assign(User $actor, Service $service, array $windows): Service
+    public function move(User $actor, int $serviceId, int $windowId, string $level, int $stepOrder = 1, bool $isRequired = true): Service
     {
-        $syncData = [];
+        $this->assertCityAdmin($actor);
 
-        foreach ($windows as $window) {
-            $windowModel = Window::findOrFail($window['window_id']);
-
-            $this->assertAllowed($actor, $service, $windowModel);
-
-            $syncData[$window['window_id']] = [
-                'step_order' => $window['step_order'] ?? 1,
-                'is_required' => $window['is_required'] ?? true,
-            ];
-        }
-
-        $service->windows()->sync($syncData);
-
-        return $service->load('windows');
-    }
-
-    public function move(
-        User $actor,
-        int $serviceId,
-        int $windowId,
-        int $stepOrder = 1,
-        bool $isRequired = true
-    ): Service {
+        $level = $this->normalizeLevel($level);
         $service = Service::findOrFail($serviceId);
         $window = Window::findOrFail($windowId);
 
-        $this->assertAllowed($actor, $service, $window);
+        $this->assertLevelAllowed($service, $window, $level);
 
-        DB::transaction(function () use ($service, $window, $stepOrder, $isRequired) {
-            /*
-            |--------------------------------------------------------------------------
-            | One service belongs to one window in this workflow.
-            |--------------------------------------------------------------------------
-            | Moving service to another window detaches it from the old window first.
-            */
-            $service->windows()->sync([
-                $window->id => [
-                    'step_order' => $stepOrder,
-                    'is_required' => $isRequired,
-                ],
-            ]);
-        });
+        DB::transaction(function () use ($service, $window, $level, $stepOrder, $isRequired) {
+            DB::table('service_window')
+                ->where('service_id', $service->id)
+                ->where('assignment_level', $level)
+                ->delete();
 
-        audit_log(
-            'service_window_moved',
-            'Service moved to window within admin scope.',
-            'service',
-            $service->id,
-            null,
-            [
+            DB::table('service_window')->insert([
                 'service_id' => $service->id,
                 'window_id' => $window->id,
-                'scope' => $this->scopeLabel($actor),
-            ]
-        );
+                'assignment_level' => $level,
+                'step_order' => $stepOrder,
+                'is_required' => $isRequired,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
 
         return $service->fresh()->load('windows');
     }
 
-    public function unassign(User $actor, Service $service): void
+    public function unassign(User $actor, Service $service, string $level): void
     {
-        if (!$this->serviceAllowedForActor($service, $actor)) {
-            throw ValidationException::withMessages([
-                'service_id' => ['This service is not available in your administrative scope.'],
-            ]);
+        $this->assertCityAdmin($actor);
+
+        $level = $this->normalizeLevel($level);
+
+        DB::table('service_window')
+            ->where('service_id', $service->id)
+            ->where('assignment_level', $level)
+            ->delete();
+    }
+
+    public function assign(User $actor, Service $service, array $windows): Service
+    {
+        $this->assertCityAdmin($actor);
+
+        foreach ($windows as $window) {
+            $windowModel = Window::findOrFail($window['window_id']);
+            $level = $this->firstLevel($windowModel->availability);
+
+            if (!$level) {
+                throw ValidationException::withMessages([
+                    'window_id' => ['Window has no valid availability level.'],
+                ]);
+            }
+
+            $this->move(
+                $actor,
+                $service->id,
+                $windowModel->id,
+                $level,
+                (int) ($window['step_order'] ?? 1),
+                (bool) ($window['is_required'] ?? true)
+            );
         }
 
-        $service->windows()->detach();
-
-        audit_log(
-            'service_window_unassigned',
-            'Service removed from assigned window within admin scope.',
-            'service',
-            $service->id,
-            null,
-            [
-                'service_id' => $service->id,
-                'scope' => $this->scopeLabel($actor),
-            ]
-        );
+        return $service->fresh()->load('windows');
     }
 
     public function show(User $actor, Service $service): Service
     {
-        if (!$this->serviceAllowedForActor($service, $actor)) {
-            abort(403, 'This service is not available in your administrative scope.');
-        }
-
-        $allowedWindowIds = $this->scopedWindows($actor)->pluck('id')->all();
-
-        return $service->load([
-            'windows' => fn ($query) => $query->whereIn('windows.id', $allowedWindowIds),
-        ]);
+        $this->assertCityAdmin($actor);
+        return $service->load('windows');
     }
 
-    protected function assertAllowed(User $actor, Service $service, Window $window): void
+    protected function assertCityAdmin(User $actor): void
     {
-        if (!$this->serviceAllowedForActor($service, $actor)) {
-            throw ValidationException::withMessages([
-                'service_id' => ['This service is not available in your administrative scope.'],
-            ]);
+        if ($actor->hasRole(AppRoles::SUPER_ADMIN)) {
+            return;
         }
 
-        if (!$this->windowAllowedForActor($window, $actor)) {
+        if (!$actor->hasRole(AppRoles::ADMIN) || AppRoles::userLevel($actor) !== AppRoles::LEVEL_CITY) {
             throw ValidationException::withMessages([
-                'window_id' => ['This window is not available in your administrative scope.'],
+                'role' => ['Only City Admin can manage service-window assignments.'],
             ]);
         }
     }
 
-    protected function scopedServices(?User $actor): Collection
+    protected function assertLevelAllowed(Service $service, Window $window, string $level): void
+    {
+        $serviceLevels = $this->levels($service->availability);
+        $windowLevels = $this->levels($window->availability);
+
+        if (!in_array($level, $serviceLevels, true)) {
+            throw ValidationException::withMessages([
+                'service_id' => ["This service is not available at {$level} level."],
+            ]);
+        }
+
+        if (!in_array($level, $windowLevels, true)) {
+            throw ValidationException::withMessages([
+                'window_id' => ["This window is not available at {$level} level."],
+            ]);
+        }
+    }
+
+    protected function scopedServices(string $level, ?int $subcityId = null, ?int $woredaId = null): Collection
     {
         return Service::query()
             ->with('windows')
             ->where('status', 'active')
             ->orderBy('name')
             ->get()
-            ->filter(fn (Service $service) => $this->serviceAllowedForActor($service, $actor))
+            ->filter(fn (Service $service) => $this->serviceAvailableForLevel($service, $level, $subcityId, $woredaId))
             ->values();
     }
 
-    protected function scopedWindows(?User $actor): Collection
+    protected function scopedWindows(string $level): Collection
     {
         return Window::query()
             ->with([
                 'services' => fn ($query) => $query
                     ->where('services.status', 'active')
+                    ->wherePivot('assignment_level', $level)
                     ->orderBy('service_window.step_order')
                     ->orderBy('services.name'),
             ])
             ->orderBy('name')
             ->get()
-            ->filter(fn (Window $window) => $this->windowAllowedForActor($window, $actor))
+            ->filter(fn (Window $window) => in_array($level, $this->levels($window->availability), true))
             ->values();
     }
 
-    protected function serviceAllowedForActor(Service $service, ?User $actor): bool
+    protected function serviceAvailableForLevel(Service $service, string $level, ?int $subcityId = null, ?int $woredaId = null): bool
     {
-        if (!$actor || $actor->hasRole(AppRoles::SUPER_ADMIN)) {
-            return true;
-        }
-
-        $level = $this->actorLevel($actor);
-
-        if (!$level) {
-            return false;
-        }
-
         $availability = $this->normalizeAvailability($service->availability);
 
         if (!$availability || !in_array($level, $availability['levels'], true)) {
             return false;
         }
 
-        return match ($level) {
-            AppRoles::LEVEL_CITY => $this->idAllowed($availability['city_ids'], $actor->city_id),
-            AppRoles::LEVEL_SUBCITY => $this->idAllowed($availability['subcity_ids'], $actor->subcity_id),
-            AppRoles::LEVEL_WOREDA => $this->idAllowed($availability['woreda_ids'], $actor->woreda_id),
-            default => false,
-        };
+        if ($level === AppRoles::LEVEL_SUBCITY && $subcityId) {
+            return $this->idAllowed($availability['subcity_ids'], $subcityId);
+        }
+
+        if ($level === AppRoles::LEVEL_WOREDA && $woredaId) {
+            return $this->idAllowed($availability['woreda_ids'], $woredaId);
+        }
+
+        return true;
     }
 
-    protected function windowAllowedForActor(Window $window, ?User $actor): bool
+    protected function normalizeLevel(string $level): string
     {
-        if (!$actor || $actor->hasRole(AppRoles::SUPER_ADMIN)) {
-            return true;
-        }
-
-        $level = $this->actorLevel($actor);
-
-        if (!$level) {
-            return false;
-        }
-
-        $availability = $this->normalizeAvailability($window->availability);
-
-        return $availability && in_array($level, $availability['levels'], true);
-    }
-
-    protected function actorLevel(?User $actor): ?string
-    {
-        if (!$actor || $actor->hasRole(AppRoles::SUPER_ADMIN)) {
-            return null;
-        }
-
-        return AppRoles::userLevel($actor);
-    }
-
-    protected function scopeLabel(?User $actor): string
-    {
-        if (!$actor || $actor->hasRole(AppRoles::SUPER_ADMIN)) {
-            return 'All administrative levels';
-        }
-
-        return match (AppRoles::userLevel($actor)) {
-            AppRoles::LEVEL_CITY => 'City level: ' . ($actor->city?->name ?? 'Assigned city'),
-            AppRoles::LEVEL_SUBCITY => 'Subcity level: ' . ($actor->subcity?->name ?? 'Assigned subcity'),
-            AppRoles::LEVEL_WOREDA => 'Woreda level: ' . ($actor->woreda?->name ?? 'Assigned woreda'),
-            default => 'No administrative scope',
-        };
+        $level = strtolower(trim($level));
+        return in_array($level, AppRoles::levels(), true) ? $level : AppRoles::LEVEL_CITY;
     }
 
     protected function servicePayload(Service $service): array
@@ -271,6 +223,16 @@ class ServiceWindowService
             'availability' => $service->availability,
             'status' => $service->status,
         ];
+    }
+
+    protected function firstLevel(mixed $availability): ?string
+    {
+        return $this->levels($availability)[0] ?? null;
+    }
+
+    protected function levels(mixed $availability): array
+    {
+        return $this->normalizeAvailability($availability)['levels'] ?? [];
     }
 
     protected function normalizeAvailability(mixed $availability): ?array
@@ -308,7 +270,7 @@ class ServiceWindowService
 
         $levels = [];
 
-        foreach ([AppRoles::LEVEL_CITY, AppRoles::LEVEL_SUBCITY, AppRoles::LEVEL_WOREDA] as $level) {
+        foreach (AppRoles::levels() as $level) {
             if (($availability[$level] ?? false) === true) {
                 $levels[] = $level;
             }
@@ -334,7 +296,7 @@ class ServiceWindowService
 
         return collect($levels)
             ->map(fn ($level) => strtolower(trim((string) $level)))
-            ->filter(fn ($level) => in_array($level, [AppRoles::LEVEL_CITY, AppRoles::LEVEL_SUBCITY, AppRoles::LEVEL_WOREDA], true))
+            ->filter(fn ($level) => in_array($level, AppRoles::levels(), true))
             ->unique()
             ->values()
             ->all();

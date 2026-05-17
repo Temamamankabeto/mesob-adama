@@ -1,153 +1,230 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  useDraggable,
-  useDroppable,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Search, X } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import {
+  ServiceWindowBoardService,
+  ServiceWindowLevel,
   useMoveServiceToWindow,
   useServiceWindowBoard,
   useUnassignServiceWindow,
 } from "@/hooks/service-window/use-service-window";
-import { cn } from "@/lib/utils";
 
-type ServiceItem = { id: number; name: string; description?: string | null };
-type WindowItem = { id: number; name: string; services?: ServiceItem[] };
+const levels: Array<{ level: ServiceWindowLevel; label: string }> = [
+  { level: "city", label: "City Level" },
+  { level: "subcity", label: "Subcity Level" },
+  { level: "woreda", label: "Woreda Level" },
+];
 
-function DraggableService({ service, onRemove }: { service: ServiceItem; onRemove?: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `service:${service.id}`,
-    data: { service },
-  });
+export default function AssignedServiceWindowListPage() {
+  const [level, setLevel] = useState<ServiceWindowLevel>("city");
+  const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
+  const [selectedService, setSelectedService] = useState<ServiceWindowBoardService | null>(null);
+
+  const { data, isLoading } = useServiceWindowBoard({ level });
+  const moveService = useMoveServiceToWindow();
+  const unassignService = useUnassignServiceWindow();
+
+  const windows = data?.windows || [];
+
+  async function moveToWindow(windowId: number, serviceId?: number) {
+    const targetServiceId = serviceId ?? selectedService?.id;
+
+    if (!targetServiceId) {
+      toast.error("Select a service first.");
+      return;
+    }
+
+    try {
+      await moveService.mutateAsync({
+        service_id: targetServiceId,
+        window_id: windowId,
+        level,
+        step_order: 1,
+        is_required: true,
+      });
+      setSelectedService(null);
+      toast.success("Assignment updated for this level only");
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
+        "Update failed";
+      toast.error(String(msg));
+    }
+  }
+
+  async function handleDrop(windowId: number, rawServiceId: string) {
+    const serviceId = Number(rawServiceId);
+    if (!serviceId) return;
+    await moveToWindow(windowId, serviceId);
+  }
+
+  async function unassign(serviceId: number) {
+    try {
+      await unassignService.mutateAsync({ service_id: serviceId, level });
+      toast.success("Assignment removed from this level only");
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
+        "Remove failed";
+      toast.error(String(msg));
+    }
+  }
+
+  function toggleWindow(id: number) {
+    setCollapsed((current) => ({ ...current, [id]: !current[id] }));
+  }
+
+  function changeLevel(nextLevel: ServiceWindowLevel) {
+    setLevel(nextLevel);
+    setCollapsed({});
+    setSelectedService(null);
+  }
 
   return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform) }}
-      className={cn("rounded-2xl border bg-background p-4 shadow-sm", isDragging && "opacity-60 ring-2 ring-primary")}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex gap-3">
-          <button type="button" {...listeners} {...attributes} className="mt-1 cursor-grab text-muted-foreground">
-            <GripVertical className="h-4 w-4" />
+    <div className="mx-auto w-full max-w-7xl space-y-4 p-3 sm:space-y-6 sm:p-6">
+      <div className="rounded-3xl border bg-card p-4 shadow-sm sm:p-6">
+        <h1 className="text-xl font-bold sm:text-2xl">Assigned Service Windows</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Tap a service, then tap Assign on another window. Desktop drag/drop also works.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {levels.map((item) => (
+          <button
+            key={item.level}
+            type="button"
+            onClick={() => changeLevel(item.level)}
+            className={`rounded-3xl border bg-card p-4 text-left shadow-sm transition ${
+              level === item.level ? "border-primary ring-2 ring-primary/20" : ""
+            }`}
+          >
+            <h3 className="font-bold">{item.label}</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Manage {item.level}-level assignments</p>
           </button>
-          <div>
-            <p className="font-semibold">{service.name}</p>
-            <p className="line-clamp-2 text-xs text-muted-foreground">{service.description || "Drag to another window"}</p>
+        ))}
+      </div>
+
+      {selectedService && (
+        <div className="rounded-2xl border bg-primary/5 p-3 text-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              Selected: <strong>{selectedService.name}</strong>. Tap Assign on another window.
+            </span>
+            <Button size="sm" variant="outline" onClick={() => setSelectedService(null)}>
+              Clear
+            </Button>
           </div>
         </div>
-        {onRemove && (
-          <Button type="button" size="icon" variant="ghost" onClick={onRemove}>
-            <X className="h-4 w-4 text-red-600" />
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
+      )}
 
-function WindowDropZone({ window, onRemove }: { window: WindowItem; onRemove: (serviceId: number) => void }) {
-  const { setNodeRef, isOver } = useDroppable({ id: `window:${window.id}`, data: { window } });
-  const services = window.services || [];
-
-  return (
-    <Card ref={setNodeRef} className={cn("rounded-3xl transition", isOver && "border-primary bg-primary/5 ring-2 ring-primary/20")}>
-      <CardHeader>
-        <CardTitle className="text-base">{window.name}</CardTitle>
-        <p className="text-xs text-muted-foreground">{services.length} service(s)</p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {services.length ? (
-          services.map((service) => <DraggableService key={service.id} service={service} onRemove={() => onRemove(service.id)} />)
-        ) : (
-          <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">Drop service here</div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-export default function ServiceWindowListPage() {
-  const [search, setSearch] = useState("");
-  const { data, isLoading } = useServiceWindowBoard();
-  const moveMutation = useMoveServiceToWindow();
-  const unassignMutation = useUnassignServiceWindow();
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-
-  const windows = useMemo(() => {
-    const all = data?.windows || [];
-    const key = search.toLowerCase();
-
-    return all
-      .map((window: WindowItem) => ({
-        ...window,
-        services: (window.services || []).filter((service) => !key || service.name?.toLowerCase().includes(key)),
-      }))
-      .filter((window: WindowItem) => (window.services || []).length > 0 || !key);
-  }, [data?.windows, search]);
-
-  async function onDragEnd(event: DragEndEvent) {
-    const activeId = String(event.active.id);
-    const overId = event.over ? String(event.over.id) : "";
-    if (!activeId.startsWith("service:") || !overId.startsWith("window:")) return;
-
-    const serviceId = Number(activeId.replace("service:", ""));
-    const windowId = Number(overId.replace("window:", ""));
-
-    await moveMutation.mutateAsync({ service_id: serviceId, window_id: windowId });
-    toast.success("Service moved to selected window");
-  }
-
-  async function removeFromWindow(serviceId: number) {
-    await unassignMutation.mutateAsync(serviceId);
-    toast.success("Service removed from window");
-  }
-
-  return (
-    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-      <div className="space-y-6 p-6">
-        <div className="rounded-3xl border bg-card p-6 shadow-sm">
-          <h1 className="text-2xl font-bold">Assigned Service Windows</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Drag services from one window to another to update assignment. Only your administrative scope is shown.
-          </p>
-        </div>
-
+      {isLoading ? (
         <Card className="rounded-3xl">
-          <CardContent className="p-4">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assigned services..." className="pl-10" />
-            </div>
+          <CardContent className="p-10 text-center text-muted-foreground">Loading...</CardContent>
+        </Card>
+      ) : windows.length ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {windows.map((window) => {
+            const isCollapsed = collapsed[window.id];
+
+            return (
+              <Card
+                key={window.id}
+                className="rounded-3xl"
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  handleDrop(window.id, event.dataTransfer.getData("service_id"));
+                }}
+              >
+                <CardContent className="space-y-4 p-4 sm:p-5">
+                  <button
+                    type="button"
+                    onClick={() => toggleWindow(window.id)}
+                    className="flex w-full items-center justify-between text-left"
+                  >
+                    <div>
+                      <h3 className="font-bold">{window.name}</h3>
+                      <p className="text-sm text-muted-foreground">{(window.services || []).length} service(s)</p>
+                    </div>
+                    {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  </button>
+
+                  {!isCollapsed && (
+                    <div className="min-h-[130px] space-y-2 rounded-2xl border border-dashed p-3">
+                      <Button
+                        type="button"
+                        variant={selectedService ? "default" : "outline"}
+                        className="w-full rounded-xl"
+                        disabled={!selectedService || moveService.isPending}
+                        onClick={() => moveToWindow(window.id)}
+                      >
+                        Assign Selected Here
+                      </Button>
+
+                      {window.services?.length ? (
+                        window.services.map((service) => {
+                          const active = selectedService?.id === service.id;
+
+                          return (
+                            <div
+                              key={service.id}
+                              draggable
+                              onClick={() => setSelectedService(service)}
+                              onDragStart={(event) => event.dataTransfer.setData("service_id", String(service.id))}
+                              className={`rounded-xl border bg-background p-3 ${active ? "border-primary ring-2 ring-primary/20" : ""}`}
+                            >
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium">{service.name}</p>
+                                    {active && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                                  </div>
+                                  <p className="line-clamp-1 text-xs text-muted-foreground">
+                                    {service.description || "No description"}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    unassign(service.id);
+                                  }}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="flex h-24 items-center justify-center text-center text-sm text-muted-foreground">
+                          Drop service here or tap Assign Selected Here
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card className="rounded-3xl">
+          <CardContent className="p-10 text-center text-muted-foreground">
+            No assigned services found for {level} level.
           </CardContent>
         </Card>
-
-        {isLoading ? (
-          <div className="rounded-3xl border p-10 text-center text-muted-foreground">Loading...</div>
-        ) : windows.length ? (
-          <div className="grid gap-4 xl:grid-cols-2">
-            {windows.map((window: WindowItem) => <WindowDropZone key={window.id} window={window} onRemove={removeFromWindow} />)}
-          </div>
-        ) : (
-          <div className="rounded-3xl border border-dashed p-10 text-center text-muted-foreground">
-            No assigned services found.
-          </div>
-        )}
-      </div>
-    </DndContext>
+      )}
+    </div>
   );
 }

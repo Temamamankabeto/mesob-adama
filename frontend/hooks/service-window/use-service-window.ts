@@ -4,6 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import api from "@/lib/api";
 
+export type ServiceWindowLevel = "city" | "subcity" | "woreda";
+
+export type ServiceWindowBoardParams = {
+  level?: ServiceWindowLevel;
+  subcity_id?: number | string;
+  woreda_id?: number | string;
+};
+
 export type ServiceWindowBoardService = {
   id: number;
   name: string;
@@ -11,7 +19,6 @@ export type ServiceWindowBoardService = {
   service_fee?: number;
   availability?: any;
   status?: string;
-  windows?: any[];
 };
 
 export type ServiceWindowBoardWindow = {
@@ -22,7 +29,9 @@ export type ServiceWindowBoardWindow = {
 };
 
 export type ServiceWindowBoard = {
+  level?: ServiceWindowLevel;
   services: ServiceWindowBoardService[];
+  unassigned_services?: ServiceWindowBoardService[];
   windows: ServiceWindowBoardWindow[];
 };
 
@@ -30,7 +39,7 @@ function unwrap<T>(response: any): T {
   return response?.data?.data ?? response?.data;
 }
 
-function invalidateServiceWindowQueries(queryClient: ReturnType<typeof useQueryClient>) {
+function invalidate(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["service-window-board"] });
   queryClient.invalidateQueries({ queryKey: ["service-window-list"] });
   queryClient.invalidateQueries({ queryKey: ["service-windows"] });
@@ -38,11 +47,78 @@ function invalidateServiceWindowQueries(queryClient: ReturnType<typeof useQueryC
   queryClient.invalidateQueries({ queryKey: ["windows"] });
 }
 
-/*
-|--------------------------------------------------------------------------
-| Existing assignment hooks
-|--------------------------------------------------------------------------
-*/
+export function useServiceWindowBoard(params: ServiceWindowBoardParams = {}) {
+  return useQuery<ServiceWindowBoard>({
+    queryKey: ["service-window-board", params],
+    queryFn: async () => {
+      const response = await api.get("/service-window/board", { params });
+      return unwrap<ServiceWindowBoard>(response);
+    },
+  });
+}
+
+export function useMoveServiceWindow() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      service_id,
+      serviceId,
+      window_id,
+      windowId,
+      level,
+      step_order = 1,
+      is_required = true,
+    }: {
+      service_id?: number;
+      serviceId?: number;
+      window_id?: number;
+      windowId?: number;
+      level: ServiceWindowLevel;
+      step_order?: number;
+      is_required?: boolean;
+    }) => {
+      const response = await api.post("/service-window/move", {
+        service_id: service_id ?? serviceId,
+        window_id: window_id ?? windowId,
+        level,
+        step_order,
+        is_required,
+      });
+
+      return unwrap(response);
+    },
+    onSuccess: () => invalidate(queryClient),
+  });
+}
+
+export const useMoveServiceToWindow = useMoveServiceWindow;
+
+export function useRemoveServiceFromWindow() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      service_id,
+      serviceId,
+      level,
+    }: {
+      service_id?: number;
+      serviceId?: number;
+      level: ServiceWindowLevel;
+    }) => {
+      const response = await api.delete(`/service-window/services/${service_id ?? serviceId}`, {
+        params: { level },
+      });
+
+      return unwrap(response);
+    },
+    onSuccess: () => invalidate(queryClient),
+  });
+}
+
+export const useUnassignServiceWindow = useRemoveServiceFromWindow;
+export const useUnassignServiceFromWindow = useRemoveServiceFromWindow;
 
 export function useAssignServiceWindow() {
   const queryClient = useQueryClient();
@@ -61,15 +137,10 @@ export function useAssignServiceWindow() {
         is_required: boolean;
       }>;
     }) => {
-      const id = serviceId ?? service_id;
-
-      const response = await api.post(`/services/${id}/windows`, {
-        windows,
-      });
-
+      const response = await api.post(`/services/${serviceId ?? service_id}/windows`, { windows });
       return unwrap(response);
     },
-    onSuccess: () => invalidateServiceWindowQueries(queryClient),
+    onSuccess: () => invalidate(queryClient),
   });
 }
 
@@ -83,93 +154,3 @@ export function useServiceWindows(serviceId?: number) {
     enabled: Boolean(serviceId),
   });
 }
-
-/*
-|--------------------------------------------------------------------------
-| Drag/drop board hooks
-|--------------------------------------------------------------------------
-*/
-
-export function useServiceWindowBoard() {
-  return useQuery<ServiceWindowBoard>({
-    queryKey: ["service-window-board"],
-    queryFn: async () => {
-      const response = await api.get("/service-window/board");
-      return unwrap<ServiceWindowBoard>(response);
-    },
-  });
-}
-
-export function useMoveServiceWindow() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      service_id,
-      serviceId,
-      window_id,
-      windowId,
-      step_order = 1,
-      is_required = true,
-    }: {
-      service_id?: number;
-      serviceId?: number;
-      window_id?: number;
-      windowId?: number;
-      step_order?: number;
-      is_required?: boolean;
-    }) => {
-      const response = await api.post("/service-window/move", {
-        service_id: service_id ?? serviceId,
-        window_id: window_id ?? windowId,
-        step_order,
-        is_required,
-      });
-
-      return unwrap(response);
-    },
-    onSuccess: () => invalidateServiceWindowQueries(queryClient),
-  });
-}
-
-/*
-|--------------------------------------------------------------------------
-| Aliases used by pages
-|--------------------------------------------------------------------------
-*/
-
-export const useMoveServiceToWindow = useMoveServiceWindow;
-
-export function useRemoveServiceFromWindow() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (
-      input:
-        | number
-        | {
-            service_id?: number;
-            serviceId?: number;
-          }
-    ) => {
-      const serviceId =
-        typeof input === "number"
-          ? input
-          : input.service_id ?? input.serviceId;
-
-      const response = await api.delete(`/service-window/services/${serviceId}`);
-
-      return unwrap(response);
-    },
-    onSuccess: () => invalidateServiceWindowQueries(queryClient),
-  });
-}
-
-/*
-|--------------------------------------------------------------------------
-| Backward-compatible alias
-|--------------------------------------------------------------------------
-| Current /dashboard/service-window/page.tsx imports this exact name.
-*/
-export const useUnassignServiceWindow = useRemoveServiceFromWindow;
-export const useUnassignServiceFromWindow = useRemoveServiceFromWindow;

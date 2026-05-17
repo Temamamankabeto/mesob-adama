@@ -27,7 +27,11 @@ class Service extends Model
     public function windows()
     {
         return $this->belongsToMany(Window::class, 'service_window')
-            ->withPivot(['step_order', 'is_required'])
+            ->withPivot([
+                'assignment_level',
+                'step_order',
+                'is_required',
+            ])
             ->withTimestamps()
             ->orderBy('service_window.step_order');
     }
@@ -41,22 +45,12 @@ class Service extends Model
 
     public function frontOfficers()
     {
-        return $this->assignedUsers()
-            ->role([
-                'city_front_officer',
-                'subcity_front_officer',
-                'woreda_front_officer',
-            ]);
+        return $this->assignedUsers()->role('front_officer');
     }
 
     public function backOfficers()
     {
-        return $this->assignedUsers()
-            ->role([
-                'city_back_officer',
-                'subcity_back_officer',
-                'woreda_back_officer',
-            ]);
+        return $this->assignedUsers()->role('back_officer');
     }
 
     public function forms()
@@ -74,10 +68,5 @@ class Service extends Model
     public function applications()
     {
         return $this->hasMany(ServiceApplication::class);
-    }
-
-    public function legacyApplications()
-    {
-        return $this->hasMany(Application::class);
     }
 }
