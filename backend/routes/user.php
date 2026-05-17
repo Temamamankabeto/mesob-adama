@@ -8,15 +8,12 @@ use App\Http\Controllers\Api\CityController;
 use App\Http\Controllers\Api\SubcityController;
 use App\Http\Controllers\Api\WoredaController;
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\UserActivationRequestController;
 use Illuminate\Support\Facades\Route;
- 
-
-
 
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
-
-    // USERS
     Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/roles-lite', [UserController::class, 'rolesLite']);
     Route::get('/users/{id}', [UserController::class, 'show']);
     Route::post('/users', [UserController::class, 'store']);
     Route::put('/users/{id}', [UserController::class, 'update']);
@@ -24,14 +21,21 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::post('/users/{id}/roles', [UserController::class, 'assignRole']);
     Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
     Route::patch('/users/{id}/toggle', [UserController::class, 'toggle']);
+    Route::post('/users/{id}/change-password', [UserController::class, 'changePassword']);
+    Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
 
-    // ROLES
+    Route::get('/user-activation-requests', [UserActivationRequestController::class, 'index']);
+    Route::post('/user-activation-requests/bulk-approve', [UserActivationRequestController::class, 'bulkApprove']);
+    Route::post('/user-activation-requests/{activationRequest}/verify', [UserActivationRequestController::class, 'verify']);
+    Route::post('/user-activation-requests/{activationRequest}/approve', [UserActivationRequestController::class, 'approve']);
+    Route::post('/user-activation-requests/{activationRequest}/reject', [UserActivationRequestController::class, 'reject']);
+
     Route::get('/roles', [RoleController::class, 'index']);
     Route::post('/roles', [RoleController::class, 'store']);
     Route::put('/roles/{id}', [RoleController::class, 'update']);
+    Route::get('/roles/{id}/permissions', [RoleController::class, 'rolePermissions']);
     Route::post('/roles/{id}/permissions', [RoleController::class, 'assignPermissions']);
 
-    // PERMISSIONS
     Route::get('/permissions', [PermissionController::class, 'index']);
     Route::post('/permissions', [PermissionController::class, 'store']);
     Route::put('/permissions/{id}', [PermissionController::class, 'update']);
@@ -41,39 +45,15 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::post('/offices', [OfficeController::class, 'store']);
     Route::get('/offices/{office}', [OfficeController::class, 'show']);
     Route::put('/offices/{office}', [OfficeController::class, 'update']);
-    Route::delete('/offices/{office}', [OfficeController::class, 'destroy']);  
+    Route::delete('/offices/{office}', [OfficeController::class, 'destroy']);
 
-   // Cities
     Route::apiResource('cities', CityController::class);
-
-    // Subcities
     Route::apiResource('subcities', SubcityController::class);
-
-    // Woredas
     Route::apiResource('woredas', WoredaController::class);
 
-      Route::post('/users/{id}/change-password', [UserController::class, 'changePassword']);
-    Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
- /*
-    |--------------------------------------------------------------------------
-    | ROLES
-    |--------------------------------------------------------------------------
-    */
-    Route::prefix('roles')->group(function () {
-        Route::get('/', [RoleController::class, 'index']);
-        Route::post('/', [RoleController::class, 'store']);
-        Route::put('{id}', [RoleController::class, 'update']);
-
-        // role permissions
-        Route::get('{id}/permissions', [RoleController::class, 'rolePermissions']);
-        Route::post('{id}/permissions', [RoleController::class, 'assignPermissions']);
-    });
-  //expand these Route::apiResource('audit-logs', AuditLogController::class);
-        Route::get('/audit-logs', [AuditLogController::class, 'index']);
-        Route::post('/audit-logs', [AuditLogController::class, 'store']);
-        Route::get('/audit-logs/{id}', [AuditLogController::class, 'show']);
-        Route::put('/audit-logs/{id}', [AuditLogController::class, 'update']);
-        Route::delete('/audit-logs/{id}', [AuditLogController::class, 'destroy']);
-
-
+    Route::get('/audit-logs', [AuditLogController::class, 'index']);
+    Route::post('/audit-logs', [AuditLogController::class, 'store']);
+    Route::get('/audit-logs/{id}', [AuditLogController::class, 'show']);
+    Route::put('/audit-logs/{id}', [AuditLogController::class, 'update']);
+    Route::delete('/audit-logs/{id}', [AuditLogController::class, 'destroy']);
 });

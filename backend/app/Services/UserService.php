@@ -13,6 +13,10 @@ use Spatie\Permission\Models\Role;
 
 class UserService
 {
+    public function __construct(
+        protected UserActivationRequestService $activationRequestService
+    ) {}
+
     public function paginateUsers(array $filters = [], ?User $actor = null): LengthAwarePaginator
     {
         $perPage = max(1, min((int) ($filters['per_page'] ?? 10), 100));
@@ -21,7 +25,7 @@ class UserService
         $role = AppRoles::normalize($filters['role'] ?? null);
 
         $query = User::query()
-            ->with(['city', 'subcity', 'woreda', 'roles']);
+            ->with(['city', 'subcity', 'woreda', 'roles', 'latestActivationRequest']);
 
         if ($actor) {
             $this->applyLocationScope($query, $actor);
@@ -65,7 +69,7 @@ class UserService
 
     public function getUser(int|string $id): User
     {
-        return User::with(['city', 'subcity', 'woreda', 'roles'])->findOrFail($id);
+        return User::with(['city', 'subcity', 'woreda', 'roles', 'latestActivationRequest'])->findOrFail($id);
     }
 
     public function getRolesLite()
@@ -103,7 +107,7 @@ class UserService
             $data['woreda_id'] ?? null
         );
 
-        $this->assertActorCanManageRole($actor, $roleName, $location);
+        $this->assertActorCanCreateUser($actor, $roleName, $location);
 
         unset(
             $data['role'],
@@ -113,24 +117,42 @@ class UserService
             $data['woreda_id']
         );
 
+        $activeByDefault = $this->createdUserIsActiveByDefault($actor);
+
         $payload = [
             ...$data,
             ...$location,
             'password' => Hash::make($data['password']),
+            'created_by' => $actor?->id,
+            'is_active' => $activeByDefault,
+            'status' => $activeByDefault ? 'active' : 'disabled',
+            'activated_by' => $activeByDefault ? $actor?->id : null,
+            'activated_at' => $activeByDefault ? now() : null,
         ];
-
-        if (array_key_exists('is_active', $data)) {
-            $payload['is_active'] = (bool) $data['is_active'];
-        } elseif (array_key_exists('status', $data)) {
-            $payload['is_active'] = $data['status'] === 'active';
-        } else {
-            $payload['is_active'] = true;
-        }
 
         $user = User::create($payload);
         $user->assignRole($roleName);
 
-        return $user->load(['city', 'subcity', 'woreda', 'roles']);
+        if (! $activeByDefault) {
+            $this->activationRequestService->createForUser(
+                $user,
+                $actor,
+                'Activation requested automatically after officer creation.'
+            );
+        }
+
+        audit_log(
+            'user_created',
+            $activeByDefault
+                ? 'User created and activated by city admin.'
+                : 'Officer created disabled and activation request created.',
+            'user',
+            $user->id,
+            null,
+            $this->payload($user->fresh(['roles', 'city', 'subcity', 'woreda', 'latestActivationRequest']))
+        );
+
+        return $user->fresh(['city', 'subcity', 'woreda', 'roles', 'latestActivationRequest']);
     }
 
     public function updateUser(User $user, array $data, ?User $actor = null): User
@@ -176,7 +198,7 @@ class UserService
         $user->update($payload);
         $user->syncRoles([$roleName]);
 
-        return $user->fresh(['city', 'subcity', 'woreda', 'roles']);
+        return $user->fresh(['city', 'subcity', 'woreda', 'roles', 'latestActivationRequest']);
     }
 
     public function assignRole(User $user, string $roleName, ?User $actor = null): User
@@ -202,15 +224,22 @@ class UserService
         $user->update($location);
         $user->syncRoles([$roleName]);
 
-        return $user->fresh(['city', 'subcity', 'woreda', 'roles']);
+        return $user->fresh(['city', 'subcity', 'woreda', 'roles', 'latestActivationRequest']);
     }
 
     public function toggleUser(User $user): User
     {
         $user->is_active = !$user->is_active;
+        $user->status = $user->is_active ? 'active' : 'disabled';
+
+        if ($user->is_active) {
+            $user->activated_by = auth()->id();
+            $user->activated_at = now();
+        }
+
         $user->save();
 
-        return $user->load(['city', 'subcity', 'woreda', 'roles']);
+        return $user->load(['city', 'subcity', 'woreda', 'roles', 'latestActivationRequest']);
     }
 
     public function resetPassword(User $user, string $newPassword): User
@@ -230,7 +259,8 @@ class UserService
                     AppRoles::FRONT_OFFICER,
                     AppRoles::BACK_OFFICER,
                 ]);
-            });
+            })
+            ->where('is_active', true);
 
         $search = trim((string) $search);
 
@@ -278,7 +308,7 @@ class UserService
 
         $user->save();
 
-        return $user->load(['city', 'subcity', 'woreda', 'roles']);
+        return $user->load(['roles']);
     }
 
     public function deleteUser(User $user, ?int $authId = null): void
@@ -310,13 +340,18 @@ class UserService
         $user->save();
     }
 
-    protected function normalizeLocationForRole(
-        string $roleName,
-        ?string $locationLevel,
-        int|string|null $cityId,
-        int|string|null $subcityId,
-        int|string|null $woredaId
-    ): array {
+    protected function createdUserIsActiveByDefault(?User $actor): bool
+    {
+        if (!$actor || $actor->hasRole(AppRoles::SUPER_ADMIN)) {
+            return true;
+        }
+
+        return $actor->hasRole(AppRoles::ADMIN)
+            && AppRoles::userLevel($actor) === AppRoles::LEVEL_CITY;
+    }
+
+    protected function normalizeLocationForRole(string $roleName, ?string $locationLevel, int|string|null $cityId, int|string|null $subcityId, int|string|null $woredaId): array
+    {
         if (!AppRoles::isScoped($roleName)) {
             return [
                 'city_id' => null,
@@ -334,40 +369,81 @@ class UserService
         $woredaId = $woredaId ? (int) $woredaId : null;
 
         if (!$cityId) {
-            throw ValidationException::withMessages([
-                'city_id' => ['City is required for scoped roles.'],
-            ]);
+            throw ValidationException::withMessages(['city_id' => ['City is required for scoped roles.']]);
         }
 
         if (in_array($locationLevel, [AppRoles::LEVEL_SUBCITY, AppRoles::LEVEL_WOREDA], true) && !$subcityId) {
-            throw ValidationException::withMessages([
-                'subcity_id' => ['Subcity is required for this location level.'],
-            ]);
+            throw ValidationException::withMessages(['subcity_id' => ['Subcity is required for this location level.']]);
         }
 
         if ($locationLevel === AppRoles::LEVEL_WOREDA && !$woredaId) {
-            throw ValidationException::withMessages([
-                'woreda_id' => ['Woreda is required for this location level.'],
-            ]);
+            throw ValidationException::withMessages(['woreda_id' => ['Woreda is required for this location level.']]);
         }
 
         return match ($locationLevel) {
-            AppRoles::LEVEL_CITY => [
-                'city_id' => $cityId,
-                'subcity_id' => null,
-                'woreda_id' => null,
-            ],
-            AppRoles::LEVEL_SUBCITY => [
-                'city_id' => $cityId,
-                'subcity_id' => $subcityId,
-                'woreda_id' => null,
-            ],
-            AppRoles::LEVEL_WOREDA => [
-                'city_id' => $cityId,
-                'subcity_id' => $subcityId,
-                'woreda_id' => $woredaId,
-            ],
+            AppRoles::LEVEL_CITY => ['city_id' => $cityId, 'subcity_id' => null, 'woreda_id' => null],
+            AppRoles::LEVEL_SUBCITY => ['city_id' => $cityId, 'subcity_id' => $subcityId, 'woreda_id' => null],
+            AppRoles::LEVEL_WOREDA => ['city_id' => $cityId, 'subcity_id' => $subcityId, 'woreda_id' => $woredaId],
         };
+    }
+
+    protected function assertActorCanCreateUser(?User $actor, string $targetRole, array $targetLocation): void
+    {
+        if (!$actor || $actor->hasRole(AppRoles::SUPER_ADMIN)) {
+            return;
+        }
+
+        if (!$actor->can('users.create')) {
+            throw ValidationException::withMessages(['role' => ['You do not have permission to create users.']]);
+        }
+
+        if (!$actor->hasRole(AppRoles::ADMIN)) {
+            throw ValidationException::withMessages(['role' => ['Only admins can create officers/admin users.']]);
+        }
+
+        $actorLevel = AppRoles::userLevel($actor);
+
+        if ($actorLevel === AppRoles::LEVEL_CITY) {
+            if (!in_array($targetRole, [AppRoles::ADMIN, AppRoles::FRONT_OFFICER, AppRoles::BACK_OFFICER], true)) {
+                throw ValidationException::withMessages(['role' => ['City admin can create admins, front officers, and back officers only.']]);
+            }
+
+            if ((int) $actor->city_id !== (int) ($targetLocation['city_id'] ?? 0)) {
+                throw ValidationException::withMessages(['city_id' => ['User must belong to your city.']]);
+            }
+
+            return;
+        }
+
+        if ($actorLevel === AppRoles::LEVEL_SUBCITY) {
+            if (!in_array($targetRole, [AppRoles::FRONT_OFFICER, AppRoles::BACK_OFFICER], true)) {
+                throw ValidationException::withMessages(['role' => ['Subcity admin can create front and back officers only.']]);
+            }
+
+            if ((int) $actor->city_id !== (int) ($targetLocation['city_id'] ?? 0) ||
+                (int) $actor->subcity_id !== (int) ($targetLocation['subcity_id'] ?? 0) ||
+                !empty($targetLocation['woreda_id'])) {
+                throw ValidationException::withMessages(['subcity_id' => ['Officer must belong to your assigned subcity.']]);
+            }
+
+            return;
+        }
+
+        if ($actorLevel === AppRoles::LEVEL_WOREDA) {
+            if (!in_array($targetRole, [AppRoles::FRONT_OFFICER, AppRoles::BACK_OFFICER], true)) {
+                throw ValidationException::withMessages(['role' => ['Woreda admin can create front and back officers only.']]);
+            }
+
+            if ((int) $actor->city_id !== (int) ($targetLocation['city_id'] ?? 0) ||
+                (int) $actor->subcity_id !== (int) ($targetLocation['subcity_id'] ?? 0) ||
+                (int) $actor->woreda_id !== (int) ($targetLocation['woreda_id'] ?? 0)) {
+                throw ValidationException::withMessages(['woreda_id' => ['Officer must belong to your assigned woreda.']]);
+            }
+
+            return;
+        }
+
+        throw ValidationException::withMessages(['role' => ['Your admin account does not have a valid location scope.']]);
     }
 
     protected function assertActorCanManageRole(?User $actor, string $targetRole, array $targetLocation): void
@@ -377,29 +453,11 @@ class UserService
         }
 
         if (!$actor->can('users.create') && !$actor->can('users.update') && !$actor->can('users.assign_role')) {
-            throw ValidationException::withMessages([
-                'role' => ['You do not have permission to manage users.'],
-            ]);
+            throw ValidationException::withMessages(['role' => ['You do not have permission to manage users.']]);
         }
 
         if ($targetRole === AppRoles::SUPER_ADMIN) {
-            throw ValidationException::withMessages([
-                'role' => ['Only a super admin can manage super admin users.'],
-            ]);
-        }
-
-        $actorRole = $actor->roles()->pluck('name')->first();
-
-        if ($actorRole === AppRoles::ADMIN && $targetRole === AppRoles::MANAGER) {
-            throw ValidationException::withMessages([
-                'role' => ['Admins cannot manage manager users.'],
-            ]);
-        }
-
-        if ($actorRole === AppRoles::ADMIN && $targetRole === AppRoles::ADMIN) {
-            throw ValidationException::withMessages([
-                'role' => ['Admins cannot manage admin users.'],
-            ]);
+            throw ValidationException::withMessages(['role' => ['Only a super admin can manage super admin users.']]);
         }
 
         $actorLevel = AppRoles::userLevel($actor);
@@ -408,38 +466,22 @@ class UserService
             return;
         }
 
-        if ($actorLevel === AppRoles::LEVEL_CITY) {
-            if ((int) $actor->city_id !== (int) ($targetLocation['city_id'] ?? 0)) {
-                throw ValidationException::withMessages([
-                    'city_id' => ['User must belong to your city.'],
-                ]);
-            }
-
-            return;
+        if ($actorLevel === AppRoles::LEVEL_CITY && (int) $actor->city_id !== (int) ($targetLocation['city_id'] ?? 0)) {
+            throw ValidationException::withMessages(['city_id' => ['User must belong to your city.']]);
         }
 
         if ($actorLevel === AppRoles::LEVEL_SUBCITY) {
-            if (
-                (int) $actor->city_id !== (int) ($targetLocation['city_id'] ?? 0) ||
-                (int) $actor->subcity_id !== (int) ($targetLocation['subcity_id'] ?? 0)
-            ) {
-                throw ValidationException::withMessages([
-                    'subcity_id' => ['User must belong to your subcity.'],
-                ]);
+            if ((int) $actor->city_id !== (int) ($targetLocation['city_id'] ?? 0) ||
+                (int) $actor->subcity_id !== (int) ($targetLocation['subcity_id'] ?? 0)) {
+                throw ValidationException::withMessages(['subcity_id' => ['User must belong to your subcity.']]);
             }
-
-            return;
         }
 
         if ($actorLevel === AppRoles::LEVEL_WOREDA) {
-            if (
-                (int) $actor->city_id !== (int) ($targetLocation['city_id'] ?? 0) ||
+            if ((int) $actor->city_id !== (int) ($targetLocation['city_id'] ?? 0) ||
                 (int) $actor->subcity_id !== (int) ($targetLocation['subcity_id'] ?? 0) ||
-                (int) $actor->woreda_id !== (int) ($targetLocation['woreda_id'] ?? 0)
-            ) {
-                throw ValidationException::withMessages([
-                    'woreda_id' => ['User must belong to your woreda.'],
-                ]);
+                (int) $actor->woreda_id !== (int) ($targetLocation['woreda_id'] ?? 0)) {
+                throw ValidationException::withMessages(['woreda_id' => ['User must belong to your woreda.']]);
             }
         }
     }
@@ -493,6 +535,10 @@ class UserService
             'city' => $user->city,
             'subcity' => $user->subcity,
             'woreda' => $user->woreda,
+            'created_by' => $user->created_by,
+            'activated_by' => $user->activated_by,
+            'activated_at' => $user->activated_at,
+            'activation_request' => $user->latestActivationRequest,
             'profile_image_url' => $user->profile_image_url,
             'created_at' => $user->created_at,
         ];

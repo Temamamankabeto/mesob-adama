@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Eye, Search } from "lucide-react";
+import { Eye, Plus, Search } from "lucide-react";
 
 import ApplicationStatusBadge from "@/components/application/ApplicationStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,7 @@ export default function DashboardMyApplicationsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
-  const { data, isLoading } = useCustomerApplications({
-    page,
-    search,
-  });
+  const { data, isLoading } = useCustomerApplications({ page, search });
 
   const applications = data?.data || [];
   const meta = data?.meta;
@@ -33,10 +30,21 @@ export default function DashboardMyApplicationsPage() {
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border bg-card p-6 shadow-sm">
-        <h1 className="text-2xl font-bold">My Applications</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Your submitted service applications and current statuses.
-        </p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">My Applications</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your submitted service applications and current statuses.
+            </p>
+          </div>
+
+          <Button asChild className="rounded-2xl">
+            <Link href="/services">
+              <Plus className="mr-2 h-4 w-4" />
+              Add New Application
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Card className="rounded-3xl">
@@ -127,7 +135,16 @@ export default function DashboardMyApplicationsPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                      No applications found.
+                      <div className="flex flex-col items-center gap-3">
+                        <span>No applications found.</span>
+
+                        <Button asChild size="sm" className="rounded-2xl">
+                          <Link href="/services">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add New Application
+                          </Link>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
