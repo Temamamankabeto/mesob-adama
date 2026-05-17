@@ -3,21 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-  useUsers,
-  useDeleteUser,
-} from "@/hooks/user/useUsers";
-
+import { useUsers, useDeleteUser } from "@/hooks/user/useUsers";
 import { useToggleUserStatus } from "@/hooks/user/useToggleUserStatus";
+
 import { locationLevelLabel, roleLabel } from "@/config/roles.config";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -45,10 +36,13 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
-  const { data, isLoading } = useUsers(page, search);
+  const { data, isLoading } = useUsers({
+    page,
+    search,
+  });
 
   const users = data?.data || [];
-  const meta = data?.meta;
+  const meta = data?.meta || {};
 
   const deleteUser = useDeleteUser();
   const toggleStatus = useToggleUserStatus();
@@ -61,6 +55,7 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Users</h1>
@@ -74,6 +69,7 @@ export default function UsersPage() {
         </Button>
       </div>
 
+      {/* SEARCH */}
       <Card>
         <CardContent className="pt-6">
           <div className="relative max-w-sm">
@@ -82,8 +78,8 @@ export default function UsersPage() {
             <Input
               placeholder="Search users..."
               value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
+              onChange={(e) => {
+                setSearch(e.target.value);
                 setPage(1);
               }}
               className="pl-10"
@@ -92,10 +88,10 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
+      {/* TABLE */}
       <Card>
         <CardHeader>
-          {/* count all users */}
-          <CardTitle>User List({meta?.total || 0})</CardTitle>
+          <CardTitle>User List ({meta?.total || 0})</CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -112,85 +108,114 @@ export default function UsersPage() {
                 <TableHead>Subcity</TableHead>
                 <TableHead>Woreda</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-[80px]">Action</TableHead>
+                <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="py-10 text-center">
+                  <TableCell colSpan={11} className="text-center py-10">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="py-10 text-center">
+                  <TableCell colSpan={11} className="text-center py-10">
                     No users found
                   </TableCell>
                 </TableRow>
               ) : (
-                users.map((user: any) => (
+                users.map((user: any, index: number) => (
                   <TableRow key={user.id}>
-                    {/* auto increment not use id */}
+                    {/* FIXED INDEX */}
                     <TableCell>
-                      {(meta?.current_page - 1) * meta?.per_page + users.indexOf(user) + 1}
-                      </TableCell>
+                      {(meta?.current_page - 1) * meta?.per_page + index + 1}
+                    </TableCell>
+
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.phone}</TableCell>
 
                     <TableCell>
-                      {(user.role_names || [user.role]).filter(Boolean).map((role: string) => (
-                        <span key={role} className="mr-1 rounded bg-blue-100 px-2 py-1 text-xs text-blue-700">
-                          {roleLabel(role)}
-                        </span>
-                      ))}
+                      {(user.role_names || [user.role])
+                        .filter(Boolean)
+                        .map((role: string) => (
+                          <span
+                            key={role}
+                            className="mr-1 rounded bg-blue-100 px-2 py-1 text-xs text-blue-700"
+                          >
+                            {roleLabel(role)}
+                          </span>
+                        ))}
                     </TableCell>
 
-                    <TableCell>{locationLevelLabel(user.location_level) || "-"}</TableCell>
+                    <TableCell>
+                      {locationLevelLabel(user.location_level) || "-"}
+                    </TableCell>
+
                     <TableCell>{user.city?.name || "-"}</TableCell>
                     <TableCell>{user.subcity?.name || "-"}</TableCell>
                     <TableCell>{user.woreda?.name || "-"}</TableCell>
 
                     <TableCell>
                       <span
-                        className={`rounded px-2 py-1 text-xs font-medium ${
-                          Boolean(user.is_active)
+                        className={`rounded px-2 py-1 text-xs ${
+                          user.is_active
                             ? "bg-green-100 text-green-700"
                             : "bg-red-100 text-red-700"
                         }`}
                       >
-                        {Boolean(user.is_active) ? "Active" : "Disabled"}
+                        {user.is_active ? "Active" : "Disabled"}
                       </span>
                     </TableCell>
 
+                    {/* ACTION */}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-5 w-5" />
+                            <MoreVertical />
                           </Button>
                         </DropdownMenuTrigger>
 
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}`)}>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(`/dashboard/users/${user.id}`)
+                            }
+                          >
                             View
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}/edit`)}>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(`/dashboard/users/${user.id}/edit`)
+                            }
+                          >
                             Edit
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem onClick={() => router.push(`/dashboard/users/${user.id}/change-password`)}>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              router.push(
+                                `/dashboard/users/${user.id}/change-password`
+                              )
+                            }
+                          >
                             Change Password
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem onClick={() => toggleStatus.mutate(user.id)}>
-                            {user.is_active ? "Disable User" : "Enable User"}
+                          <DropdownMenuItem
+                            onClick={() => toggleStatus.mutate(user.id)}
+                          >
+                            {user.is_active ? "Disable" : "Enable"}
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(user.id)}>
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => handleDelete(user.id)}
+                          >
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -202,24 +227,29 @@ export default function UsersPage() {
             </TableBody>
           </Table>
 
+          {/* PAGINATION */}
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Showing page {meta?.current_page || 1} of {meta?.last_page || 1}
+              Page {meta?.current_page || 1} of {meta?.last_page || 1}
             </div>
 
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                disabled={meta?.current_page === 1}
-                onClick={() => setPage((previous) => Math.max(previous - 1, 1))}
+                disabled={meta?.current_page <= 1}
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
               >
                 Prev
               </Button>
 
               <Button
                 variant="outline"
-                disabled={meta?.current_page === meta?.last_page}
-                onClick={() => setPage((previous) => previous + 1)}
+                disabled={meta?.current_page >= meta?.last_page}
+                onClick={() =>
+                  setPage((p) =>
+                    Math.min(p + 1, meta?.last_page || p)
+                  )
+                }
               >
                 Next
               </Button>

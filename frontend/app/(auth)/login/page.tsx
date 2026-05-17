@@ -132,6 +132,13 @@ export default function LoginPage() {
             >
               Create account
             </Link>
+            {/* back to home */}
+            <Link
+              href="/"
+              className="ml-4 text-primary underline hover:underline"
+            >
+              Back to home
+            </Link>
           </p>
         </CardContent>
       </Card>
