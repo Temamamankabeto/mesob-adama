@@ -82,11 +82,11 @@ const userManagementMenu: SidebarItem = {
       href: "/dashboard/roles",
       permission: "roles.read",
     },
-    {
-      label: "Permissions",
-      href: "/dashboard/permissions",
-      permission: "permissions.read",
-    },
+    // {
+    //   label: "Permissions",
+    //   href: "/dashboard/permissions",
+    //   permission: "permissions.read",
+    // },
   ],
 };
 
