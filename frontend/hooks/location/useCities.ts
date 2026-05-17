@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import {
   getCities,
   createCity,
@@ -9,6 +10,7 @@ import {
 } from "@/services/locations/service";
 
 /* ================= TYPES ================= */
+
 type CityPayload = {
   name: string;
   code?: string;
@@ -19,28 +21,27 @@ type UpdateCityPayload = {
   data: CityPayload;
 };
 
-/* ================= GET CITIES ================= */
-export const useCities = (page: number) => {
+/* ================= GET ALL CITIES ================= */
+
+export const useCities = () => {
   return useQuery({
-    queryKey: ["cities", page],
+    queryKey: ["cities"],
+
     queryFn: async () => {
-      const res = await getCities(page);
+      const res = await getCities();
 
-      // ✅ NORMALIZE RESPONSE (VERY IMPORTANT FIX)
-      return {
-        data: res?.data ?? [],
-        meta: res?.meta ?? {},
-      };
+      console.log("Cities Response:", res);
+
+      // FIX RESPONSE STRUCTURE HERE
+      return res?.data?.data || res?.data || [];
     },
-
-    // React Query v5 replacement for keepPreviousData
-    placeholderData: (prev) => prev,
 
     staleTime: 1000 * 60 * 5,
   });
 };
 
 /* ================= CREATE CITY ================= */
+
 export const useCreateCity = () => {
   const qc = useQueryClient();
 
@@ -48,12 +49,15 @@ export const useCreateCity = () => {
     mutationFn: (data: CityPayload) => createCity(data),
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["cities"] });
+      qc.invalidateQueries({
+        queryKey: ["cities"],
+      });
     },
   });
 };
 
 /* ================= UPDATE CITY ================= */
+
 export const useUpdateCity = () => {
   const qc = useQueryClient();
 
@@ -62,12 +66,15 @@ export const useUpdateCity = () => {
       updateCity(id, data),
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["cities"] });
+      qc.invalidateQueries({
+        queryKey: ["cities"],
+      });
     },
   });
 };
 
 /* ================= DELETE CITY ================= */
+
 export const useDeleteCity = () => {
   const qc = useQueryClient();
 
@@ -75,7 +82,9 @@ export const useDeleteCity = () => {
     mutationFn: (id: number) => deleteCity(id),
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["cities"] });
+      qc.invalidateQueries({
+        queryKey: ["cities"],
+      });
     },
   });
 };

@@ -10,6 +10,10 @@ class Application extends Model
         'application_number',
         'customer_id',
         'service_id',
+        'administrative_level',
+        'city_id',
+        'subcity_id',
+        'woreda_id',
         'status',
         'assigned_to',
         'submitted_at',
@@ -18,6 +22,12 @@ class Application extends Model
     ];
 
     protected $casts = [
+        'customer_id' => 'integer',
+        'service_id' => 'integer',
+        'city_id' => 'integer',
+        'subcity_id' => 'integer',
+        'woreda_id' => 'integer',
+        'assigned_to' => 'integer',
         'submitted_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
@@ -37,28 +47,18 @@ class Application extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
-    public function statusLogs()
+    public function city()
     {
-        return $this->hasMany(ApplicationStatusLog::class);
+        return $this->belongsTo(City::class);
     }
 
-    public function assignments()
+    public function subcity()
     {
-        return $this->hasMany(ApplicationAssignment::class);
+        return $this->belongsTo(Subcity::class);
     }
 
-    public function comments()
+    public function woreda()
     {
-        return $this->hasMany(ApplicationComment::class);
-    }
-
-    public function documents()
-    {
-        return $this->hasMany(ApplicationDocument::class);
-    }
-
-    public function formValues()
-    {
-        return $this->hasMany(ApplicationFormValue::class);
+        return $this->belongsTo(Woreda::class);
     }
 }

@@ -3,12 +3,22 @@
 namespace App\Services;
 
 use App\Models\Service;
+use App\Models\User;
 
 class ServiceService
 {
-    public function getAll()
+    public function __construct(
+        protected ServiceAvailabilityScopeService $scopeService
+    ) {}
+
+    public function getAll(?User $actor = null)
     {
-        return Service::latest()->paginate(200);
+        $query = Service::query()
+            ->latest();
+
+        $this->scopeService->applyServiceScope($query, $actor);
+
+        return $query->paginate(200);
     }
 
     public function create(array $data): Service

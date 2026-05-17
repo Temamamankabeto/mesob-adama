@@ -1,136 +1,79 @@
 import api, { unwrap } from "@/lib/api";
 
+function appendApplicationData(
+  payload: FormData,
+  values: Record<string, unknown>,
+  files: Record<string, File | null>,
+  selection: {
+    administrative_level: string;
+    city_id: number;
+    subcity_id?: number | null;
+    woreda_id?: number | null;
+  }
+) {
+  payload.append("administrative_level", selection.administrative_level);
+  payload.append("city_id", String(selection.city_id));
+
+  if (selection.subcity_id) {
+    payload.append("subcity_id", String(selection.subcity_id));
+  }
+
+  if (selection.woreda_id) {
+    payload.append("woreda_id", String(selection.woreda_id));
+  }
+
+  Object.entries(values).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => payload.append(`data[${key}][]`, String(item)));
+      return;
+    }
+
+    payload.append(`data[${key}]`, String(value));
+  });
+
+  Object.entries(files).forEach(([key, file]) => {
+    if (file) payload.append(`files[${key}]`, file);
+  });
+}
+
 export const applicationService = {
   async getForm(serviceId: number) {
-    const response = await api.get(
-      `/public/services/${serviceId}/form`
-    );
+    const response = await api.get(`/public/services/${serviceId}/form`);
 
     return unwrap(response);
   },
 
   async apply(
     serviceId: number,
-    payload: FormData
+    values: Record<string, unknown>,
+    files: Record<string, File | null> = {},
+    selection: {
+      administrative_level: string;
+      city_id: number;
+      subcity_id?: number | null;
+      woreda_id?: number | null;
+    }
   ) {
-    const response = await api.post(
-      `/public/services/${serviceId}/apply`,
-      payload,
-      {
-        headers: {
-          "Content-Type":
-            "multipart/form-data",
-        },
-      }
-    );
+    const payload = new FormData();
+
+    appendApplicationData(payload, values, files, selection);
+
+    const response = await api.post(`/public/services/${serviceId}/apply`, payload, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
 
     return unwrap(response);
   },
 
-  async track(payload: any) {
-    const response = await api.post(
-      "/public/track-application",
-      payload
-    );
-
-    return unwrap(response);
-  },
-
-
-
-  async getDashboardStats() {
-    const res = await api.get(
-      "/dashboard/application-stats"
-    );
-
-    return res.data;
-  },
-
-  async getApplicationSummary() {
-    const res = await api.get(
-      "/reports/application-summary"
-    );
-
-    return res.data;
-  },
-
-  async getMyApplications() {
-    const res = await api.get(
-      "/applications"
-    );
-
-    return res.data;
-  },
-};
-
-
-
-// officer application will be able to see the application details and update the status of the application
-
-export const officerApplicationService = {
-  async queue() {
-    const response = await api.get(
-      "/officer/applications/queue"
-    );
-
-    return unwrap(response);
-  },
-
-  async show(id: number) {
-    const response = await api.get(
-      `/officer/applications/${id}`
-    );
-
-    return unwrap(response);
-  },
-
-  async approve(
-    id: number,
-    payload: any
-  ) {
-    const response = await api.post(
-      `/officer/applications/${id}/approve`,
-      payload
-    );
-
-    return unwrap(response);
-  },
-
-  async reject(
-    id: number,
-    payload: any
-  ) {
-    const response = await api.post(
-      `/officer/applications/${id}/reject`,
-      payload
-    );
-
-    return unwrap(response);
-  },
-
-  async returnApplication(
-    id: number,
-    payload: any
-  ) {
-    const response = await api.post(
-      `/officer/applications/${id}/return`,
-      payload
-    );
-
-    return unwrap(response);
-  },
-
-  async complete(
-    id: number,
-    payload: any
-  ) {
-    const response = await api.post(
-      `/officer/applications/${id}/complete`,
-      payload
-    );
+  async track(payload: { tracking_number?: string; application_number?: string }) {
+    const response = await api.post("/public/track-application", {
+      tracking_number: payload.tracking_number ?? payload.application_number,
+    });
 
     return unwrap(response);
   },
 };
-
- 

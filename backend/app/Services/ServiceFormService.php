@@ -3,45 +3,66 @@
 namespace App\Services;
 
 use App\Models\ServiceForm;
+use Illuminate\Http\Request;
 
 class ServiceFormService
 {
-    public function getAll()
+    public function list(?Request $request = null)
     {
-        return ServiceForm::with([
+        $query = ServiceForm::with([
             'service',
-            'fields',
-        ])
-        ->latest()
-        ->paginate(10);
+            'steps.sections.fields.conditions.dependsOnField',
+            'sections.fields.conditions.dependsOnField',
+            'fields.conditions.dependsOnField',
+        ]);
+
+        if ($request?->filled('service_id')) {
+            $query->where('service_id', $request->integer('service_id'));
+        }
+
+        if ($request?->filled('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        return $query->latest()->paginate(
+            min((int) ($request?->input('per_page', 10) ?? 10), 100)
+        );
     }
 
-    public function getOne(
-        ServiceForm $serviceForm
-    ) {
+    public function getAll(?Request $request = null)
+    {
+        return $this->list($request);
+    }
+
+    public function show(ServiceForm $serviceForm): ServiceForm
+    {
         return $serviceForm->load([
             'service',
-            'fields',
+            'steps.sections.fields.conditions.dependsOnField',
+            'sections.fields.conditions.dependsOnField',
+            'fields.conditions.dependsOnField',
         ]);
     }
 
-    public function create(array $data)
+    public function getOne(ServiceForm $serviceForm): ServiceForm
     {
-        return ServiceForm::create($data);
+        return $this->show($serviceForm);
     }
 
-    public function update(
-        ServiceForm $serviceForm,
-        array $data
-    ) {
+    public function create(array $data): ServiceForm
+    {
+        return ServiceForm::create($data)->load('service');
+    }
+
+    public function update(ServiceForm $serviceForm, array $data): ServiceForm
+    {
         $serviceForm->update($data);
 
-        return $serviceForm->fresh();
+        return $this->show($serviceForm->fresh());
     }
 
-    public function delete(
-        ServiceForm $serviceForm
-    ) {
-        $serviceForm->delete();
+    public function delete(ServiceForm $serviceForm): bool
+    {
+        return (bool) $serviceForm->delete();
     }
 }

@@ -17,7 +17,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->string('label');
-
+            $table->string('description')->nullable();
             $table->string('name');
 
             $table->enum('type', [
@@ -33,6 +33,7 @@ return new class extends Migration
                 'checkbox',
                 'file',
                 'image',
+                
 
             ]);
 
@@ -53,9 +54,11 @@ return new class extends Migration
 
             $table->string('width')
                 ->default('full');
+                  $table->boolean('is_searchable')->default(false);
 
             $table->timestamps();
         });
+       
     }
 
     public function down(): void

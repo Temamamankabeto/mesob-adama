@@ -1,48 +1,29 @@
 import api, { unwrap } from "@/lib/api";
 
 import {
-  Service,
-  ServicePayload,
-  ServiceListResponse,
-
-  AssignWindowPayload,
-  ServiceWithWindowsResponse,
-
-  ServiceFormResponse,
-  SingleServiceFormResponse,
-  CreateServiceFormPayload,
-  ServiceForm,
-
-  CreateServiceFormFieldPayload,
-  ServiceFormField,
-
   AssignUserServicePayload,
+  CreateServiceFormPayload,
+  OfficerListResponse,
+  PaginatedServiceResponse,
+  Service,
+  ServiceFormResponse,
+  ServicePayload,
+  SingleServiceFormResponse,
+  UpdateServiceFormPayload,
   UserServiceAssignmentResponse,
-
-  PublicServiceResponse,
-  FeaturedServiceResponse,
-  SinglePublicServiceResponse,
-
-  WindowGroupResponse,
 } from "@/types/services/service";
-
-/*
-|--------------------------------------------------------------------------
-| SERVICE
-|--------------------------------------------------------------------------
-*/
 
 export const serviceService = {
 
   async getAll(
     page = 1
-  ): Promise<ServiceListResponse> {
+  ): Promise<PaginatedServiceResponse> {
 
     const response = await api.get(
       `/services?page=${page}`
     );
 
-    return unwrap<ServiceListResponse>(
+    return unwrap<PaginatedServiceResponse>(
       response
     );
   },
@@ -94,185 +75,7 @@ export const serviceService = {
   },
 };
 
-/*
-|--------------------------------------------------------------------------
-| SERVICE WINDOW
-|--------------------------------------------------------------------------
-*/
 
-export const serviceWindowService = {
-
-  async assign(
-    serviceId: number,
-    payload: AssignWindowPayload
-  ): Promise<ServiceWithWindowsResponse> {
-
-    const response = await api.post(
-      `/services/${serviceId}/windows`,
-      payload
-    );
-
-    return unwrap<ServiceWithWindowsResponse>(
-      response
-    );
-  },
-
-  async getByService(
-    serviceId: number
-  ): Promise<ServiceWithWindowsResponse> {
-
-    const response = await api.get(
-      `/services/${serviceId}/windows`
-    );
-
-    return unwrap<ServiceWithWindowsResponse>(
-      response
-    );
-  },
-};
-
-/*
-|--------------------------------------------------------------------------
-| SERVICE FORM FIELD
-|--------------------------------------------------------------------------
-*/
-
-export const serviceFormFieldService = {
-
-  async getAll() {
-
-    const response = await api.get(
-      "/admin/service-form-fields"
-    );
-
-    return unwrap(response);
-  },
-
-  async create(
-    payload: CreateServiceFormFieldPayload
-  ): Promise<ServiceFormField> {
-
-    const response = await api.post(
-      "/admin/service-form-fields",
-      payload
-    );
-
-    const data = unwrap<{
-      success: boolean;
-      message: string;
-      data: ServiceFormField;
-    }>(response);
-
-    return data.data;
-  },
-
-  async update(
-    id: number,
-    payload: Partial<CreateServiceFormFieldPayload>
-  ): Promise<ServiceFormField> {
-
-    const response = await api.put(
-      `/admin/service-form-fields/${id}`,
-      payload
-    );
-
-    const data = unwrap<{
-      success: boolean;
-      message: string;
-      data: ServiceFormField;
-    }>(response);
-
-    return data.data;
-  },
-
-  async delete(
-    id: number
-  ): Promise<void> {
-
-    await api.delete(
-      `/admin/service-form-fields/${id}`
-    );
-  },
-};
-
-/*
-|--------------------------------------------------------------------------
-| SERVICE FORM
-|--------------------------------------------------------------------------
-*/
-
-export const serviceFormService = {
-
-  async getAll(): Promise<ServiceFormResponse> {
-
-    const response = await api.get(
-      "/admin/service-forms"
-    );
-
-    return unwrap<ServiceFormResponse>(
-      response
-    );
-  },
-
-  async getOne(
-    id: number
-  ): Promise<SingleServiceFormResponse> {
-
-    const response = await api.get(
-      `/admin/service-forms/${id}`
-    );
-
-    return unwrap<SingleServiceFormResponse>(
-      response
-    );
-  },
-
-  async create(
-    payload: CreateServiceFormPayload
-  ): Promise<ServiceForm> {
-
-    const response = await api.post(
-      "/admin/service-forms",
-      payload
-    );
-
-    const data = unwrap<{
-      success: boolean;
-      message: string;
-      data: ServiceForm;
-    }>(response);
-
-    return data.data;
-  },
-
-  async update(
-    id: number,
-    payload: Partial<CreateServiceFormPayload>
-  ): Promise<ServiceForm> {
-
-    const response = await api.put(
-      `/admin/service-forms/${id}`,
-      payload
-    );
-
-    const data = unwrap<{
-      success: boolean;
-      message: string;
-      data: ServiceForm;
-    }>(response);
-
-    return data.data;
-  },
-
-  async delete(
-    id: number
-  ): Promise<void> {
-
-    await api.delete(
-      `/admin/service-forms/${id}`
-    );
-  },
-};
 
 /*
 |--------------------------------------------------------------------------
@@ -281,6 +84,36 @@ export const serviceFormService = {
 */
 
 export const userServiceAssignmentService = {
+
+  /*
+  |--------------------------------------------------------------------------
+  | GET OFFICERS
+  |--------------------------------------------------------------------------
+  */
+
+  async getOfficers(params?: {
+    page?: number;
+    search?: string;
+    per_page?: number;
+  }): Promise<OfficerListResponse> {
+
+    const response = await api.get(
+      "/service-officers",
+      {
+        params,
+      }
+    );
+
+    return unwrap<OfficerListResponse>(
+      response
+    );
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | ASSIGN SERVICES
+  |--------------------------------------------------------------------------
+  */
 
   async assign(
     userId: number,
@@ -296,6 +129,12 @@ export const userServiceAssignmentService = {
       response
     );
   },
+
+  /*
+  |--------------------------------------------------------------------------
+  | GET ASSIGNED SERVICES
+  |--------------------------------------------------------------------------
+  */
 
   async getByUser(
     userId: number
@@ -313,65 +152,132 @@ export const userServiceAssignmentService = {
 
 /*
 |--------------------------------------------------------------------------
-| PUBLIC SERVICES
+| SERVICE FORM SERVICE
 |--------------------------------------------------------------------------
 */
+ 
+export const serviceFormService = {
 
-export const publicServiceService = {
+  /*
+  |--------------------------------------------------------------------------
+  | GET ALL
+  |--------------------------------------------------------------------------
+  */
 
   async getAll(
-    page = 1,
-    search = ""
-  ): Promise<PublicServiceResponse> {
+    serviceId: number,
+    params?: {
+      page?: number;
+      search?: string;
+      per_page?: number;
+    }
+  ): Promise<ServiceFormResponse> {
 
     const response = await api.get(
-      "/public/services",
+      `/services/${serviceId}/forms`,
       {
-        params: {
-          page,
-          search,
-          per_page: 12,
-        },
+        params,
       }
     );
 
-    return unwrap<PublicServiceResponse>(
+    return unwrap<ServiceFormResponse>(
       response
     );
   },
 
-  async featured(): Promise<FeaturedServiceResponse> {
+  /*
+  |--------------------------------------------------------------------------
+  | GET ONE
+  |--------------------------------------------------------------------------
+  */
 
-    const response = await api.get(
-      "/public/services/featured"
-    );
-
-    return unwrap<FeaturedServiceResponse>(
-      response
-    );
-  },
-
-  async show(
+  async getOne(
     id: number
-  ): Promise<SinglePublicServiceResponse> {
+  ): Promise<SingleServiceFormResponse> {
 
     const response = await api.get(
-      `/public/services/${id}`
+      `/service-forms/${id}`
     );
 
-    return unwrap<SinglePublicServiceResponse>(
+    return unwrap<SingleServiceFormResponse>(
       response
     );
   },
 
-  async windowServices(): Promise<WindowGroupResponse> {
+  /*
+  |--------------------------------------------------------------------------
+  | CREATE
+  |--------------------------------------------------------------------------
+  */
 
-    const response = await api.get(
-      "/public/window-services"
+  async create(
+    serviceId: number,
+    payload: CreateServiceFormPayload
+  ): Promise<SingleServiceFormResponse> {
+
+    const response = await api.post(
+      `/services/${serviceId}/forms`,
+      payload
     );
 
-    return unwrap<WindowGroupResponse>(
+    return unwrap<SingleServiceFormResponse>(
+      response
+    );
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | UPDATE
+  |--------------------------------------------------------------------------
+  */
+
+  async update(
+    id: number,
+    payload: UpdateServiceFormPayload
+  ): Promise<SingleServiceFormResponse> {
+
+    const response = await api.put(
+      `/service-forms/${id}`,
+      payload
+    );
+
+    return unwrap<SingleServiceFormResponse>(
+      response
+    );
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | DELETE
+  |--------------------------------------------------------------------------
+  */
+
+  async delete(
+    id: number
+  ): Promise<void> {
+
+    await api.delete(
+      `/service-forms/${id}`
+    );
+  },
+
+  /*
+  |--------------------------------------------------------------------------
+  | TOGGLE STATUS
+  |--------------------------------------------------------------------------
+  */
+
+  async toggle(
+    id: number
+  ): Promise<SingleServiceFormResponse> {
+
+    const response = await api.patch(
+      `/service-forms/${id}/toggle`
+    );
+
+    return unwrap<SingleServiceFormResponse>(
       response
     );
   },
 };
+

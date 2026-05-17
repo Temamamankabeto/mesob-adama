@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\Auditable;
 
 class Service extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'name',
         'description',
@@ -23,27 +26,16 @@ class Service extends Model
 
     public function windows()
     {
-        return $this->belongsToMany(
-            Window::class,
-            'service_window'
-        )
-            ->withPivot([
-                'step_order',
-                'is_required',
-            ])
+        return $this->belongsToMany(Window::class, 'service_window')
+            ->withPivot(['step_order', 'is_required'])
             ->withTimestamps()
             ->orderBy('service_window.step_order');
     }
 
     public function assignedUsers()
     {
-        return $this->belongsToMany(
-            User::class,
-            'user_service_assignments'
-        )
-            ->withPivot([
-                'is_active',
-            ])
+        return $this->belongsToMany(User::class, 'user_service_assignments')
+            ->withPivot(['is_active'])
             ->withTimestamps();
     }
 
@@ -67,20 +59,25 @@ class Service extends Model
             ]);
     }
 
+    public function forms()
+    {
+        return $this->hasMany(ServiceForm::class);
+    }
+
     public function form()
-{
-    return $this->hasOne(
-        ServiceForm::class
-    );
-}
+    {
+        return $this->hasOne(ServiceForm::class)
+            ->where('is_active', true)
+            ->latestOfMany();
+    }
 
-public function applications()
-{
-    return $this->hasMany(
-        ServiceApplication::class
-    );
-}
+    public function applications()
+    {
+        return $this->hasMany(ServiceApplication::class);
+    }
 
-
-
+    public function legacyApplications()
+    {
+        return $this->hasMany(Application::class);
+    }
 }

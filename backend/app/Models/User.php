@@ -8,6 +8,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\City;
+use App\Models\Subcity;
+use App\Models\Woreda;
 
 class User extends Authenticatable
 {
@@ -18,7 +21,8 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'phone', 'gender', 'profile_image', 'password', 'address',
         'user_type', 'status', 'is_active', 'city_id', 'subcity_id', 'woreda_id',
-        'phone_verified_at', 'last_login_at','date_of_birth'
+        'created_by', 'activated_by', 'activated_at',
+        'phone_verified_at', 'last_login_at', 'date_of_birth',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -27,6 +31,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'phone_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
+        'activated_at' => 'datetime',
         'password' => 'hashed',
         'is_active' => 'boolean',
     ];
@@ -53,22 +58,50 @@ class User extends Authenticatable
         return $this->hasMany(AuditLog::class);
     }
 
+    public function activationRequests()
+    {
+        return $this->hasMany(UserActivationRequest::class);
+    }
+
+    public function latestActivationRequest()
+    {
+        return $this->hasOne(UserActivationRequest::class)->latestOfMany();
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function activator()
+    {
+        return $this->belongsTo(User::class, 'activated_by');
+    }
+
     public function getProfileImageUrlAttribute(): ?string
     {
         return $this->profile_image ? asset('storage/' . $this->profile_image) : null;
     }
-    /**
- * Assigned services.
- */
-public function assignedServices()
-{
-    return $this->belongsToMany(
-        Service::class,
-        'user_service_assignments'
-    )
-    ->withPivot([
-        'is_active',
-    ])
-    ->withTimestamps();
-}
+
+    public function assignedServices()
+    {
+        return $this->belongsToMany(Service::class, 'user_service_assignments')
+            ->withPivot(['is_active'])
+            ->withTimestamps();
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function subcity()
+    {
+        return $this->belongsTo(Subcity::class);
+    }
+
+    public function woreda()
+    {
+        return $this->belongsTo(Woreda::class);
+    }
 }

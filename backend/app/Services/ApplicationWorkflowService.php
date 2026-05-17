@@ -5,75 +5,55 @@ namespace App\Services;
 use App\Models\ServiceApplication;
 use App\Models\ServiceApplicationHistory;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ApplicationWorkflowService
 {
-    public function approve(ServiceApplication $application)
+    public function approve(ServiceApplication $application): ServiceApplication
     {
-        $this->changeStatus(
-            $application,
-            'approved',
-            'Application approved'
-        );
-
-        return $application->fresh();
+        return $this->changeStatus($application, 'approved', 'Application approved');
     }
 
-    public function reject(
-        ServiceApplication $application,
-        ?string $reason = null
-    ) {
-        $this->changeStatus(
-            $application,
-            'rejected',
-            $reason ?? 'Application rejected'
-        );
-
-        return $application->fresh();
-    }
-
-    public function returnForCorrection(
-        ServiceApplication $application,
-        ?string $reason = null
-    ) {
-        $this->changeStatus(
-            $application,
-            'returned_for_correction',
-            $reason ?? 'Returned for correction'
-        );
-
-        return $application->fresh();
-    }
-
-    public function complete(ServiceApplication $application)
+    public function reject(ServiceApplication $application, ?string $reason = null): ServiceApplication
     {
-        $this->changeStatus(
-            $application,
-            'completed',
-            'Application completed'
-        );
-
-        return $application->fresh();
+        return $this->changeStatus($application, 'rejected', $reason ?? 'Application rejected');
     }
 
-    protected function changeStatus(
-        ServiceApplication $application,
-        string $status,
-        string $note
-    ) {
-        $oldStatus = $application->status;
+    public function returnForCorrection(ServiceApplication $application, ?string $reason = null): ServiceApplication
+    {
+        return $this->changeStatus($application, 'returned', $reason ?? 'Returned for correction');
+    }
 
-        $application->update([
-            'status' => $status,
-        ]);
+    public function complete(ServiceApplication $application): ServiceApplication
+    {
+        return $this->changeStatus($application, 'completed', 'Application completed');
+    }
 
-        ServiceApplicationHistory::create([
-            'application_id' => $application->id,
-            'action' => $status,
-            'performed_by' => Auth::id(),
-            'note' => $note,
-            'old_status' => $oldStatus,
-            'new_status' => $status,
-        ]);
+    protected function changeStatus(ServiceApplication $application, string $status, string $note): ServiceApplication
+    {
+        return DB::transaction(function () use ($application, $status, $note) {
+            $oldStatus = $application->status;
+
+            $application->update([
+                'status' => $status,
+                'current_stage' => $status,
+                'approved_at' => $status === 'approved' ? now() : $application->approved_at,
+                'rejected_at' => $status === 'rejected' ? now() : $application->rejected_at,
+                'completed_at' => $status === 'completed' ? now() : $application->completed_at,
+                'rejection_reason' => $status === 'rejected' ? $note : $application->rejection_reason,
+            ]);
+
+            ServiceApplicationHistory::create([
+                'application_id' => $application->id,
+                'from_status' => $oldStatus,
+                'to_status' => $status,
+                'action' => $status,
+                'action_type' => 'workflow',
+                'remark' => $note,
+                'actor_id' => Auth::id(),
+            ]);
+
+            return $application->fresh();
+        });
     }
 }

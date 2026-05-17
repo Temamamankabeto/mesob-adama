@@ -12,19 +12,42 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('services', function (Blueprint $table) {
+
             $table->id();
 
             $table->string('name');
 
-            $table->text('description')->nullable();
+            $table->text('description')
+                ->nullable();
 
-            $table->boolean('has_back_officer')->default(false);
+            $table->boolean('has_back_officer')
+                ->default(false);
 
-            $table->decimal('service_fee', 10, 2)->default(0);
+            $table->decimal(
+                'service_fee',
+                10,
+                2
+            )->default(0);
 
-            $table->enum('availability', ['city','subcity','woreda','all'])->default('city');
+            /*
+            |--------------------------------------------------------------------------
+            | AVAILABILITY
+            |--------------------------------------------------------------------------
+            */
 
-            $table->enum('status', ['active','inactive'])->default('active');
+            $table->json('availability')
+                ->nullable();
+
+            /*
+            |--------------------------------------------------------------------------
+            | STATUS
+            |--------------------------------------------------------------------------
+            */
+
+            $table->enum(
+                'status',
+                ['active', 'inactive']
+            )->default('active');
 
             $table->timestamps();
         });

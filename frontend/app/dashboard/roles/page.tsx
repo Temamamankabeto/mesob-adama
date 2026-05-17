@@ -118,9 +118,9 @@ export default function RolesPage() {
               className="border rounded-md px-3 py-2 text-sm"
             />
 
-            <Button onClick={handleCreateRole}>
+            {/* <Button onClick={handleCreateRole}>
               Create Role
-            </Button>
+            </Button> */}
           </div>
         </CardHeader>
 
@@ -141,79 +141,79 @@ export default function RolesPage() {
             </TableHeader>
 
             <TableBody>
-              {safeRoles.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="text-center py-6"
-                  >
-                    No roles found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                safeRoles.map((role: any) => (
-                  <TableRow key={role.id}>
-                    <TableCell>
-                      {role.id}
-                    </TableCell>
+  {safeRoles.length === 0 ? (
+    <TableRow>
+      <TableCell
+        colSpan={4}
+        className="text-center py-6"
+      >
+        No roles found
+      </TableCell>
+    </TableRow>
+  ) : (
+    safeRoles.map((role: any, index: number) => (
+      <TableRow key={role.id}>
+        <TableCell>
+          {index + 1}
+        </TableCell>
 
-                    <TableCell>
-                      {role.name}
-                    </TableCell>
+        <TableCell>
+          {role.name}
+        </TableCell>
 
-                    <TableCell>
-                      {role.guard_name}
-                    </TableCell>
+        <TableCell>
+          {role.guard_name}
+        </TableCell>
 
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                          >
-                            <MoreVertical className="w-5 h-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
+        <TableCell className="text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
 
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleOpen(role.id)
-                            }
-                          >
-                            Assign Permissions
-                          </DropdownMenuItem>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() =>
+                  handleOpen(role.id)
+                }
+              >
+                Assign Permissions
+              </DropdownMenuItem>
 
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleEditRole(
-                                role.id,
-                                role.name
-                              )
-                            }
-                          >
-                            Edit Role
-                          </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  handleEditRole(
+                    role.id,
+                    role.name
+                  )
+                }
+              >
+                Edit Role
+              </DropdownMenuItem>
 
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() =>
-                              handleDeleteRole(
-                                role.id,
-                                role.name
-                              )
-                            }
-                          >
-                            Delete Role
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() =>
+                  handleDeleteRole(
+                    role.id,
+                    role.name
+                  )
+                }
+              >
+                Delete Role
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+    ))
+  )}
+</TableBody>
           </Table>
         </CardContent>
       </Card>

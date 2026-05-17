@@ -4,29 +4,41 @@ namespace App\Services;
 
 use App\Models\ServiceApplication;
 use App\Models\ServiceApplicationHistory;
-use App\Models\ServiceApplicationWorkflow;
 use App\Models\User;
+use App\Support\AccessScope;
 use Illuminate\Support\Facades\DB;
 
 class OfficerApplicationService
 {
+    public function __construct(
+        protected AccessScope $scope
+    ) {}
+
     public function queue(User $officer)
     {
-        return ServiceApplication::with([
+        $query = ServiceApplication::with([
             'service',
             'customer',
             'currentWindow',
         ])
-            ->whereHas('service.assignedUsers', function ($query) use ($officer) {
-                $query->where('users.id', $officer->id);
-            })
             ->whereIn('status', [
                 'submitted',
                 'under_review',
                 'returned',
-            ])
-            ->latest()
-            ->paginate(10);
+            ]);
+
+        $this->scope->applyServiceApplicationScope($query, $officer);
+
+        $query->where(function ($query) use ($officer) {
+            $query
+                ->whereHas('service.assignedUsers', function ($assignedQuery) use ($officer) {
+                    $assignedQuery->where('users.id', $officer->id);
+                })
+                ->orWhereNull('assigned_to')
+                ->orWhere('assigned_to', $officer->id);
+        });
+
+        return $query->latest()->paginate(10);
     }
 
     public function show(ServiceApplication $application)
@@ -38,22 +50,18 @@ class OfficerApplicationService
             'currentOfficer',
             'data',
             'files',
-            'workflow.window',
-            'workflow.officer',
+            'workflows.window',
+            'workflows.officer',
             'histories.actor',
         ]);
     }
 
-    public function approve(
-        ServiceApplication $application,
-        User $officer,
-        ?string $remark = null
-    ) {
+    public function approve(ServiceApplication $application, User $officer, ?string $remark = null)
+    {
         return DB::transaction(function () use ($application, $officer, $remark) {
-
             $oldStatus = $application->status;
 
-            $currentWorkflow = $application->workflow()
+            $currentWorkflow = $application->workflows()
                 ->where('window_id', $application->current_window_id)
                 ->first();
 
@@ -61,26 +69,28 @@ class OfficerApplicationService
                 $currentWorkflow->update([
                     'status' => 'approved',
                     'officer_id' => $officer->id,
+                    'acted_by' => $officer->id,
+                    'action' => 'approved',
                     'remark' => $remark,
                     'acted_at' => now(),
                 ]);
             }
 
-            $nextWorkflow = $application->workflow()
+            $nextWorkflow = $application->workflows()
                 ->where('status', 'pending')
                 ->with('window')
-                ->oldest()
+                ->oldest('id')
                 ->first();
 
             if ($nextWorkflow) {
-                $nextWorkflow->update([
-                    'status' => 'processing',
-                ]);
+                $nextWorkflow->update(['status' => 'processing']);
 
                 $application->update([
                     'status' => 'under_review',
+                    'current_stage' => $nextWorkflow->window?->name ?? 'under_review',
                     'current_window_id' => $nextWorkflow->window_id,
                     'current_officer_id' => null,
+                    'assigned_to' => null,
                 ]);
 
                 $newStatus = 'under_review';
@@ -88,133 +98,129 @@ class OfficerApplicationService
             } else {
                 $application->update([
                     'status' => 'approved',
+                    'current_stage' => 'approved',
                     'approved_at' => now(),
                     'current_officer_id' => $officer->id,
+                    'assigned_to' => $officer->id,
                 ]);
 
                 $newStatus = 'approved';
                 $action = 'approved';
             }
 
-            ServiceApplicationHistory::create([
-                'application_id' => $application->id,
-                'from_status' => $oldStatus,
-                'to_status' => $newStatus,
-                'action' => $action,
-                'remark' => $remark,
-                'actor_id' => $officer->id,
-            ]);
+            $this->history($application, $oldStatus, $newStatus, $action, $remark, $officer->id);
 
             return $this->show($application->fresh());
         });
     }
 
-    public function reject(
-        ServiceApplication $application,
-        User $officer,
-        ?string $remark = null
-    ) {
+    public function reject(ServiceApplication $application, User $officer, ?string $remark = null)
+    {
         return DB::transaction(function () use ($application, $officer, $remark) {
-
             $oldStatus = $application->status;
 
             $application->update([
                 'status' => 'rejected',
+                'current_stage' => 'rejected',
                 'rejected_at' => now(),
+                'rejection_reason' => $remark,
                 'current_officer_id' => $officer->id,
+                'assigned_to' => $officer->id,
             ]);
 
-            $application->workflow()
+            $application->workflows()
                 ->where('window_id', $application->current_window_id)
                 ->update([
                     'status' => 'rejected',
                     'officer_id' => $officer->id,
+                    'acted_by' => $officer->id,
+                    'action' => 'rejected',
                     'remark' => $remark,
                     'acted_at' => now(),
                 ]);
 
-            ServiceApplicationHistory::create([
-                'application_id' => $application->id,
-                'from_status' => $oldStatus,
-                'to_status' => 'rejected',
-                'action' => 'rejected',
-                'remark' => $remark,
-                'actor_id' => $officer->id,
-            ]);
+            $this->history($application, $oldStatus, 'rejected', 'rejected', $remark, $officer->id);
 
             return $this->show($application->fresh());
         });
     }
 
-    public function returnApplication(
-        ServiceApplication $application,
-        User $officer,
-        ?string $remark = null
-    ) {
+    public function returnApplication(ServiceApplication $application, User $officer, ?string $remark = null)
+    {
         return DB::transaction(function () use ($application, $officer, $remark) {
-
             $oldStatus = $application->status;
 
             $application->update([
                 'status' => 'returned',
+                'current_stage' => 'returned',
                 'current_officer_id' => $officer->id,
+                'assigned_to' => $application->customer_id,
+                'returned_count' => ((int) $application->returned_count) + 1,
             ]);
 
-            $application->workflow()
+            $application->workflows()
                 ->where('window_id', $application->current_window_id)
                 ->update([
                     'status' => 'returned',
                     'officer_id' => $officer->id,
+                    'acted_by' => $officer->id,
+                    'action' => 'returned',
                     'remark' => $remark,
                     'acted_at' => now(),
                 ]);
 
-            ServiceApplicationHistory::create([
-                'application_id' => $application->id,
-                'from_status' => $oldStatus,
-                'to_status' => 'returned',
-                'action' => 'returned',
-                'remark' => $remark,
-                'actor_id' => $officer->id,
-            ]);
+            $this->history($application, $oldStatus, 'returned', 'returned', $remark, $officer->id);
 
             return $this->show($application->fresh());
         });
     }
 
-    public function complete(
-        ServiceApplication $application,
-        User $officer,
-        ?string $remark = null
-    ) {
+    public function complete(ServiceApplication $application, User $officer, ?string $remark = null)
+    {
         return DB::transaction(function () use ($application, $officer, $remark) {
-
             $oldStatus = $application->status;
 
             $application->update([
                 'status' => 'completed',
+                'current_stage' => 'completed',
+                'completed_at' => now(),
                 'current_officer_id' => $officer->id,
+                'assigned_to' => $officer->id,
             ]);
 
-            $application->workflow()
+            $application->workflows()
                 ->where('window_id', $application->current_window_id)
                 ->update([
                     'status' => 'completed',
                     'officer_id' => $officer->id,
+                    'acted_by' => $officer->id,
+                    'action' => 'completed',
                     'remark' => $remark,
                     'acted_at' => now(),
                 ]);
 
-            ServiceApplicationHistory::create([
-                'application_id' => $application->id,
-                'from_status' => $oldStatus,
-                'to_status' => 'completed',
-                'action' => 'completed',
-                'remark' => $remark,
-                'actor_id' => $officer->id,
-            ]);
+            $this->history($application, $oldStatus, 'completed', 'completed', $remark, $officer->id);
 
             return $this->show($application->fresh());
         });
+    }
+
+    protected function history(
+        ServiceApplication $application,
+        ?string $from,
+        string $to,
+        string $action,
+        ?string $remark,
+        int $actorId
+    ): void {
+        ServiceApplicationHistory::create([
+            'application_id' => $application->id,
+            'from_status' => $from,
+            'to_status' => $to,
+            'action' => $action,
+            'action_type' => 'officer_action',
+            'remark' => $remark,
+            'actor_id' => $actorId,
+        ]);
     }
 }

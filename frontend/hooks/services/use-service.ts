@@ -7,31 +7,19 @@ import {
 } from "@tanstack/react-query";
 
 import {
-
-  publicServiceService,
-
-  serviceFormFieldService,
   serviceFormService,
-
   serviceService,
-
-  serviceWindowService,
-
   userServiceAssignmentService,
-
 } from "@/services/service/service";
 
 import {
-
   AssignUserServicePayload,
-  AssignWindowPayload,
-
-  CreateServiceFormFieldPayload,
   CreateServiceFormPayload,
-
   ServicePayload,
-
+  UpdateServiceFormPayload,
 } from "@/types/services/service";
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -51,21 +39,33 @@ export function useServices(
     ],
 
     queryFn: () =>
-      serviceService.getAll(page),
+      serviceService.getAll(
+        page
+      ),
   });
 }
 
-export function useServiceMutations() {
+
+
+/*
+|--------------------------------------------------------------------------
+| CREATE SERVICE
+|--------------------------------------------------------------------------
+*/
+
+export function useCreateService() {
 
   const queryClient =
     useQueryClient();
 
-  const create = useMutation({
+  return useMutation({
 
     mutationFn: (
       payload: ServicePayload
     ) =>
-      serviceService.create(payload),
+      serviceService.create(
+        payload
+      ),
 
     onSuccess: () => {
 
@@ -74,14 +74,29 @@ export function useServiceMutations() {
       });
     },
   });
+}
 
-  const update = useMutation({
+
+
+/*
+|--------------------------------------------------------------------------
+| UPDATE SERVICE
+|--------------------------------------------------------------------------
+*/
+
+export function useUpdateService() {
+
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
 
     mutationFn: ({
       id,
       payload,
     }: {
       id: number;
+
       payload: Partial<ServicePayload>;
     }) =>
       serviceService.update(
@@ -96,13 +111,29 @@ export function useServiceMutations() {
       });
     },
   });
+}
 
-  const remove = useMutation({
+
+
+/*
+|--------------------------------------------------------------------------
+| DELETE SERVICE
+|--------------------------------------------------------------------------
+*/
+
+export function useDeleteService() {
+
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
 
     mutationFn: (
       id: number
     ) =>
-      serviceService.delete(id),
+      serviceService.delete(
+        id
+      ),
 
     onSuccess: () => {
 
@@ -111,246 +142,47 @@ export function useServiceMutations() {
       });
     },
   });
-
-  return {
-    create,
-    update,
-    remove,
-  };
 }
+
+
 
 /*
 |--------------------------------------------------------------------------
-| SERVICE WINDOWS
+| GET SERVICE OFFICERS
 |--------------------------------------------------------------------------
 */
 
-export function useServiceWindows(
-  serviceId?: number
-) {
+export function useServiceOfficers(params?: {
+  page?: number;
+  search?: string;
+  per_page?: number;
+}) {
 
   return useQuery({
 
     queryKey: [
-      "service-windows",
-      serviceId,
+
+      "service-officers",
+
+      params?.page,
+
+      params?.search,
+
+      params?.per_page,
     ],
 
     queryFn: () =>
-      serviceWindowService.getByService(
-        serviceId!
+      userServiceAssignmentService.getOfficers(
+        params
       ),
-
-    enabled: !!serviceId,
   });
 }
 
-export function useAssignServiceWindows() {
 
-  const queryClient =
-    useQueryClient();
-
-  return useMutation({
-
-    mutationFn: ({
-      serviceId,
-      payload,
-    }: {
-      serviceId: number;
-      payload: AssignWindowPayload;
-    }) =>
-      serviceWindowService.assign(
-        serviceId,
-        payload
-      ),
-
-    onSuccess: (
-      _,
-      variables
-    ) => {
-
-      queryClient.invalidateQueries({
-        queryKey: [
-          "service-windows",
-          variables.serviceId,
-        ],
-      });
-    },
-  });
-}
 
 /*
 |--------------------------------------------------------------------------
-| SERVICE FORMS
-|--------------------------------------------------------------------------
-*/
-
-export function useServiceForms() {
-
-  return useQuery({
-
-    queryKey: [
-      "service-forms",
-    ],
-
-    queryFn: () =>
-      serviceFormService.getAll(),
-  });
-}
-
-export function useServiceFormMutations() {
-
-  const queryClient =
-    useQueryClient();
-
-  const create = useMutation({
-
-    mutationFn: (
-      payload: CreateServiceFormPayload
-    ) =>
-      serviceFormService.create(
-        payload
-      ),
-
-    onSuccess: () => {
-
-      queryClient.invalidateQueries({
-        queryKey: [
-          "service-forms",
-        ],
-      });
-    },
-  });
-
-  const update = useMutation({
-
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: number;
-      payload: Partial<CreateServiceFormPayload>;
-    }) =>
-      serviceFormService.update(
-        id,
-        payload
-      ),
-
-    onSuccess: () => {
-
-      queryClient.invalidateQueries({
-        queryKey: [
-          "service-forms",
-        ],
-      });
-    },
-  });
-
-  const remove = useMutation({
-
-    mutationFn: (
-      id: number
-    ) =>
-      serviceFormService.delete(id),
-
-    onSuccess: () => {
-
-      queryClient.invalidateQueries({
-        queryKey: [
-          "service-forms",
-        ],
-      });
-    },
-  });
-
-  return {
-    create,
-    update,
-    remove,
-  };
-}
-
-/*
-|--------------------------------------------------------------------------
-| SERVICE FORM FIELDS
-|--------------------------------------------------------------------------
-*/
-
-export function useServiceFormFieldMutations() {
-
-  const queryClient =
-    useQueryClient();
-
-  const create = useMutation({
-
-    mutationFn: (
-      payload: CreateServiceFormFieldPayload
-    ) =>
-      serviceFormFieldService.create(
-        payload
-      ),
-
-    onSuccess: () => {
-
-      queryClient.invalidateQueries({
-        queryKey: [
-          "service-form-fields",
-        ],
-      });
-    },
-  });
-
-  const update = useMutation({
-
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: number;
-      payload: Partial<CreateServiceFormFieldPayload>;
-    }) =>
-      serviceFormFieldService.update(
-        id,
-        payload
-      ),
-
-    onSuccess: () => {
-
-      queryClient.invalidateQueries({
-        queryKey: [
-          "service-form-fields",
-        ],
-      });
-    },
-  });
-
-  const remove = useMutation({
-
-    mutationFn: (
-      id: number
-    ) =>
-      serviceFormFieldService.delete(id),
-
-    onSuccess: () => {
-
-      queryClient.invalidateQueries({
-        queryKey: [
-          "service-form-fields",
-        ],
-      });
-    },
-  });
-
-  return {
-    create,
-    update,
-    remove,
-  };
-}
-
-/*
-|--------------------------------------------------------------------------
-| USER SERVICE ASSIGNMENTS
+| USER ASSIGNED SERVICES
 |--------------------------------------------------------------------------
 */
 
@@ -374,6 +206,14 @@ export function useUserAssignedServices(
   });
 }
 
+
+
+/*
+|--------------------------------------------------------------------------
+| ASSIGN USER SERVICES
+|--------------------------------------------------------------------------
+*/
+
 export function useAssignUserServices() {
 
   const queryClient =
@@ -386,6 +226,7 @@ export function useAssignUserServices() {
       payload,
     }: {
       userId: number;
+
       payload: AssignUserServicePayload;
     }) =>
       userServiceAssignmentService.assign(
@@ -399,6 +240,16 @@ export function useAssignUserServices() {
     ) => {
 
       queryClient.invalidateQueries({
+        queryKey: ["users"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          "service-officers",
+        ],
+      });
+
+      queryClient.invalidateQueries({
         queryKey: [
           "user-services",
           variables.userId,
@@ -408,73 +259,234 @@ export function useAssignUserServices() {
   });
 }
 
+
+
 /*
 |--------------------------------------------------------------------------
-| PUBLIC SERVICES
+| SERVICE FORMS
 |--------------------------------------------------------------------------
 */
 
-export function usePublicServices(
-  page = 1,
-  search = ""
+export function useServiceForms(
+  serviceId?: number,
+  params?: {
+    page?: number;
+    search?: string;
+    per_page?: number;
+  }
 ) {
 
   return useQuery({
 
     queryKey: [
-      "public-services",
-      page,
-      search,
+
+      "service-forms",
+
+      serviceId,
+
+      params?.page,
+
+      params?.search,
+
+      params?.per_page,
     ],
 
     queryFn: () =>
-      publicServiceService.getAll(
-        page,
-        search
+      serviceFormService.getAll(
+        serviceId!,
+        params
       ),
+
+    enabled: !!serviceId,
   });
 }
 
-export function useFeaturedServices() {
 
-  return useQuery({
 
-    queryKey: [
-      "featured-services",
-    ],
+/*
+|--------------------------------------------------------------------------
+| GET SINGLE SERVICE FORM
+|--------------------------------------------------------------------------
+*/
 
-    queryFn: () =>
-      publicServiceService.featured(),
-  });
-}
-
-export function usePublicService(
-  id: number
+export function useServiceForm(
+  id?: number
 ) {
 
   return useQuery({
 
     queryKey: [
-      "public-service",
+      "service-form",
       id,
     ],
 
     queryFn: () =>
-      publicServiceService.show(id),
+      serviceFormService.getOne(
+        id!
+      ),
 
     enabled: !!id,
   });
 }
 
-export function useWindowServices() {
 
-  return useQuery({
 
-    queryKey: [
-      "window-services",
-    ],
+/*
+|--------------------------------------------------------------------------
+| CREATE SERVICE FORM
+|--------------------------------------------------------------------------
+*/
 
-    queryFn: () =>
-      publicServiceService.windowServices(),
+export function useCreateServiceForm() {
+
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+
+    mutationFn: ({
+      serviceId,
+      payload,
+    }: {
+      serviceId: number;
+
+      payload: CreateServiceFormPayload;
+    }) =>
+      serviceFormService.create(
+        serviceId,
+        payload
+      ),
+
+    onSuccess: () => {
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          "service-forms",
+        ],
+      });
+    },
+  });
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| UPDATE SERVICE FORM
+|--------------------------------------------------------------------------
+*/
+
+export function useUpdateServiceForm() {
+
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number;
+
+      payload: UpdateServiceFormPayload;
+    }) =>
+      serviceFormService.update(
+        id,
+        payload
+      ),
+
+    onSuccess: (
+      data
+    ) => {
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          "service-forms",
+        ],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          "service-form",
+          data.data.id,
+        ],
+      });
+    },
+  });
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| DELETE SERVICE FORM
+|--------------------------------------------------------------------------
+*/
+
+export function useDeleteServiceForm() {
+
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+
+    mutationFn: (
+      id: number
+    ) =>
+      serviceFormService.delete(
+        id
+      ),
+
+    onSuccess: () => {
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          "service-forms",
+        ],
+      });
+    },
+  });
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| TOGGLE SERVICE FORM
+|--------------------------------------------------------------------------
+*/
+
+export function useToggleServiceForm() {
+
+  const queryClient =
+    useQueryClient();
+
+  return useMutation({
+
+    mutationFn: (
+      id: number
+    ) =>
+      serviceFormService.toggle(
+        id
+      ),
+
+    onSuccess: (
+      data
+    ) => {
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          "service-forms",
+        ],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          "service-form",
+          data.data.id,
+        ],
+      });
+    },
   });
 }

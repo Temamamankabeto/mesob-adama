@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -11,18 +10,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Configure MySQL for proper InnoDB utf8mb4 support
-        DB::statement('SET SESSION sql_mode = "NO_AUTO_VALUE_ON_ZERO"');
-        DB::statement('SET NAMES utf8mb4');
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        
-        // Configure database for InnoDB with proper charset
-        DB::statement('ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
-        
-        // Set default engine to InnoDB
-        DB::statement('SET DEFAULT_STORAGE_ENGINE=InnoDB');
-        
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        // Run only for PostgreSQL
+        if (DB::getDriverName() === 'pgsql') {
+
+            // Set UTF8 client encoding
+            DB::statement("SET client_encoding TO 'UTF8'");
+
+            // Optional timezone
+            DB::statement("SET TIME ZONE 'UTC'");
+        }
     }
 
     /**
@@ -30,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // No reversal needed for configuration
+        //
     }
 };

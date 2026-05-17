@@ -1,13 +1,6 @@
 import {
-  ApiResponse,
-  PaginatedResponse,
+  LaravelPaginatedResponse,
 } from "@/types/common";
-
-/*
-|--------------------------------------------------------------------------
-| BASE TYPES
-|--------------------------------------------------------------------------
-*/
 
 export type ServiceAvailability =
   | "city"
@@ -18,18 +11,49 @@ export type ServiceStatus =
   | "active"
   | "inactive";
 
-export type ServiceFormFieldType =
-  | "text"
-  | "textarea"
-  | "number"
-  | "email"
-  | "tel"
-  | "date"
-  | "select"
-  | "radio"
-  | "checkbox"
-  | "file"
-  | "image";
+/*
+|--------------------------------------------------------------------------
+| ROLE TYPE
+|--------------------------------------------------------------------------
+*/
+
+export type OfficerRole =
+  | "front_officer"
+  | "back_officer";
+
+/*
+|--------------------------------------------------------------------------
+| ROLE
+|--------------------------------------------------------------------------
+*/
+
+export interface Role {
+  id: number;
+
+  name: OfficerRole;
+}
+
+/*
+|--------------------------------------------------------------------------
+| ASSIGNED USER
+|--------------------------------------------------------------------------
+*/
+
+export interface AssignedUser {
+  id: number;
+
+  name: string;
+
+  email?: string;
+
+  role?: OfficerRole;
+
+  roles?: Role[];
+
+  pivot?: {
+    is_active: boolean;
+  };
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -38,7 +62,6 @@ export type ServiceFormFieldType =
 */
 
 export interface Service {
-
   id: number;
 
   name: string;
@@ -56,10 +79,25 @@ export interface Service {
   created_at: string;
 
   updated_at: string;
+
+  /*
+  |--------------------------------------------------------------------------
+  | RELATIONSHIPS
+  |--------------------------------------------------------------------------
+  */
+
+  assignedUsers?: AssignedUser[];
+
+  assigned_users?: AssignedUser[];
 }
 
-export interface ServicePayload {
+/*
+|--------------------------------------------------------------------------
+| SERVICE PAYLOAD
+|--------------------------------------------------------------------------
+*/
 
+export interface ServicePayload {
   name: string;
 
   description?: string;
@@ -73,55 +111,124 @@ export interface ServicePayload {
   status: ServiceStatus;
 }
 
-export type ServiceListResponse =
-  PaginatedResponse<Service>;
-
 /*
 |--------------------------------------------------------------------------
-| SERVICE WINDOW
+| PAGINATED SERVICE RESPONSE
 |--------------------------------------------------------------------------
 */
 
-export interface ServiceWindowPivot {
+export type PaginatedServiceResponse =
+  LaravelPaginatedResponse<Service>;
 
-  step_order: number;
+/*
+|--------------------------------------------------------------------------
+| USER ASSIGNED SERVICE
+|--------------------------------------------------------------------------
+*/
 
-  is_required: boolean;
-}
-
-export interface ServiceWindow {
-
+export interface UserAssignedService {
   id: number;
 
   name: string;
 
-  pivot: ServiceWindowPivot;
+  pivot?: {
+    user_id?: number;
+
+    service_id?: number;
+
+    is_active: boolean;
+
+    created_at?: string;
+
+    updated_at?: string;
+  };
 }
 
-export interface AssignWindowPayload {
+/*
+|--------------------------------------------------------------------------
+| USER SERVICE RESPONSE
+|--------------------------------------------------------------------------
+*/
 
-  windows: {
+export interface UserServiceAssignmentResponse {
+  success: boolean;
 
-    window_id: number;
+  message: string;
 
-    step_order: number;
+  data: {
+    id: number;
 
-    is_required: boolean;
+    name: string;
 
-  }[];
+    email?: string;
+
+    role?: OfficerRole;
+
+    roles?: Role[];
+
+    assigned_services: UserAssignedService[];
+
+    assignedServices?: UserAssignedService[];
+  };
 }
 
-export interface ServiceWithWindows {
+/*
+|--------------------------------------------------------------------------
+| ASSIGN USER SERVICE PAYLOAD
+|--------------------------------------------------------------------------
+*/
 
+export interface AssignUserServicePayload {
+  service_ids: number[];
+}
+
+/*
+|--------------------------------------------------------------------------
+| OFFICER
+|--------------------------------------------------------------------------
+*/
+
+export interface Officer {
   id: number;
 
   name: string;
 
-  windows: ServiceWindow[];
+  email?: string;
+
+  phone?: string;
+
+  gender?: string | null;
+
+  address?: string | null;
+
+  status?: string;
+
+  profile_image_url?: string | null;
+
+  role?: OfficerRole;
+
+  roles?: Role[];
+
+  assigned_services?: UserAssignedService[];
+
+  assignedServices?: UserAssignedService[];
 }
 
-export type ServiceWithWindowsResponse =
-  ApiResponse<ServiceWithWindows>;
+/*
+|--------------------------------------------------------------------------
+| OFFICER RESPONSE
+|--------------------------------------------------------------------------
+*/
+ /*
+|--------------------------------------------------------------------------
+| OFFICER RESPONSE
+|--------------------------------------------------------------------------
+*/
+
+export type OfficerListResponse =
+  LaravelPaginatedResponse<Officer>;
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -130,26 +237,57 @@ export type ServiceWithWindowsResponse =
 */
 
 export interface ServiceForm {
-
   id: number;
 
   service_id: number;
 
   title: string;
 
-  description?: string;
+  description?: string | null;
 
   is_active: boolean;
 
   created_at: string;
 
-  updated_at: string;
+  updated_at?: string;
 }
 
+
+
+/*
+|--------------------------------------------------------------------------
+| SERVICE FORM RESPONSE
+|--------------------------------------------------------------------------
+*/
+
+export type ServiceFormResponse =
+  LaravelPaginatedResponse<ServiceForm>;
+
+
+
+/*
+|--------------------------------------------------------------------------
+| SINGLE SERVICE FORM RESPONSE
+|--------------------------------------------------------------------------
+*/
+
+export interface SingleServiceFormResponse {
+  success: boolean;
+
+  message: string;
+
+  data: ServiceForm;
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| CREATE SERVICE FORM PAYLOAD
+|--------------------------------------------------------------------------
+*/
+
 export interface CreateServiceFormPayload {
-
-  service_id: number;
-
   title: string;
 
   description?: string;
@@ -157,170 +295,22 @@ export interface CreateServiceFormPayload {
   is_active?: boolean;
 }
 
-export type ServiceFormResponse =
-  PaginatedResponse<ServiceForm>;
 
-export type SingleServiceFormResponse =
-  ApiResponse<ServiceForm>;
 
 /*
 |--------------------------------------------------------------------------
-| SERVICE FORM FIELD
+| UPDATE SERVICE FORM PAYLOAD
 |--------------------------------------------------------------------------
 */
 
-export interface ServiceFormField {
+export interface UpdateServiceFormPayload {
+  title?: string;
 
-  id: number;
+  description?: string;
 
-  service_form_id: number;
-
-  label: string;
-
-  name: string;
-
-  type: ServiceFormFieldType;
-
-  options?: string[];
-
-  placeholder?: string;
-
-  validation_rules?: string;
-
-  is_required: boolean;
-
-  sort_order: number;
-
-  width: string;
+  is_active?: boolean;
 }
 
-export interface CreateServiceFormFieldPayload {
 
-  service_form_id: number;
 
-  label: string;
 
-  name: string;
-
-  type: ServiceFormFieldType;
-
-  options?: string[];
-
-  placeholder?: string;
-
-  validation_rules?: string;
-
-  is_required?: boolean;
-
-  sort_order?: number;
-
-  width?: string;
-}
-
-/*
-|--------------------------------------------------------------------------
-| USER SERVICE ASSIGNMENT
-|--------------------------------------------------------------------------
-*/
-
-export interface UserAssignedService {
-
-  id: number;
-
-  name: string;
-}
-
-export interface UserServiceAssignment {
-
-  id: number;
-
-  name: string;
-
-  assigned_services: UserAssignedService[];
-}
-
-export interface AssignUserServicePayload {
-
-  service_ids: number[];
-}
-
-export type UserServiceAssignmentResponse =
-  ApiResponse<UserServiceAssignment>;
-
-/*
-|--------------------------------------------------------------------------
-| PUBLIC SERVICES
-|--------------------------------------------------------------------------
-*/
-
-export interface PublicWindow {
-
-  id: number;
-
-  name: string;
-
-  availability: ServiceAvailability[];
-}
-
-export interface PublicService {
-
-  id: number;
-
-  name: string;
-
-  description?: string | null;
-
-  service_fee: number;
-
-  availability: ServiceAvailability[];
-
-  has_back_officer: boolean;
-
-  status: ServiceStatus;
-
-  windows?: PublicWindow[];
-
-  created_at: string;
-
-  updated_at: string;
-}
-
-export type PublicServiceResponse =
-  PaginatedResponse<PublicService>;
-
-export type FeaturedServiceResponse =
-  ApiResponse<PublicService[]>;
-
-export type SinglePublicServiceResponse =
-  ApiResponse<PublicService>;
-
-/*
-|--------------------------------------------------------------------------
-| WINDOW GROUP
-|--------------------------------------------------------------------------
-*/
-
-export interface WindowGroupedService {
-
-  id: number;
-
-  name: string;
-
-  service_fee: number;
-
-  availability: ServiceAvailability[];
-}
-
-export interface WindowGroup {
-
-  id: number;
-
-  name: string;
-
-  availability: ServiceAvailability[];
-
-  services: WindowGroupedService[];
-}
-
-export type WindowGroupResponse =
-  ApiResponse<WindowGroup[]>;

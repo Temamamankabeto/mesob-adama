@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MoreVertical } from "lucide-react";
 
 import {
   useCreateWindow,
@@ -23,14 +24,9 @@ import {
 } from "@/components/ui/dialog";
 
 import { Button } from "@/components/ui/button";
-
 import { Input } from "@/components/ui/input";
-
 import { Label } from "@/components/ui/label";
-
 import { Checkbox } from "@/components/ui/checkbox";
-
-import { MoreVertical } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -44,36 +40,158 @@ type FormState = {
   availability: WindowAvailability[];
 };
 
+const WINDOW_AVAILABILITY: WindowAvailability[] = [
+  "city",
+  "subcity",
+  "woreda",
+];
+
+const emptyForm: FormState = {
+  name: "",
+  availability: [],
+};
+
+function WindowForm({
+  formData,
+  setFormData,
+  loading,
+  submitLabel,
+  loadingLabel,
+  onSubmit,
+}: {
+  formData: FormState;
+  setFormData: (value: FormState) => void;
+  loading: boolean;
+  submitLabel: string;
+  loadingLabel: string;
+  onSubmit: () => void;
+}) {
+  function toggleAvailability(
+    item: WindowAvailability,
+    checked: boolean
+  ) {
+    if (checked) {
+      setFormData({
+        ...formData,
+        availability: Array.from(
+          new Set([
+            ...formData.availability,
+            item,
+          ])
+        ),
+      });
+
+      return;
+    }
+
+    setFormData({
+      ...formData,
+      availability:
+        formData.availability.filter(
+          (level) => level !== item
+        ),
+    });
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Label>Name</Label>
+
+        <Input
+          value={formData.name}
+          placeholder="Enter window name"
+          onChange={(event) =>
+            setFormData({
+              ...formData,
+              name: event.target.value,
+            })
+          }
+        />
+      </div>
+
+      <div className="space-y-3">
+        <Label>Availability</Label>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {WINDOW_AVAILABILITY.map((item) => (
+            <label
+              key={item}
+              className="flex cursor-pointer items-center gap-2 rounded-xl border p-3 transition hover:bg-muted"
+            >
+              <Checkbox
+                checked={formData.availability.includes(
+                  item
+                )}
+                onCheckedChange={(checked) =>
+                  toggleAvailability(
+                    item,
+                    Boolean(checked)
+                  )
+                }
+              />
+
+              <span className="text-sm font-medium capitalize">
+                {item}
+              </span>
+            </label>
+          ))}
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          Select the administrative levels where this window is available.
+        </p>
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button
+          onClick={onSubmit}
+          disabled={
+            loading ||
+            !formData.name.trim() ||
+            formData.availability.length === 0
+          }
+        >
+          {loading ? loadingLabel : submitLabel}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function WindowPage() {
   const [page] = useState(1);
 
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  const [createOpen, setCreateOpen] =
+    useState(false);
+
+  const [editOpen, setEditOpen] =
+    useState(false);
 
   const [selectedWindow, setSelectedWindow] =
     useState<Window | null>(null);
 
-  const [formData, setFormData] = useState<FormState>({
-    name: "",
-    availability: [],
-  });
+  const [formData, setFormData] =
+    useState<FormState>(emptyForm);
 
-  const { data, isLoading } = useWindows(page);
+  const { data, isLoading } =
+    useWindows(page);
 
   const createMutation = useCreateWindow();
   const updateMutation = useUpdateWindow();
   const deleteMutation = useDeleteWindow();
 
   const resetForm = () => {
-    setFormData({
-      name: "",
-      availability: [],
-    });
+    setFormData(emptyForm);
+    setSelectedWindow(null);
   };
 
   const handleCreate = async () => {
     try {
-      await createMutation.mutateAsync(formData);
+      await createMutation.mutateAsync({
+        name: formData.name.trim(),
+        availability: formData.availability,
+      });
 
       setCreateOpen(false);
       resetForm();
@@ -86,8 +204,12 @@ export default function WindowPage() {
     setSelectedWindow(window);
 
     setFormData({
-      name: window.name,
-      availability: window.availability,
+      name: window.name || "",
+      availability: Array.isArray(
+        window.availability
+      )
+        ? window.availability
+        : [],
     });
 
     setEditOpen(true);
@@ -99,7 +221,10 @@ export default function WindowPage() {
     try {
       await updateMutation.mutateAsync({
         id: selectedWindow.id,
-        payload: formData,
+        payload: {
+          name: formData.name.trim(),
+          availability: formData.availability,
+        },
       });
 
       setEditOpen(false);
@@ -110,7 +235,10 @@ export default function WindowPage() {
   };
 
   const handleDelete = async (id: number) => {
-    const confirmed = confirm("Delete this window?");
+    const confirmed = confirm(
+      "Delete this window?"
+    );
+
     if (!confirmed) return;
 
     try {
@@ -120,23 +248,30 @@ export default function WindowPage() {
     }
   };
 
+  const windows = data?.data?.data || [];
+
   return (
     <div className="space-y-6 p-6">
-      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">
             Windows
           </h1>
+
           <p className="text-sm text-muted-foreground">
-            Manage service windows
+            Manage service windows and administrative availability.
           </p>
         </div>
 
-        {/* CREATE */}
         <Dialog
           open={createOpen}
-          onOpenChange={setCreateOpen}
+          onOpenChange={(open) => {
+            setCreateOpen(open);
+
+            if (!open) {
+              resetForm();
+            }
+          }}
         >
           <DialogTrigger asChild>
             <Button>Create Window</Button>
@@ -149,92 +284,26 @@ export default function WindowPage() {
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Name</Label>
-
-                <Input
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      name: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label>Availability</Label>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {(
-                    [
-                      "city",
-                      "subcity",
-                      "woreda",
-                    ] as WindowAvailability[]
-                  ).map((item) => (
-                    <div
-                      key={item}
-                      className="flex items-center gap-2"
-                    >
-                      <Checkbox
-                        checked={formData.availability.includes(
-                          item
-                        )}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setFormData({
-                              ...formData,
-                              availability: [
-                                ...formData.availability,
-                                item,
-                              ],
-                            });
-                          } else {
-                            setFormData({
-                              ...formData,
-                              availability:
-                                formData.availability.filter(
-                                  (i) =>
-                                    i !== item
-                                ),
-                            });
-                          }
-                        }}
-                      />
-
-                      <Label className="capitalize">
-                        {item}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleCreate}
-                  disabled={
-                    createMutation.isPending
-                  }
-                >
-                  {createMutation.isPending
-                    ? "Creating..."
-                    : "Create"}
-                </Button>
-              </div>
-            </div>
+            <WindowForm
+              formData={formData}
+              setFormData={setFormData}
+              loading={createMutation.isPending}
+              submitLabel="Create"
+              loadingLabel="Creating..."
+              onSubmit={handleCreate}
+            />
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* TABLE */}
       <div className="overflow-hidden rounded-xl border bg-background">
         <table className="w-full">
           <thead className="bg-muted/50">
             <tr>
+              <th className="p-4 text-left">
+                #
+              </th>
+
               <th className="p-4 text-left">
                 Name
               </th>
@@ -253,82 +322,101 @@ export default function WindowPage() {
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={3}
+                  colSpan={4}
                   className="p-6 text-center"
                 >
                   Loading...
                 </td>
               </tr>
-            ) : (
-              data?.data?.data?.map(
-                (window: Window) => (
-                  <tr
-                    key={window.id}
-                    className="border-t"
-                  >
-                    <td className="p-4">
-                      {window.name}
-                    </td>
+            ) : windows.length > 0 ? (
+              windows.map((window: Window) => (
+                <tr
+                  key={window.id}
+                  className="border-t"
+                >
+                  <td className="p-4">
+                    Window {window.id}
+                  </td>
 
-                    <td className="p-4 capitalize">
-                      {window.availability.join(
-                        ", "
+                  <td className="p-4 font-medium">
+                    {window.name}
+                  </td>
+
+                  <td className="p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {(window.availability || []).map(
+                        (item) => (
+                          <span
+                            key={item}
+                            className="rounded-full bg-muted px-3 py-1 text-xs font-medium capitalize"
+                          >
+                            {item}
+                          </span>
+                        )
                       )}
-                    </td>
+                    </div>
+                  </td>
 
-                    <td className="p-4">
-                      <div className="flex justify-end">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            asChild
+                  <td className="p-4">
+                    <div className="flex justify-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                           >
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
 
-                          <DropdownMenuContent
-                            align="end"
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleEdit(window)
+                            }
                           >
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleEdit(
-                                  window
-                                )
-                              }
-                            >
-                              Edit
-                            </DropdownMenuItem>
+                            Edit
+                          </DropdownMenuItem>
 
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() =>
-                                handleDelete(
-                                  window.id
-                                )
-                              }
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              )
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() =>
+                              handleDelete(
+                                window.id
+                              )
+                            }
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="p-6 text-center text-muted-foreground"
+                >
+                  No windows found.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {/* UPDATE */}
       <Dialog
         open={editOpen}
-        onOpenChange={setEditOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open);
+
+          if (!open) {
+            resetForm();
+          }
+        }}
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -337,33 +425,16 @@ export default function WindowPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <Input
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  name: e.target.value,
-                })
-              }
-            />
-
-            <div className="flex justify-end">
-              <Button
-                onClick={handleUpdate}
-                disabled={
-                  updateMutation.isPending
-                }
-              >
-                {updateMutation.isPending
-                  ? "Updating..."
-                  : "Update"}
-              </Button>
-            </div>
-          </div>
+          <WindowForm
+            formData={formData}
+            setFormData={setFormData}
+            loading={updateMutation.isPending}
+            submitLabel="Update"
+            loadingLabel="Updating..."
+            onSubmit={handleUpdate}
+          />
         </DialogContent>
       </Dialog>
     </div>
- 
-);
+  );
 }
