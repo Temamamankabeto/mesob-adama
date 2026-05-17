@@ -3,12 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
 
-  // 🔥 SAFE ROLE READ (fix undefined crash + normalize)
-  const role = request.cookies
-    .get("role")
-    ?.value
-    ?.toLowerCase()
-    ?.trim();
+  // ✅ SAFE ROLE (avoid crash + normalize)
+  const roleRaw = request.cookies.get("role")?.value;
+  const role = roleRaw ? roleRaw.toLowerCase().trim() : null;
 
   const pathname = request.nextUrl.pathname;
 
@@ -19,16 +16,14 @@ export function middleware(request: NextRequest) {
    */
   const publicRoutes = ["/", "/login", "/register", "/about", "/services"];
 
-  const isServiceList = pathname === "/services";
   const isServiceDetail = /^\/services\/\d+$/.test(pathname);
   const isApplyPage = /^\/services\/\d+\/apply$/.test(pathname);
 
-  const isPublicRoute =
-    publicRoutes.includes(pathname) || isServiceDetail;
+  const isPublicRoute = publicRoutes.includes(pathname) || isServiceDetail;
 
   /**
    * =========================
-   * 1. NOT LOGGED IN
+   * 1. NOT LOGGED IN (BLOCK PRIVATE ROUTES)
    * =========================
    */
   if (!token && !isPublicRoute) {
@@ -39,8 +34,7 @@ export function middleware(request: NextRequest) {
 
   /**
    * =========================
-   * 2. APPLY PAGE PROTECTION
-   * ONLY CUSTOMER CAN APPLY
+   * 2. APPLY PAGE (ONLY CUSTOMER ALLOWED)
    * =========================
    */
   if (isApplyPage) {
@@ -50,8 +44,8 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // 🔥 IMPORTANT FIX: fallback safe check
-    if (!role || role !== "customer") {
+    // ✅ FIXED LOGIC
+    if (role !== "customer") {
       return NextResponse.redirect(
         new URL("/unauthorized", request.url)
       );
@@ -60,7 +54,7 @@ export function middleware(request: NextRequest) {
 
   /**
    * =========================
-   * 3. BLOCK LOGIN/REGISTER IF LOGGED IN
+   * 3. BLOCK LOGIN IF LOGGED IN
    * =========================
    */
   if (token && (pathname === "/login" || pathname === "/register")) {
