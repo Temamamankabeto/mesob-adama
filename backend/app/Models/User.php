@@ -38,26 +38,6 @@ class User extends Authenticatable
 
     protected $appends = ['profile_image_url'];
 
-    public function customer()
-    {
-        return $this->hasOne(Customer::class);
-    }
-
-    public function serviceRequests()
-    {
-        return $this->hasMany(ServiceRequest::class, 'customer_id');
-    }
-
-    public function assignedServiceRequests()
-    {
-        return $this->hasMany(ServiceRequest::class, 'assigned_officer_id');
-    }
-
-    public function auditLogs()
-    {
-        return $this->hasMany(AuditLog::class);
-    }
-
     public function activationRequests()
     {
         return $this->hasMany(UserActivationRequest::class);
@@ -68,6 +48,58 @@ class User extends Authenticatable
         return $this->hasOne(UserActivationRequest::class)->latestOfMany();
     }
 
+    public function officerWindowAssignments()
+    {
+        return $this->hasMany(OfficerWindowAssignment::class, 'officer_id');
+    }
+
+    public function assignedWindows()
+    {
+        return $this->belongsToMany(Window::class, 'officer_window_assignments', 'officer_id', 'window_id')
+            ->withPivot([
+                'assignment_level',
+                'city_id',
+                'subcity_id',
+                'woreda_id',
+                'is_active',
+                'assigned_by',
+                'assigned_at',
+            ])
+            ->withTimestamps();
+    }
+
+    public function assignedServices()
+    {
+        return $this->belongsToMany(Service::class, 'user_service_assignments')
+            ->withPivot([
+                'officer_type',
+                'window_id',
+                'assignment_level',
+                'city_id',
+                'subcity_id',
+                'woreda_id',
+                'is_active',
+                'assigned_by',
+                'assigned_at',
+            ])
+            ->withTimestamps();
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class);
+    }
+
+    public function customer()
+    {
+        return $this->hasOne(Customer::class);
+    }
+
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        return $this->profile_image ? asset('storage/' . $this->profile_image) : null;
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -76,18 +108,6 @@ class User extends Authenticatable
     public function activator()
     {
         return $this->belongsTo(User::class, 'activated_by');
-    }
-
-    public function getProfileImageUrlAttribute(): ?string
-    {
-        return $this->profile_image ? asset('storage/' . $this->profile_image) : null;
-    }
-
-    public function assignedServices()
-    {
-        return $this->belongsToMany(Service::class, 'user_service_assignments')
-            ->withPivot(['is_active'])
-            ->withTimestamps();
     }
 
     public function city()

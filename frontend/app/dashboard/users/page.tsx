@@ -7,7 +7,8 @@ import { MoreVertical, Search } from "lucide-react";
 import { useUsers, useDeleteUser } from "@/hooks/user/useUsers";
 import { useToggleUserStatus } from "@/hooks/user/useToggleUserStatus";
 
-import { locationLevelLabel, roleLabel } from "@/config/roles.config";
+import { locationLevelLabel, normalizeRoleName, roleLabel } from "@/config/roles.config";
+import { authService } from "@/services/auth/auth.service";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
