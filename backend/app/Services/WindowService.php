@@ -2,42 +2,36 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Models\Window;
 
 class WindowService
 {
-    /**
-     * Get all windows.
-     */
-    public function getAll()
+    public function __construct(
+        protected ServiceAvailabilityScopeService $scopeService
+    ) {}
+
+    public function getAll(?User $actor = null)
     {
-        return Window::latest()->paginate(20);
+        $query = Window::query()->latest();
+
+        $this->scopeService->applyWindowScope($query, $actor);
+
+        return $query->paginate(200);
     }
 
-    /**
-     * Create window.
-     */
     public function create(array $data): Window
     {
         return Window::create($data);
     }
 
-    /**
-     * Update window.
-     */
-    public function update(
-        Window $window,
-        array $data
-    ): Window {
-
+    public function update(Window $window, array $data): Window
+    {
         $window->update($data);
 
         return $window->fresh();
     }
 
-    /**
-     * Delete window.
-     */
     public function delete(Window $window): bool
     {
         return $window->delete();

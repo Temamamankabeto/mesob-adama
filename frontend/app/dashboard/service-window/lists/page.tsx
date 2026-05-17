@@ -1,338 +1,153 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
+import { useMemo, useState } from "react";
 import {
   DndContext,
-  closestCenter,
+  DragEndEvent,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
-
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
-
 import { CSS } from "@dnd-kit/utilities";
-
-import { Plus, Trash2, GripVertical } from "lucide-react";
-
-import { useServices } from "@/hooks/services/use-service";
-import { useWindows } from "@/hooks/windows/use-window";
-
-import {
-  useServiceWindows,
-  useAssignServiceWindows,
-} from "@/hooks/service-window/use-service-window";
+import { GripVertical, Search, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  useMoveServiceToWindow,
+  useServiceWindowBoard,
+  useUnassignServiceWindow,
+} from "@/hooks/service-window/use-service-window";
+import { cn } from "@/lib/utils";
 
-export default function ServiceWindowPage() {
-  const [selectedService, setSelectedService] = useState<number | null>(null);
-  const [search, setSearch] = useState("");
+type ServiceItem = { id: number; name: string; description?: string | null };
+type WindowItem = { id: number; name: string; services?: ServiceItem[] };
 
-  const { data: servicesData } = useServices();
-  const { data: windowsData } = useWindows();
-
-  const { data: assignedData } = useServiceWindows(
-    selectedService || undefined
-  );
-
-  const assignMutation = useAssignServiceWindows();
-
-  /* ================= SAFE DATA ================= */
-
-  const services = useMemo(() => {
-    const d = servicesData;
-    return d?.data?.data || d?.data || [];
-  }, [servicesData]);
-
-  const windows = useMemo(() => {
-    const d = windowsData;
-    return d?.data?.data || d?.data || [];
-  }, [windowsData]);
-
-  /* ================= ASSIGNED STATE ================= */
-
-  const [assignedWindows, setAssignedWindows] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (assignedData?.data?.windows) {
-      setAssignedWindows(
-        assignedData.data.windows.map((w: any) => ({
-          window_id: w.id,
-          name: w.name,
-          step_order: w.pivot?.step_order || 1,
-          is_required: w.pivot?.is_required ?? true,
-        }))
-      );
-    } else {
-      setAssignedWindows([]);
-    }
-  }, [assignedData]);
-
-  /* ================= FILTER ================= */
-
-  const filteredServices = useMemo(() => {
-    return services.filter((s: any) =>
-      s?.name?.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [services, search]);
-
-  const availableWindows = useMemo(() => {
-    return windows.filter(
-      (w: any) =>
-        !assignedWindows.some((a) => a.window_id === w.id)
-    );
-  }, [windows, assignedWindows]);
-
-  /* ================= ADD ================= */
-
-  const addWindow = (w: any) => {
-    setAssignedWindows((prev) => [
-      ...prev,
-      {
-        window_id: w.id,
-        name: w.name,
-        step_order: prev.length + 1,
-        is_required: true,
-      },
-    ]);
-  };
-
-  /* ================= REMOVE ================= */
-
-  const removeWindow = (id: number) => {
-    const filtered = assignedWindows.filter((w) => w.window_id !== id);
-
-    setAssignedWindows(
-      filtered.map((w, i) => ({
-        ...w,
-        step_order: i + 1,
-      }))
-    );
-  };
-
-  /* ================= TOGGLE ================= */
-
-  const toggleRequired = (id: number) => {
-    setAssignedWindows((prev) =>
-      prev.map((w) =>
-        w.window_id === id
-          ? { ...w, is_required: !w.is_required }
-          : w
-      )
-    );
-  };
-
-  /* ================= DRAG ================= */
-
-  const onDragEnd = (event: any) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    setAssignedWindows((items) => {
-      const oldIndex = items.findIndex(
-        (i) => i.window_id === active.id
-      );
-
-      const newIndex = items.findIndex(
-        (i) => i.window_id === over.id
-      );
-
-      return arrayMove(items, oldIndex, newIndex).map((item, i) => ({
-        ...item,
-        step_order: i + 1,
-      }));
-    });
-  };
-
-  /* ================= SAVE ================= */
-
-  const save = async () => {
-    if (!selectedService) return;
-
-    await assignMutation.mutateAsync({
-      serviceId: selectedService,
-      payload: {
-        windows: assignedWindows.map((w, i) => ({
-          window_id: w.window_id,
-          step_order: i + 1,
-          is_required: w.is_required,
-        })),
-      },
-    });
-  };
-
-  /* ================= UI ================= */
-
-  return (
-    <div className="grid grid-cols-12 gap-6 p-6">
-
-      {/* SERVICES */}
-      <Card className="col-span-3 h-[85vh] flex flex-col">
-        <CardHeader>
-          <CardTitle>Services</CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-2 overflow-y-auto">
-          <Input
-            placeholder="Search services..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          {filteredServices.map((s: any) => (
-            <Button
-              key={s.id}
-              variant={selectedService === s.id ? "default" : "outline"}
-              className="w-full justify-start"
-              onClick={() => setSelectedService(s.id)}
-            >
-              {s.name}
-            </Button>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* ASSIGNED (CENTER) */}
-      <Card className="col-span-5 h-[85vh] flex flex-col">
-        <CardHeader>
-          <CardTitle>Assigned Windows</CardTitle>
-        </CardHeader>
-
-        <CardContent className="flex-1 overflow-y-auto">
-
-          <DndContext
-            collisionDetection={closestCenter}
-            onDragEnd={onDragEnd}
-          >
-            <SortableContext
-              items={assignedWindows.map((w) => w.window_id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-2">
-
-                {assignedWindows.length === 0 && (
-                  <div className="text-center text-muted-foreground py-10">
-                    No windows assigned
-                  </div>
-                )}
-
-                {assignedWindows.map((w) => (
-                  <SortableItem
-                    key={w.window_id}
-                    w={w}
-                    onRemove={removeWindow}
-                    onToggle={toggleRequired}
-                  />
-                ))}
-
-              </div>
-            </SortableContext>
-          </DndContext>
-
-          <div className="mt-4 flex justify-end">
-            <Button onClick={save}>Save Changes</Button>
-          </div>
-
-        </CardContent>
-      </Card>
-
-      {/* AVAILABLE */}
-      <Card className="col-span-4 h-[85vh] flex flex-col">
-        <CardHeader>
-          <CardTitle>Available Windows</CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-2 overflow-y-auto">
-
-          {availableWindows.map((w: any) => (
-            <div
-              key={w.id}
-              className="border p-3 rounded flex justify-between"
-            >
-              <span>{w.name}</span>
-
-              <Button size="icon" onClick={() => addWindow(w)}>
-                <Plus className="w-4 h-4" />
-              </Button>
-
-            </div>
-          ))}
-
-        </CardContent>
-      </Card>
-
-    </div>
-  );
-}
-
-/* ================= SORTABLE ITEM ================= */
-
-function SortableItem({
-  w,
-  onRemove,
-  onToggle,
-}: any) {
-  const {
-    setNodeRef,
-    attributes,
-    listeners,
-    transform,
-    transition,
-  } = useSortable({ id: w.window_id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+function DraggableService({ service, onRemove }: { service: ServiceItem; onRemove?: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `service:${service.id}`,
+    data: { service },
+  });
 
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className="border p-3 rounded flex justify-between items-center bg-white"
+      style={{ transform: CSS.Translate.toString(transform) }}
+      className={cn("rounded-2xl border bg-background p-4 shadow-sm", isDragging && "opacity-60 ring-2 ring-primary")}
     >
-      <div className="flex items-center gap-2">
-
-        <div {...attributes} {...listeners}>
-          <GripVertical className="w-4 h-4 cursor-grab" />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex gap-3">
+          <button type="button" {...listeners} {...attributes} className="mt-1 cursor-grab text-muted-foreground">
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <div>
+            <p className="font-semibold">{service.name}</p>
+            <p className="line-clamp-2 text-xs text-muted-foreground">{service.description || "Drag to another window"}</p>
+          </div>
         </div>
-
-        <div>
-          <p className="font-medium">
-            Step {w.step_order} - {w.name}
-          </p>
-
-          <label className="text-sm flex gap-2 items-center">
-            <input
-              type="checkbox"
-              checked={w.is_required}
-              onChange={() => onToggle(w.window_id)}
-            />
-            Required
-          </label>
-        </div>
-
+        {onRemove && (
+          <Button type="button" size="icon" variant="ghost" onClick={onRemove}>
+            <X className="h-4 w-4 text-red-600" />
+          </Button>
+        )}
       </div>
-
-      <Button
-        size="icon"
-        variant="destructive"
-        onClick={() => onRemove(w.window_id)}
-      >
-        <Trash2 className="w-4 h-4" />
-      </Button>
     </div>
+  );
+}
+
+function WindowDropZone({ window, onRemove }: { window: WindowItem; onRemove: (serviceId: number) => void }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `window:${window.id}`, data: { window } });
+  const services = window.services || [];
+
+  return (
+    <Card ref={setNodeRef} className={cn("rounded-3xl transition", isOver && "border-primary bg-primary/5 ring-2 ring-primary/20")}>
+      <CardHeader>
+        <CardTitle className="text-base">{window.name}</CardTitle>
+        <p className="text-xs text-muted-foreground">{services.length} service(s)</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {services.length ? (
+          services.map((service) => <DraggableService key={service.id} service={service} onRemove={() => onRemove(service.id)} />)
+        ) : (
+          <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">Drop service here</div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function ServiceWindowListPage() {
+  const [search, setSearch] = useState("");
+  const { data, isLoading } = useServiceWindowBoard();
+  const moveMutation = useMoveServiceToWindow();
+  const unassignMutation = useUnassignServiceWindow();
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const windows = useMemo(() => {
+    const all = data?.windows || [];
+    const key = search.toLowerCase();
+
+    return all
+      .map((window: WindowItem) => ({
+        ...window,
+        services: (window.services || []).filter((service) => !key || service.name?.toLowerCase().includes(key)),
+      }))
+      .filter((window: WindowItem) => (window.services || []).length > 0 || !key);
+  }, [data?.windows, search]);
+
+  async function onDragEnd(event: DragEndEvent) {
+    const activeId = String(event.active.id);
+    const overId = event.over ? String(event.over.id) : "";
+    if (!activeId.startsWith("service:") || !overId.startsWith("window:")) return;
+
+    const serviceId = Number(activeId.replace("service:", ""));
+    const windowId = Number(overId.replace("window:", ""));
+
+    await moveMutation.mutateAsync({ service_id: serviceId, window_id: windowId });
+    toast.success("Service moved to selected window");
+  }
+
+  async function removeFromWindow(serviceId: number) {
+    await unassignMutation.mutateAsync(serviceId);
+    toast.success("Service removed from window");
+  }
+
+  return (
+    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <div className="space-y-6 p-6">
+        <div className="rounded-3xl border bg-card p-6 shadow-sm">
+          <h1 className="text-2xl font-bold">Assigned Service Windows</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Drag services from one window to another to update assignment. Only your administrative scope is shown.
+          </p>
+        </div>
+
+        <Card className="rounded-3xl">
+          <CardContent className="p-4">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assigned services..." className="pl-10" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {isLoading ? (
+          <div className="rounded-3xl border p-10 text-center text-muted-foreground">Loading...</div>
+        ) : windows.length ? (
+          <div className="grid gap-4 xl:grid-cols-2">
+            {windows.map((window: WindowItem) => <WindowDropZone key={window.id} window={window} onRemove={removeFromWindow} />)}
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-dashed p-10 text-center text-muted-foreground">
+            No assigned services found.
+          </div>
+        )}
+      </div>
+    </DndContext>
   );
 }

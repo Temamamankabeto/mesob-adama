@@ -1,352 +1,198 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
-import {
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
-
-import { useServices } from "@/hooks/services/use-service";
-import { useWindows } from "@/hooks/windows/use-window";
-import {
-  useAssignServiceWindows,
-  useServiceWindows,
-} from "@/hooks/service-window/use-service-window";
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Search, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  useMoveServiceToWindow,
+  useServiceWindowBoard,
+  useUnassignServiceWindow,
+} from "@/hooks/service-window/use-service-window";
+import { cn } from "@/lib/utils";
 
-export default function ServiceWindowPage() {
+type ServiceItem = {
+  id: number;
+  name: string;
+  description?: string | null;
+  service_fee?: number;
+  status?: string;
+};
 
-  const [serviceSearch, setServiceSearch] = useState("");
-  const [windowSearch, setWindowSearch] = useState("");
-  const [selectedService, setSelectedService] = useState<number | null>(null);
+type WindowItem = {
+  id: number;
+  name: string;
+  services?: ServiceItem[];
+};
 
-  const [selectedWindows, setSelectedWindows] = useState<any[]>([]);
-
-  const { data: servicesData } = useServices(1);
-  const { data: windowsData } = useWindows(1);
-
-  const { data: assignedWindowsData } = useServiceWindows(
-    selectedService || undefined
-  );
-
-  const assignMutation = useAssignServiceWindows();
-
-  /*
-  |--------------------------------------------------------------------------
-  | SAFE SERVICES
-  |--------------------------------------------------------------------------
-  */
-
-  const services = useMemo(() => {
-    const raw = servicesData;
-
-    return (
-      raw?.data?.data ||
-      raw?.data ||
-      raw ||
-      []
-    );
-  }, [servicesData]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | SAFE WINDOWS
-  |--------------------------------------------------------------------------
-  */
-
-  const windows = useMemo(() => {
-    const raw = windowsData;
-
-    return (
-      raw?.data?.data ||
-      raw?.data ||
-      raw ||
-      []
-    );
-  }, [windowsData]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | ASSIGNED WINDOWS STATE
-  |--------------------------------------------------------------------------
-  */
-
-  const assignedWindowIds = useMemo(() => {
-    return (
-      assignedWindowsData?.data?.windows?.map(
-        (w: any) => w.id
-      ) || []
-    );
-  }, [assignedWindowsData]);
-
-  useEffect(() => {
-    if (assignedWindowsData?.data?.windows) {
-      const formatted = assignedWindowsData.data.windows.map(
-        (w: any) => ({
-          window_id: w.id,
-          window_name: w.name,
-          step_order: w.pivot.step_order,
-          is_required: w.pivot.is_required,
-        })
-      );
-
-      setSelectedWindows(formatted);
-    } else {
-      setSelectedWindows([]);
-    }
-  }, [assignedWindowsData]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | FILTER SERVICES
-  |--------------------------------------------------------------------------
-  */
-
-  const filteredServices = useMemo(() => {
-    if (!Array.isArray(services)) return [];
-
-    return services.filter((service: any) =>
-      service?.name
-        ?.toLowerCase()
-        .includes(serviceSearch.toLowerCase())
-    );
-  }, [services, serviceSearch]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | FILTER WINDOWS
-  |--------------------------------------------------------------------------
-  */
-
-  const filteredWindows = useMemo(() => {
-    if (!Array.isArray(windows)) return [];
-
-    return windows.filter((w: any) =>
-      w?.name
-        ?.toLowerCase()
-        .includes(windowSearch.toLowerCase())
-    );
-  }, [windows, windowSearch]);
-
-  /*
-  |--------------------------------------------------------------------------
-  | ADD WINDOW
-  |--------------------------------------------------------------------------
-  */
-
-  const handleAddWindow = (window: any) => {
-    const exists = selectedWindows.find(
-      (w) => w.window_id === window.id
-    );
-
-    if (exists) return;
-
-    setSelectedWindows((prev) => [
-      ...prev,
-      {
-        window_id: window.id,
-        window_name: window.name,
-        step_order: prev.length + 1,
-        is_required: true,
-      },
-    ]);
-  };
-
-  const handleRemoveWindow = (id: number) => {
-    const filtered = selectedWindows.filter(
-      (w) => w.window_id !== id
-    );
-
-    const reordered = filtered.map((w, i) => ({
-      ...w,
-      step_order: i + 1,
-    }));
-
-    setSelectedWindows(reordered);
-  };
-
-  /*
-  |--------------------------------------------------------------------------
-  | ASSIGN
-  |--------------------------------------------------------------------------
-  */
-
-  const handleAssign = async () => {
-    if (!selectedService) return alert("Select service first");
-
-    await assignMutation.mutateAsync({
-      serviceId: selectedService,
-      payload: {
-        windows: selectedWindows.map((w) => ({
-          window_id: w.window_id,
-          step_order: w.step_order,
-          is_required: w.is_required,
-        })),
-      },
-    });
-
-    alert("Workflow saved");
-  };
+function DraggableService({ service, assigned = false, onRemove }: { service: ServiceItem; assigned?: boolean; onRemove?: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `service:${service.id}`,
+    data: { service },
+  });
 
   return (
-    <div className="grid gap-6 p-6 lg:grid-cols-12">
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform) }}
+      className={cn(
+        "rounded-2xl border bg-background p-4 shadow-sm transition",
+        isDragging && "opacity-60 ring-2 ring-primary",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 gap-3">
+          <button type="button" {...listeners} {...attributes} className="mt-1 cursor-grab text-muted-foreground">
+            <GripVertical className="h-4 w-4" />
+          </button>
 
-      {/* LEFT */}
-      <Card className="lg:col-span-4 h-[100vh]">
-
-        <CardHeader>
-          <CardTitle>Services</CardTitle>
-        </CardHeader>
-
-        <CardContent className="flex flex-col gap-3">
-
-          <Input
-            placeholder="Search services..."
-            value={serviceSearch}
-            onChange={(e) => setServiceSearch(e.target.value)}
-          />
-
-          <div className="overflow-y-auto space-y-2">
-
-            {filteredServices.map((service: any) => (
-              <Button
-                key={service.id}
-                variant={
-                  selectedService === service.id
-                    ? "default"
-                    : "outline"
-                }
-                className="w-full justify-start"
-                onClick={() => setSelectedService(service.id)}
-              >
-                {service.name}
-              </Button>
-            ))}
-
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{service.name}</p>
+            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+              {service.description || "Drag this service into a window."}
+            </p>
           </div>
+        </div>
 
-        </CardContent>
-      </Card>
-
-      {/* RIGHT */}
-      <div className="lg:col-span-8 space-y-6">
-
-        {/* WINDOWS */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Add Windows</CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-3">
-
-            <Input
-              placeholder="Search windows..."
-              value={windowSearch}
-              onChange={(e) => setWindowSearch(e.target.value)}
-            />
-
-            <div className="grid md:grid-cols-2 gap-3">
-
-              {filteredWindows.map((w: any) => {
-                const isAssigned = assignedWindowIds.includes(w.id);
-
-                return (
-                  <div
-                    key={w.id}
-                    className={`border p-3 rounded flex justify-between items-center ${
-                      isAssigned ? "opacity-50" : ""
-                    }`}
-                  >
-                    <div>
-                      <p className="font-medium">{w.name}</p>
-                    </div>
-
-                    <Button
-                      size="icon"
-                      disabled={isAssigned}
-                      onClick={() => handleAddWindow(w)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-
-                  </div>
-                );
-              })}
-
-            </div>
-
-          </CardContent>
-        </Card>
-
-        {/* WORKFLOW */}
-        <Card>
-
-          <CardHeader>
-            <CardTitle>Workflow</CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-3">
-
-            {selectedWindows.length === 0 ? (
-              <div className="text-center text-muted-foreground py-10">
-                No windows selected
-              </div>
-            ) : (
-              selectedWindows.map((w) => (
-                <div
-                  key={w.window_id}
-                  className="border p-3 rounded flex justify-between"
-                >
-                  <div>
-                    <p className="font-medium">
-                      Step {w.step_order}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {w.window_name}
-                    </p>
-                  </div>
-
-                  <Button
-                    size="icon"
-                    variant="destructive"
-                    onClick={() =>
-                      handleRemoveWindow(w.window_id)
-                    }
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-
-                </div>
-              ))
-            )}
-
-            <div className="flex justify-end">
-              <Button onClick={handleAssign}>
-                Save Workflow
-              </Button>
-            </div>
-
-          </CardContent>
-
-        </Card>
-
+        {assigned && onRemove && (
+          <Button type="button" size="icon" variant="ghost" onClick={onRemove}>
+            <X className="h-4 w-4 text-red-600" />
+          </Button>
+        )}
       </div>
-
     </div>
+  );
+}
+
+function WindowDropZone({ window, onRemove }: { window: WindowItem; onRemove: (serviceId: number) => void }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `window:${window.id}`,
+    data: { window },
+  });
+
+  const services = window.services || [];
+
+  return (
+    <Card ref={setNodeRef} className={cn("rounded-3xl transition", isOver && "border-primary bg-primary/5 ring-2 ring-primary/20")}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">{window.name}</CardTitle>
+            <p className="text-xs text-muted-foreground">{services.length} assigned service(s)</p>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        {services.length ? (
+          services.map((service) => (
+            <DraggableService key={service.id} service={service} assigned onRemove={() => onRemove(service.id)} />
+          ))
+        ) : (
+          <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+            Drop service here
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function ServiceWindowPage() {
+  const [search, setSearch] = useState("");
+
+  const { data, isLoading } = useServiceWindowBoard();
+  const moveMutation = useMoveServiceToWindow();
+  const unassignMutation = useUnassignServiceWindow();
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const unassigned = useMemo(() => {
+    const services = data?.unassigned_services || [];
+    const key = search.toLowerCase();
+
+    if (!key) return services;
+
+    return services.filter((service: ServiceItem) => service.name?.toLowerCase().includes(key));
+  }, [data?.unassigned_services, search]);
+
+  const windows = data?.windows || [];
+
+  async function onDragEnd(event: DragEndEvent) {
+    const activeId = String(event.active.id);
+    const overId = event.over ? String(event.over.id) : "";
+
+    if (!activeId.startsWith("service:") || !overId.startsWith("window:")) return;
+
+    const serviceId = Number(activeId.replace("service:", ""));
+    const windowId = Number(overId.replace("window:", ""));
+
+    await moveMutation.mutateAsync({ service_id: serviceId, window_id: windowId });
+    toast.success("Service assigned to window");
+  }
+
+  async function removeFromWindow(serviceId: number) {
+    await unassignMutation.mutateAsync(serviceId);
+    toast.success("Service removed from window");
+  }
+
+  return (
+    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <div className="space-y-6 p-6">
+        <div className="rounded-3xl border bg-card p-6 shadow-sm">
+          <h1 className="text-2xl font-bold">Service Window Assignment</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Drag a service into a window. Once assigned, the service is removed from the available service list.
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+          <Card className="h-fit rounded-3xl lg:sticky lg:top-6">
+            <CardHeader>
+              <CardTitle>Available Services</CardTitle>
+              <p className="text-sm text-muted-foreground">{unassigned.length} unassigned service(s)</p>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search services..." className="pl-10" />
+              </div>
+
+              <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1">
+                {isLoading ? (
+                  <div className="py-10 text-center text-muted-foreground">Loading...</div>
+                ) : unassigned.length ? (
+                  unassigned.map((service: ServiceItem) => <DraggableService key={service.id} service={service} />)
+                ) : (
+                  <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    No unassigned services
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            {windows.map((window: WindowItem) => (
+              <WindowDropZone key={window.id} window={window} onRemove={removeFromWindow} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </DndContext>
   );
 }
