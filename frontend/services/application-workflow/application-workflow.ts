@@ -13,6 +13,25 @@ import {
   ServiceFormStep,
 } from "@/types/application-workflow";
 
+export type OfficerWorkflowAction =
+  | "accept"
+  | "share"
+  | "return"
+  | "forward-to-back-officer"
+  | "approve"
+  | "reject"
+  | "complete";
+
+export type OfficerActionPayload = {
+  remark?: string;
+  reason?: string;
+  officer_id?: number;
+  back_officer_id?: number;
+  front_officer_id?: number;
+  window_id?: number;
+  documents?: File[];
+};
+
 function listFrom<T>(body: any): T[] {
   const value = body?.data;
 
@@ -33,6 +52,46 @@ function params(filter?: Record<string, unknown>) {
       Object.entries(filter ?? {}).filter(([, value]) => value !== undefined && value !== null && value !== "")
     ),
   };
+}
+
+function actionPayload(payload: OfficerActionPayload = {}) {
+  const hasFiles = Boolean(payload.documents?.length);
+
+  if (!hasFiles) {
+    return {
+      remark: payload.remark,
+      reason: payload.reason,
+      officer_id: payload.officer_id,
+      back_officer_id: payload.back_officer_id,
+      front_officer_id: payload.front_officer_id,
+      window_id: payload.window_id,
+    };
+  }
+
+  const form = new FormData();
+
+  if (payload.remark) form.append("remark", payload.remark);
+  if (payload.reason) form.append("reason", payload.reason);
+  if (payload.officer_id) form.append("officer_id", String(payload.officer_id));
+  if (payload.back_officer_id) form.append("back_officer_id", String(payload.back_officer_id));
+  if (payload.front_officer_id) form.append("front_officer_id", String(payload.front_officer_id));
+  if (payload.window_id) form.append("window_id", String(payload.window_id));
+
+  payload.documents?.forEach((file, index) => {
+    form.append(`documents[${index}]`, file);
+  });
+
+  return form;
+}
+
+function actionConfig(payload: OfficerActionPayload = {}) {
+  return payload.documents?.length
+    ? {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    : undefined;
 }
 
 export const applicationWorkflowService = {
@@ -214,9 +273,30 @@ export const applicationWorkflowService = {
       return dataFrom<ServiceApplication>(unwrap<ApiResponse<ServiceApplication>>(response));
     },
 
-    async action(id: number, action: "approve" | "reject" | "return" | "complete", remark?: string) {
-      const response = await api.post(`/officer/applications/${id}/${action}`, { remark });
+    async action(id: number, action: OfficerWorkflowAction, payload: OfficerActionPayload = {}) {
+      const response = await api.post(
+        `/officer/applications/${id}/${action}`,
+        actionPayload(payload),
+        actionConfig(payload)
+      );
+
       return dataFrom<ServiceApplication>(unwrap<ApiResponse<ServiceApplication>>(response));
+    },
+
+    async backOfficerAction(id: number, action: "approve" | "reject", payload: OfficerActionPayload = {}) {
+      const response = await api.post(
+        `/back-officer/applications/${id}/${action}`,
+        actionPayload(payload),
+        actionConfig(payload)
+      );
+
+      return dataFrom<ServiceApplication>(unwrap<ApiResponse<ServiceApplication>>(response));
+    },
+
+    async frontOfficers(windowId: number, serviceId?: number) {
+      const response = await api.get(`/officer/windows/${windowId}/front-officers`, params({ service_id: serviceId }));
+      const body = unwrap<ApiResponse<any>>(response);
+      return listFrom<{ id: number; name: string; email?: string; phone?: string }>(body);
     },
 
     certificateUrl(id: number) {

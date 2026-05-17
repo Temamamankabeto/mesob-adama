@@ -96,9 +96,9 @@ class DashboardService
                 ],
                 [
                     'key' => 'returned',
-                    'label' => 'Returned',
+                    'label' => 'Appointed',
                     'value' => (clone $serviceApplications)->where('status', 'returned')->count(),
-                    'description' => 'Returned for correction.',
+                    'description' => 'Appointed applications for correction.',
                 ],
                 [
                     'key' => 'completed',
@@ -143,7 +143,7 @@ class DashboardService
             'total' => (clone $query)->count(),
             'submitted' => (clone $query)->where('status', 'submitted')->count(),
             'under_review' => (clone $query)->where('status', 'under_review')->count(),
-            'returned' => (clone $query)->where('status', 'returned')->count(),
+            'appoint' => (clone $query)->where('status', 'returned')->count(),
             'approved' => (clone $query)->where('status', 'approved')->count(),
             'rejected' => (clone $query)->where('status', 'rejected')->count(),
             'completed' => (clone $query)->where('status', 'completed')->count(),

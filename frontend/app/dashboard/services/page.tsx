@@ -40,7 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Search } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -60,7 +60,27 @@ type FormState = {
 
 export default function ServicePage() {
 
-  const [page] = useState(1);
+  /*
+  |--------------------------------------------------------------------------
+  | PAGINATION
+  |--------------------------------------------------------------------------
+  */
+
+  const [page, setPage] =
+    useState(1);
+
+  /*
+  |--------------------------------------------------------------------------
+  | FILTERS
+  |--------------------------------------------------------------------------
+  */
+
+  const [search, setSearch] =
+    useState("");
+
+  const [statusFilter,
+    setStatusFilter] =
+    useState("all");
 
   /*
   |--------------------------------------------------------------------------
@@ -68,10 +88,12 @@ export default function ServicePage() {
   |--------------------------------------------------------------------------
   */
 
-  const [createOpen, setCreateOpen] =
+  const [createOpen,
+    setCreateOpen] =
     useState(false);
 
-  const [editOpen, setEditOpen] =
+  const [editOpen,
+    setEditOpen] =
     useState(false);
 
   /*
@@ -80,8 +102,11 @@ export default function ServicePage() {
   |--------------------------------------------------------------------------
   */
 
-  const [selectedService, setSelectedService] =
-    useState<Service | null>(null);
+  const [selectedService,
+    setSelectedService] =
+    useState<Service | null>(
+      null
+    );
 
   /*
   |--------------------------------------------------------------------------
@@ -89,7 +114,8 @@ export default function ServicePage() {
   |--------------------------------------------------------------------------
   */
 
-  const [formData, setFormData] =
+  const [formData,
+    setFormData] =
     useState<FormState>({
       name: "",
       description: "",
@@ -105,8 +131,43 @@ export default function ServicePage() {
   |--------------------------------------------------------------------------
   */
 
-  const { data, isLoading } =
-    useServices(page);
+  const {
+    data,
+    isLoading,
+  } = useServices(page);
+
+  /*
+  |--------------------------------------------------------------------------
+  | FILTERED SERVICES
+  |--------------------------------------------------------------------------
+  */
+
+  const filteredServices =
+    data?.data?.data?.filter(
+      (
+        service: Service
+      ) => {
+
+        const matchesSearch =
+          service.name
+            .toLowerCase()
+            .includes(
+              search.toLowerCase()
+            );
+
+        const matchesStatus =
+          statusFilter ===
+          "all"
+            ? true
+            : service.status ===
+              statusFilter;
+
+        return (
+          matchesSearch &&
+          matchesStatus
+        );
+      }
+    ) || [];
 
   /*
   |--------------------------------------------------------------------------
@@ -176,19 +237,23 @@ export default function ServicePage() {
     service: Service
   ) => {
 
-    setSelectedService(service);
+    setSelectedService(
+      service
+    );
 
     setFormData({
       name: service.name,
       description:
-        service.description || "",
+        service.description ||
+        "",
       has_back_officer:
         service.has_back_officer,
       service_fee:
         service.service_fee,
       availability:
         service.availability,
-      status: service.status,
+      status:
+        service.status,
     });
 
     setEditOpen(true);
@@ -210,14 +275,17 @@ export default function ServicePage() {
 
         await updateMutation.mutateAsync({
 
-          id: selectedService.id,
+          id:
+            selectedService.id,
 
           payload: formData,
         });
 
         setEditOpen(false);
 
-        setSelectedService(null);
+        setSelectedService(
+          null
+        );
 
         resetForm();
 
@@ -234,7 +302,9 @@ export default function ServicePage() {
   */
 
   const handleDelete =
-    async (id: number) => {
+    async (
+      id: number
+    ) => {
 
       const confirmed =
         confirm(
@@ -302,6 +372,7 @@ export default function ServicePage() {
   }: {
     isEdit?: boolean;
   }) => (
+
     <div className="space-y-4">
 
       {/* NAME */}
@@ -334,7 +405,9 @@ export default function ServicePage() {
         </Label>
 
         <Textarea
-          value={formData.description}
+          value={
+            formData.description
+          }
           onChange={(e) =>
             setFormData({
               ...formData,
@@ -346,7 +419,7 @@ export default function ServicePage() {
 
       </div>
 
-      {/* SERVICE FEE */}
+      {/* FEE */}
 
       <div className="space-y-2">
 
@@ -356,7 +429,9 @@ export default function ServicePage() {
 
         <Input
           type="number"
-          value={formData.service_fee}
+          value={
+            formData.service_fee
+          }
           onChange={(e) =>
             setFormData({
               ...formData,
@@ -400,7 +475,7 @@ export default function ServicePage() {
       <div className="space-y-3">
 
         <Label>
-          Availability
+          Level
         </Label>
 
         <div className="grid grid-cols-2 gap-3">
@@ -545,19 +620,10 @@ export default function ServicePage() {
               ? handleUpdate
               : handleCreate
           }
-          disabled={
-            isEdit
-              ? updateMutation.isPending
-              : createMutation.isPending
-          }
         >
 
           {isEdit
-            ? updateMutation.isPending
-              ? "Updating..."
-              : "Update"
-            : createMutation.isPending
-            ? "Creating..."
+            ? "Update"
             : "Create"}
 
         </Button>
@@ -568,6 +634,7 @@ export default function ServicePage() {
   );
 
   return (
+
     <div className="space-y-6 p-6">
 
       {/* HEADER */}
@@ -577,7 +644,11 @@ export default function ServicePage() {
         <div>
 
           <h1 className="text-2xl font-bold">
-            Services
+            {/* // total services count */}
+            Services Configured With windows ({
+              filteredServices.length
+            })
+
           </h1>
 
           <p className="text-sm text-muted-foreground">
@@ -585,8 +656,6 @@ export default function ServicePage() {
           </p>
 
         </div>
-
-        {/* CREATE MODAL */}
 
         <Dialog
           open={createOpen}
@@ -626,6 +695,74 @@ export default function ServicePage() {
 
       </div>
 
+      {/* FILTERS */}
+
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+        <div className="flex flex-1 flex-col gap-4 md:flex-row">
+
+          {/* SEARCH */}
+
+          <div className="relative w-full md:max-w-sm">
+
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+
+            <Input
+              placeholder="Search service..."
+              value={search}
+              onChange={(e) =>
+                setSearch(
+                  e.target.value
+                )
+              }
+              className="pl-10"
+            />
+
+          </div>
+
+          {/* STATUS FILTER */}
+
+          <div className="w-full md:w-52">
+
+            <Select
+              value={
+                statusFilter
+              }
+              onValueChange={
+                setStatusFilter
+              }
+            >
+
+              <SelectTrigger>
+
+                <SelectValue placeholder="Status" />
+
+              </SelectTrigger>
+
+              <SelectContent>
+
+                <SelectItem value="all">
+                  All Status
+                </SelectItem>
+
+                <SelectItem value="active">
+                  Active
+                </SelectItem>
+
+                <SelectItem value="inactive">
+                  Inactive
+                </SelectItem>
+
+              </SelectContent>
+
+            </Select>
+
+          </div>
+
+        </div>
+
+      </div>
+
       {/* TABLE */}
 
       <div className="overflow-hidden rounded-xl border bg-background">
@@ -636,6 +773,10 @@ export default function ServicePage() {
 
             <tr>
 
+              <th className="p-4 w-10">
+                #
+              </th>
+
               <th className="p-4 text-left">
                 Name
               </th>
@@ -645,7 +786,7 @@ export default function ServicePage() {
               </th>
 
               <th className="p-4 text-left">
-                Availability
+                Level
               </th>
 
               <th className="p-4 text-left">
@@ -671,7 +812,7 @@ export default function ServicePage() {
               <tr>
 
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="p-6 text-center"
                 >
                   Loading...
@@ -679,9 +820,23 @@ export default function ServicePage() {
 
               </tr>
 
+            ) : filteredServices.length ===
+              0 ? (
+
+              <tr>
+
+                <td
+                  colSpan={7}
+                  className="p-6 text-center text-muted-foreground"
+                >
+                  No services found
+                </td>
+
+              </tr>
+
             ) : (
 
-              data?.data?.data?.map(
+              filteredServices.map(
                 (
                   service: Service
                 ) => (
@@ -692,6 +847,10 @@ export default function ServicePage() {
                     }
                     className="border-t"
                   >
+
+                    <td className="p-4">
+                      {service.id}
+                    </td>
 
                     <td className="p-4">
                       {service.name}
@@ -753,7 +912,7 @@ export default function ServicePage() {
                               size="sm"
                             >
 
-                              <MoreVertical className="w-4 h-4" />
+                              <MoreVertical className="h-4 w-4" />
 
                             </Button>
 
@@ -817,6 +976,85 @@ export default function ServicePage() {
 
       </div>
 
+      {/* PAGINATION */}
+
+      <div className="flex items-center justify-between">
+
+        <div className="text-sm text-muted-foreground">
+
+          Page {data?.data?.current_page || 1} of{" "}
+          {data?.data?.last_page || 1}
+
+        </div>
+
+        <div className="flex items-center gap-2">
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={
+              !data?.data?.prev_page_url
+            }
+            onClick={() =>
+              setPage((prev) =>
+                Math.max(
+                  prev - 1,
+                  1
+                )
+              )
+            }
+          >
+            Previous
+          </Button>
+
+          {Array.from(
+            {
+              length:
+                data?.data?.last_page ||
+                1,
+            },
+            (_, i) => i + 1
+          ).map((pageNumber) => (
+
+            <Button
+              key={pageNumber}
+              variant={
+                page ===
+                pageNumber
+                  ? "default"
+                  : "outline"
+              }
+              size="sm"
+              onClick={() =>
+                setPage(
+                  pageNumber
+                )
+              }
+            >
+              {pageNumber}
+            </Button>
+
+          ))}
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={
+              !data?.data?.next_page_url
+            }
+            onClick={() =>
+              setPage((prev) =>
+                prev + 1
+              )
+            }
+          >
+            Next
+          </Button>
+
+        </div>
+
+      </div>
+
       {/* UPDATE MODAL */}
 
       <Dialog
@@ -827,7 +1065,9 @@ export default function ServicePage() {
 
           if (!open) {
 
-            setSelectedService(null);
+            setSelectedService(
+              null
+            );
 
             resetForm();
           }

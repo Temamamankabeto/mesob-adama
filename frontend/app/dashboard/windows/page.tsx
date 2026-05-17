@@ -236,11 +236,14 @@ export default function WindowPage() {
           <thead className="bg-muted/50">
             <tr>
               <th className="p-4 text-left">
+                #
+              </th>
+              <th className="p-4 text-left">
                 Name
               </th>
 
               <th className="p-4 text-left">
-                Availability
+                Level
               </th>
 
               <th className="p-4 text-right">
@@ -266,6 +269,9 @@ export default function WindowPage() {
                     key={window.id}
                     className="border-t"
                   >
+                    <td className="p-4">
+                     Window {window.id}
+                    </td>
                     <td className="p-4">
                       {window.name}
                     </td>

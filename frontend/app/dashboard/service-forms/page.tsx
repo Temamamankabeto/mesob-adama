@@ -158,21 +158,22 @@ export default function ServiceFormsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>#</TableHead>
                   <TableHead>Service</TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-
               <TableBody>
                 {filteredForms.length ? (
-                  filteredForms.map((item: any) => (
+                  filteredForms.map((item: any, index: number) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        {services.find((service: any) => service.id == item.service_id)?.name ||
-                          item.service?.name ||
-                          item.service_id}
+                        <div className="flex items-center gap-2">
+                         
+                          <Badge variant="outline"> {index + 1}</Badge>
+                        </div>
                       </TableCell>
 
                       <TableCell>

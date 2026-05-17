@@ -94,14 +94,16 @@ export default function UsersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>User List</CardTitle>
+          {/* count all users */}
+          <CardTitle>User List({meta?.total || 0})</CardTitle>
         </CardHeader>
 
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>#</TableHead>
+                <TableHead>Full Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Role</TableHead>
@@ -130,6 +132,10 @@ export default function UsersPage() {
               ) : (
                 users.map((user: any) => (
                   <TableRow key={user.id}>
+                    {/* auto increment not use id */}
+                    <TableCell>
+                      {(meta?.current_page - 1) * meta?.per_page + users.indexOf(user) + 1}
+                      </TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.phone}</TableCell>
