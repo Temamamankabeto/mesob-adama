@@ -12,45 +12,41 @@ export type UserFilters = {
   page?: number;
   search?: string;
   role?: string;
-
-  // 🔥 LOCATION STARTS FROM SUBCITY
   subcity?: string;
   woreda?: string;
 };
 
 /**
  * =========================
- * GET USERS (FILTER SAFE)
+ * GET USERS (FIXED)
  * =========================
  */
 export const useUsers = (filters: UserFilters) => {
+  const {
+    page = 1,
+    search = "",
+    role = "",
+    subcity = "",
+    woreda = "",
+  } = filters;
+
   return useQuery({
-    queryKey: ["users", filters],
+    queryKey: ["users", page, search, role, subcity, woreda],
 
     queryFn: async () => {
       const res = await api.get("/admin/users", {
         params: {
-          page: filters.page ?? 1,
-
-          // 🔍 SEARCH (email / phone)
-          search: filters.search ?? "",
-
-          // 👤 ROLE FILTER
-          role: filters.role ?? "",
-
-          // 🏙️ SUBCITY (START POINT)
-          subcity: filters.subcity ?? "",
-
-          // 📍 WOREDA (DEPENDENT ON SUBCITY)
-          woreda: filters.woreda ?? "",
+          page,
+          search,
+          role,
+          subcity,
+          woreda,
         },
       });
 
-      // 🔥 SAFE RESPONSE (NO CRASH EVER)
       return res?.data ?? { data: [], meta: {} };
     },
 
-    // smooth pagination (React Query v5)
     placeholderData: (prev) => prev,
   });
 };
@@ -117,7 +113,7 @@ export const useDeleteUser = () => {
 
 /**
  * =========================
- * TOGGLE USER STATUS
+ * TOGGLE STATUS
  * =========================
  */
 export const useToggleUserStatus = () => {
