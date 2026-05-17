@@ -133,11 +133,11 @@ const serviceManagement: SidebarItem[] = [
         permission: "services.read",
       },
 
-      {
-        label: "User Services",
-        href: "/dashboard/user-services",
-        permission: "services.read",
-      },
+      // {
+      //   label: "User Services",
+      //   href: "/dashboard/user-services",
+      //   permission: "services.read",
+      // },
 
       {
         label: "Officer Services",
