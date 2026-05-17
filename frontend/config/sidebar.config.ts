@@ -121,6 +121,7 @@ const applicationManagementMenu: SidebarItem = {
   icon: FileText,
   children: [
     { label: "Application Summary", href: "/dashboard/applications/summary", permission: "applications.summary" },
+    { label: "Manager Cases", href: "/dashboard/manager/applications", permission: "service_applications.review" },
     { label: "Service Applications", href: "/dashboard/service-applications", permission: "service_applications.read" },
     { label: "Officer Queue", href: "/dashboard/officer/applications", permission: "service_applications.review" },
   ],

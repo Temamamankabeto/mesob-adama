@@ -18,7 +18,8 @@ const keys = {
   builder: (id: number) => ["service-form-builder", id] as const,
   forms: ["service-forms"] as const,
   serviceApplications: ["service-applications"] as const,
-  officerQueue: ["officer-application-queue"] as const,
+  officerQueue: (filter?: Record<string, unknown>) => ["officer-application-queue", filter ?? {}] as const,
+  managerQueue: (filter?: Record<string, unknown>) => ["manager-application-queue", filter ?? {}] as const,
   applications: ["applications"] as const,
   summary: ["application-summary"] as const,
 };
@@ -75,7 +76,7 @@ export function useOfficerApplicationAction(id: number) {
     mutationFn: ({ action, payload }: { action: OfficerWorkflowAction; payload?: OfficerActionPayload }) =>
       applicationWorkflowService.officer.action(id, action, payload ?? {}),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: keys.officerQueue });
+      queryClient.invalidateQueries({ queryKey: ["officer-application-queue"] });
       queryClient.invalidateQueries({ queryKey: ["officer-application", id] });
     },
   });
@@ -88,7 +89,7 @@ export function useBackOfficerApplicationAction(id: number) {
     mutationFn: ({ action, payload }: { action: "approve" | "reject"; payload?: OfficerActionPayload }) =>
       applicationWorkflowService.officer.backOfficerAction(id, action, payload ?? {}),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: keys.officerQueue });
+      queryClient.invalidateQueries({ queryKey: ["officer-application-queue"] });
       queryClient.invalidateQueries({ queryKey: ["officer-application", id] });
     },
   });
@@ -99,6 +100,49 @@ export function useWindowFrontOfficers(windowId?: number, serviceId?: number) {
     queryKey: ["window-front-officers", windowId, serviceId],
     queryFn: () => applicationWorkflowService.officer.frontOfficers(Number(windowId), serviceId),
     enabled: Boolean(windowId),
+  });
+}
+
+export function useOfficerSharingWindows() {
+  return useQuery({
+    queryKey: ["officer-sharing-windows"],
+    queryFn: applicationWorkflowService.officer.sharingWindows,
+  });
+}
+
+export function useOfficerSharingOfficers(windowId?: number) {
+  return useQuery({
+    queryKey: ["officer-sharing-officers", windowId],
+    queryFn: () => applicationWorkflowService.officer.sharingOfficers(Number(windowId)),
+    enabled: Boolean(windowId),
+  });
+}
+
+export function useManagerApplicationQueue(filter?: { bucket?: string; search?: string; status?: string }) {
+  return useQuery({
+    queryKey: keys.managerQueue(filter),
+    queryFn: () => applicationWorkflowService.manager.queue(filter),
+  });
+}
+
+export function useManagerApplication(id: number) {
+  return useQuery({
+    queryKey: ["manager-application", id],
+    queryFn: () => applicationWorkflowService.manager.show(id),
+    enabled: Number.isFinite(id) && id > 0,
+  });
+}
+
+export function useManagerApplicationAction(id: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ action, payload }: { action: ManagerWorkflowAction; payload?: ManagerActionPayload }) =>
+      applicationWorkflowService.manager.action(id, action, payload ?? {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manager-application-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["manager-application", id] });
+    },
   });
 }
 
