@@ -2,7 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { applicationWorkflowService } from "@/services/application-workflow/application-workflow";
+import {
+  applicationWorkflowService,
+  OfficerActionPayload,
+  OfficerWorkflowAction,
+} from "@/services/application-workflow/application-workflow";
 import {
   ServiceFormField,
   ServiceFormFieldCondition,
@@ -68,12 +72,33 @@ export function useOfficerApplicationAction(id: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ action, remark }: { action: "approve" | "reject" | "return" | "complete"; remark?: string }) =>
-      applicationWorkflowService.officer.action(id, action, remark),
+    mutationFn: ({ action, payload }: { action: OfficerWorkflowAction; payload?: OfficerActionPayload }) =>
+      applicationWorkflowService.officer.action(id, action, payload ?? {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: keys.officerQueue });
       queryClient.invalidateQueries({ queryKey: ["officer-application", id] });
     },
+  });
+}
+
+export function useBackOfficerApplicationAction(id: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ action, payload }: { action: "approve" | "reject"; payload?: OfficerActionPayload }) =>
+      applicationWorkflowService.officer.backOfficerAction(id, action, payload ?? {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.officerQueue });
+      queryClient.invalidateQueries({ queryKey: ["officer-application", id] });
+    },
+  });
+}
+
+export function useWindowFrontOfficers(windowId?: number, serviceId?: number) {
+  return useQuery({
+    queryKey: ["window-front-officers", windowId, serviceId],
+    queryFn: () => applicationWorkflowService.officer.frontOfficers(Number(windowId), serviceId),
+    enabled: Boolean(windowId),
   });
 }
 
