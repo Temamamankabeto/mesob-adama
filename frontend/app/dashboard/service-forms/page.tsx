@@ -171,7 +171,6 @@ export default function ServiceFormsPage() {
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
- {/* auto increment */}
                          
                           <Badge variant="outline"> {index + 1}</Badge>
                         </div>
