@@ -2,61 +2,85 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Service;
-
-use App\Services\ServiceWindowService;
-
 use App\Http\Controllers\Controller;
-
 use App\Http\Requests\AssignWindowToServiceRequest;
+use App\Models\Service;
+use App\Services\ServiceWindowService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ServiceWindowController extends Controller
 {
-    protected ServiceWindowService
-        $serviceWindowService;
-
     public function __construct(
-        ServiceWindowService
-            $serviceWindowService
-    ) {
-        $this->serviceWindowService =
-            $serviceWindowService;
+        protected ServiceWindowService $serviceWindowService
+    ) {}
+
+    public function board(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Service window board retrieved successfully',
+            'data' => $this->serviceWindowService->board($request->user()),
+        ]);
     }
 
-    /**
-     * Assign windows to service.
-     */
+    public function move(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'service_id' => ['required', 'integer', 'exists:services,id'],
+            'window_id' => ['required', 'integer', 'exists:windows,id'],
+            'step_order' => ['nullable', 'integer', 'min:1'],
+            'is_required' => ['nullable', 'boolean'],
+        ]);
+
+        $service = $this->serviceWindowService->move(
+            $request->user(),
+            (int) $data['service_id'],
+            (int) $data['window_id'],
+            (int) ($data['step_order'] ?? 1),
+            (bool) ($data['is_required'] ?? true)
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Service moved to window successfully',
+            'data' => $service,
+        ]);
+    }
+
+    public function unassign(Request $request, Service $service): JsonResponse
+    {
+        $this->serviceWindowService->unassign($request->user(), $service);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Service removed from window successfully',
+            'data' => $this->serviceWindowService->board($request->user()),
+        ]);
+    }
+
     public function assign(
         AssignWindowToServiceRequest $request,
         Service $service
-    ) {
-
-        $updatedService =
-            $this->serviceWindowService
-                ->assign(
-                    $service,
-                    $request->validated()['windows']
-                );
+    ): JsonResponse {
+        $updatedService = $this->serviceWindowService->assign(
+            $request->user(),
+            $service,
+            $request->validated()['windows']
+        );
 
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Windows assigned successfully',
-
+            'message' => 'Windows assigned successfully',
             'data' => $updatedService,
-
         ]);
     }
-    public function show(Service $service)
-{
-    $service->load('windows');
 
-    return response()->json([
-        'success' => true,
-
-        'data' => $service,
-    ]);
-}
+    public function show(Request $request, Service $service): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->serviceWindowService->show($request->user(), $service),
+        ]);
+    }
 }

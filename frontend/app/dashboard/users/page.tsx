@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { MoreVertical, Search } from "lucide-react";
 
 import { useUsers, useDeleteUser } from "@/hooks/user/useUsers";
 import { useToggleUserStatus } from "@/hooks/user/useToggleUserStatus";
@@ -28,7 +29,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { MoreVertical, Search } from "lucide-react";
+function canToggleUsers() {
+  const user = authService.getStoredUser() as any;
+  const roles = authService.getStoredRoles();
+
+  const role = normalizeRoleName(roles?.[0] || user?.role);
+
+  if (role === "super_admin") {
+    return true;
+  }
+
+  if (role !== "admin") {
+    return false;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Activation rule
+  |--------------------------------------------------------------------------
+  | Only City Admin has final activation authority.
+  | Subcity Admin and Woreda Admin should not see Enable/Disable action.
+  */
+  return user?.location_level === "city" || (user?.city_id && !user?.subcity_id && !user?.woreda_id);
+}
 
 export default function UsersPage() {
   const router = useRouter();
@@ -46,6 +69,8 @@ export default function UsersPage() {
 
   const deleteUser = useDeleteUser();
   const toggleStatus = useToggleUserStatus();
+
+  const showToggleAction = canToggleUsers();
 
   const handleDelete = (id: number) => {
     if (confirm("Delete user?")) {
@@ -91,15 +116,14 @@ export default function UsersPage() {
       {/* TABLE */}
       <Card>
         <CardHeader>
-          <CardTitle>User List ({meta?.total || 0})</CardTitle>
+          <CardTitle>User List</CardTitle>
         </CardHeader>
 
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Full Name</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Role</TableHead>
@@ -128,11 +152,6 @@ export default function UsersPage() {
               ) : (
                 users.map((user: any, index: number) => (
                   <TableRow key={user.id}>
-                    {/* FIXED INDEX */}
-                    <TableCell>
-                      {(meta?.current_page - 1) * meta?.per_page + index + 1}
-                    </TableCell>
-
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.phone}</TableCell>

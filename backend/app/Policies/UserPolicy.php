@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Policies\Concerns\ChecksPermissions;
+use App\Support\AppRoles;
 
 class UserPolicy
 {
@@ -40,7 +41,26 @@ class UserPolicy
 
     public function toggle(User $user, User $model): bool
     {
-        return $this->allows($user, 'users.activate', 'users.deactivate');
+        if (! $this->allows($user, 'users.activate', 'users.deactivate')) {
+            return false;
+        }
+
+        if ($user->hasRole(AppRoles::SUPER_ADMIN)) {
+            return true;
+        }
+
+        if (! $user->hasRole(AppRoles::ADMIN)) {
+            return false;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Final activation authority
+        |--------------------------------------------------------------------------
+        | Subcity and Woreda admins must not enable/disable users directly.
+        | Only City Admin and Super Admin can toggle activation status.
+        */
+        return AppRoles::userLevel($user) === AppRoles::LEVEL_CITY;
     }
 
     public function resetPassword(User $user, User $model): bool

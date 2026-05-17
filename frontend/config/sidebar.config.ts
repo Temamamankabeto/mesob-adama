@@ -55,6 +55,9 @@ const dashboardItem = (role: AppRoleKey): SidebarItem => ({
   icon: LayoutDashboard,
 });
 
+const adminScopes = ["super_admin", "admin:city", "admin:subcity", "admin:woreda"];
+const cityAdminScopes = ["super_admin", "admin:city"];
+
 const userManagementMenu: SidebarItem = {
   label: "User Management",
   icon: Users,
@@ -80,47 +83,45 @@ const userManagementMenu: SidebarItem = {
 const locationManagementMenu: SidebarItem = {
   label: "Location Management",
   icon: Map,
-  scopes: ["super_admin", "admin:city"],
+  scopes: cityAdminScopes,
   children: [
-    { label: "Locations", href: "/dashboard/locations", permission: "cities.read", scopes: ["super_admin", "admin:city"] },
+    { label: "Locations", href: "/dashboard/locations", permission: "cities.read", scopes: cityAdminScopes },
     { label: "Cities", href: "/dashboard/locations/cities", permission: "cities.read", scopes: ["super_admin"] },
-    { label: "Subcities", href: "/dashboard/locations/subcities", permission: "subcities.read", scopes: ["super_admin", "admin:city"] },
-    { label: "Woredas", href: "/dashboard/locations/woredas", permission: "woredas.read", scopes: ["super_admin", "admin:city"] },
+    { label: "Subcities", href: "/dashboard/locations/subcities", permission: "subcities.read", scopes: cityAdminScopes },
+    { label: "Woredas", href: "/dashboard/locations/woredas", permission: "woredas.read", scopes: cityAdminScopes },
   ],
 };
 
 const serviceManagementMenu: SidebarItem = {
   label: "Service Management",
   icon: Building2,
-  scopes: ["super_admin", "admin:city", "manager:city"],
   children: [
-    { label: "Services", href: "/dashboard/services", permission: "services.read", scopes: ["super_admin", "admin:city", "manager:city"] },
-    { label: "User Services", href: "/dashboard/user-services", permission: "services.read", scopes: ["super_admin", "admin:city"] },
-    { label: "Officer Services", href: "/dashboard/services/officers", permission: "services.read", scopes: ["super_admin", "admin:city"] },
+    { label: "Services", href: "/dashboard/services", permission: "services.read", scopes: adminScopes },
+    { label: "User Services", href: "/dashboard/user-services", permission: "services.read", scopes: cityAdminScopes },
+    { label: "Officer Services", href: "/dashboard/services/officers", permission: "services.read", scopes: cityAdminScopes },
   ],
 };
 
 const windowManagementMenu: SidebarItem = {
   label: "Window Management",
   icon: Workflow,
-  scopes: ["super_admin", "admin:city", "manager:city"],
   children: [
-    { label: "Windows", href: "/dashboard/windows", permission: "windows.read", scopes: ["super_admin", "admin:city", "manager:city"] },
-    { label: "Service Windows", href: "/dashboard/service-window", permission: "windows.read", scopes: ["super_admin", "admin:city"] },
-    { label: "Window Assignment", href: "/dashboard/service-window/lists", permission: "windows.read", scopes: ["super_admin", "admin:city"] },
+    { label: "Windows", href: "/dashboard/windows", permission: "windows.read", scopes: adminScopes },
+    { label: "Service Windows", href: "/dashboard/service-window", permission: "windows.read", scopes: adminScopes },
+    { label: "Window Assignment", href: "/dashboard/service-window/lists", permission: "windows.read", scopes: adminScopes },
   ],
 };
 
 const formBuilderMenu: SidebarItem = {
   label: "Form Builder",
   icon: ClipboardList,
-  scopes: ["super_admin", "admin:city", "manager:city"],
+  scopes: cityAdminScopes,
   children: [
-    { label: "Service Forms", href: "/dashboard/service-forms", permission: "service_forms.read", scopes: ["super_admin", "admin:city", "manager:city"] },
-    { label: "Form Sections", href: "/dashboard/service-form-sections", permission: "service_forms.read", scopes: ["super_admin", "admin:city", "manager:city"] },
-    { label: "Form Steps", href: "/dashboard/service-form-steps", permission: "service_forms.read", scopes: ["super_admin", "admin:city", "manager:city"] },
-    { label: "Form Fields", href: "/dashboard/service-form-fields", permission: "service_forms.read", scopes: ["super_admin", "admin:city", "manager:city"] },
-    { label: "Field Conditions", href: "/dashboard/service-form-field-conditions", permission: "service_forms.read", scopes: ["super_admin", "admin:city", "manager:city"] },
+    { label: "Service Forms", href: "/dashboard/service-forms", permission: "service_forms.read", scopes: cityAdminScopes },
+    { label: "Form Sections", href: "/dashboard/service-form-sections", permission: "service_forms.read", scopes: cityAdminScopes },
+    { label: "Form Steps", href: "/dashboard/service-form-steps", permission: "service_forms.read", scopes: cityAdminScopes },
+    { label: "Form Fields", href: "/dashboard/service-form-fields", permission: "service_forms.read", scopes: cityAdminScopes },
+    { label: "Field Conditions", href: "/dashboard/service-form-field-conditions", permission: "service_forms.read", scopes: cityAdminScopes },
   ],
 };
 
@@ -154,9 +155,9 @@ const customerApplicationMenu: SidebarItem = {
 const systemMenu: SidebarItem = {
   label: "System",
   icon: Settings,
-  scopes: ["super_admin", "admin:city"],
+  scopes: cityAdminScopes,
   children: [
-    { label: "Audit Logs", href: "/dashboard/audit-logs", permission: "audit_logs.read", scopes: ["super_admin", "admin:city"] },
+    { label: "Audit Logs", href: "/dashboard/audit-logs", permission: "audit_logs.read", scopes: cityAdminScopes },
   ],
 };
 
@@ -170,8 +171,7 @@ const adminSections = (role: AppRoleKey): SidebarSection[] => [
 const managerSections = (role: AppRoleKey): SidebarSection[] => [
   s("Main", [dashboardItem(role)]),
   s("Management", [userManagementMenu, serviceManagementMenu, windowManagementMenu]),
-  s("Applications", [formBuilderMenu, applicationManagementMenu]),
-  s("System", [systemMenu]),
+  s("Applications", [applicationManagementMenu]),
 ];
 
 const officerSections = (role: AppRoleKey): SidebarSection[] => [
@@ -207,9 +207,7 @@ function currentScopeKey(): string {
     const roles = rawRoles ? JSON.parse(rawRoles) : [];
     const role = Array.isArray(roles) ? roles[0] : roles || user.role;
 
-    const normalized = String(role || "")
-      .toLowerCase()
-      .replace(/[-\s]+/g, "_");
+    const normalized = String(role || "").toLowerCase().replace(/[-\s]+/g, "_");
 
     if (normalized === "super_admin") return "super_admin";
     if (normalized === "customer") return "customer";
@@ -224,10 +222,7 @@ function currentScopeKey(): string {
 
 function scopeAllowed(scopes: string[] | undefined): boolean {
   if (!scopes?.length) return true;
-
-  const current = currentScopeKey();
-
-  return scopes.includes(current);
+  return scopes.includes(currentScopeKey());
 }
 
 function childAllowed(child: SidebarChildItem, permissions: string[]): boolean {
