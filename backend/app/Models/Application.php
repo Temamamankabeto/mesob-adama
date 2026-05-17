@@ -10,6 +10,10 @@ class Application extends Model
         'application_number',
         'customer_id',
         'service_id',
+        'administrative_level',
+        'city_id',
+        'subcity_id',
+        'woreda_id',
         'status',
         'assigned_to',
         'submitted_at',
@@ -20,6 +24,9 @@ class Application extends Model
     protected $casts = [
         'customer_id' => 'integer',
         'service_id' => 'integer',
+        'city_id' => 'integer',
+        'subcity_id' => 'integer',
+        'woreda_id' => 'integer',
         'assigned_to' => 'integer',
         'submitted_at' => 'datetime',
         'completed_at' => 'datetime',
@@ -38,5 +45,20 @@ class Application extends Model
     public function assignee()
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function subcity()
+    {
+        return $this->belongsTo(Subcity::class);
+    }
+
+    public function woreda()
+    {
+        return $this->belongsTo(Woreda::class);
     }
 }

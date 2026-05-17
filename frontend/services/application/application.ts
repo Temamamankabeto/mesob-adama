@@ -1,6 +1,27 @@
 import api, { unwrap } from "@/lib/api";
 
-function appendApplicationData(payload: FormData, values: Record<string, unknown>, files: Record<string, File | null>) {
+function appendApplicationData(
+  payload: FormData,
+  values: Record<string, unknown>,
+  files: Record<string, File | null>,
+  selection: {
+    administrative_level: string;
+    city_id: number;
+    subcity_id?: number | null;
+    woreda_id?: number | null;
+  }
+) {
+  payload.append("administrative_level", selection.administrative_level);
+  payload.append("city_id", String(selection.city_id));
+
+  if (selection.subcity_id) {
+    payload.append("subcity_id", String(selection.subcity_id));
+  }
+
+  if (selection.woreda_id) {
+    payload.append("woreda_id", String(selection.woreda_id));
+  }
+
   Object.entries(values).forEach(([key, value]) => {
     if (value === undefined || value === null) return;
 
@@ -24,12 +45,20 @@ export const applicationService = {
     return unwrap(response);
   },
 
-  async apply(serviceId: number, valuesOrFormData: FormData | Record<string, unknown>, files: Record<string, File | null> = {}) {
-    const payload = valuesOrFormData instanceof FormData ? valuesOrFormData : new FormData();
-
-    if (!(valuesOrFormData instanceof FormData)) {
-      appendApplicationData(payload, valuesOrFormData, files);
+  async apply(
+    serviceId: number,
+    values: Record<string, unknown>,
+    files: Record<string, File | null> = {},
+    selection: {
+      administrative_level: string;
+      city_id: number;
+      subcity_id?: number | null;
+      woreda_id?: number | null;
     }
+  ) {
+    const payload = new FormData();
+
+    appendApplicationData(payload, values, files, selection);
 
     const response = await api.post(`/public/services/${serviceId}/apply`, payload, {
       headers: {

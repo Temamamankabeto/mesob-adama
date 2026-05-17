@@ -62,13 +62,13 @@ class DashboardService
                 [
                     'key' => 'pending',
                     'label' => 'Pending',
-                    'value' => (clone $serviceApplications)->whereIn('status', ['submitted', 'under_review'])->count(),
+                    'value' => (clone $serviceApplications)->whereIn('status', ['submitted', 'front_officer_review', 'forwarded_to_back_officer', 'back_officer_review'])->count(),
                     'description' => 'Applications waiting for processing.',
                 ],
                 [
                     'key' => 'approved',
                     'label' => 'Approved',
-                    'value' => (clone $serviceApplications)->where('status', 'approved')->count(),
+                    'value' => (clone $serviceApplications)->whereIn('status', ['approved', 'back_officer_approved'])->count(),
                     'description' => 'Approved applications.',
                 ],
                 [
@@ -85,20 +85,20 @@ class DashboardService
                 [
                     'key' => 'queue',
                     'label' => 'Queue',
-                    'value' => (clone $serviceApplications)->whereIn('status', ['submitted', 'under_review', 'returned'])->count(),
+                    'value' => (clone $serviceApplications)->whereIn('status', ['submitted', 'front_officer_review', 'forwarded_to_back_officer', 'back_officer_review', 'returned'])->count(),
                     'description' => 'Applications requiring officer action.',
                 ],
                 [
                     'key' => 'under_review',
                     'label' => 'Under Review',
-                    'value' => (clone $serviceApplications)->where('status', 'under_review')->count(),
+                    'value' => (clone $serviceApplications)->whereIn('status', ['front_officer_review', 'back_officer_review'])->count(),
                     'description' => 'Applications in review.',
                 ],
                 [
                     'key' => 'returned',
-                    'label' => 'Appointed',
+                    'label' => 'Returned',
                     'value' => (clone $serviceApplications)->where('status', 'returned')->count(),
-                    'description' => 'Appointed applications for correction.',
+                    'description' => 'Returned for correction.',
                 ],
                 [
                     'key' => 'completed',
@@ -142,9 +142,9 @@ class DashboardService
         return [
             'total' => (clone $query)->count(),
             'submitted' => (clone $query)->where('status', 'submitted')->count(),
-            'under_review' => (clone $query)->where('status', 'under_review')->count(),
-            'appoint' => (clone $query)->where('status', 'returned')->count(),
-            'approved' => (clone $query)->where('status', 'approved')->count(),
+            'under_review' => (clone $query)->whereIn('status', ['front_officer_review', 'forwarded_to_back_officer', 'back_officer_review'])->count(),
+            'returned' => (clone $query)->where('status', 'returned')->count(),
+            'approved' => (clone $query)->whereIn('status', ['approved', 'back_officer_approved'])->count(),
             'rejected' => (clone $query)->where('status', 'rejected')->count(),
             'completed' => (clone $query)->where('status', 'completed')->count(),
         ];
@@ -175,12 +175,12 @@ class DashboardService
             ],
             [
                 'label' => 'My Applications',
-                'href' => '/my-applications',
+                'href' => '/dashboard/my-applications',
                 'permission' => 'applications.own',
             ],
             [
                 'label' => 'Track Application',
-                'href' => '/track-application',
+                'href' => '/dashboard/track-application',
                 'permission' => 'applications.track',
             ],
         ];

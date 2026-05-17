@@ -30,9 +30,7 @@ class AccessScope
             return $query->where('customer_id', $actor->id);
         }
 
-        return $query->whereHas('customer', function (Builder $customerQuery) use ($actor) {
-            $this->applyLocationColumns($customerQuery, $actor);
-        });
+        return $this->applyApplicationLocationColumns($query, $actor);
     }
 
     public function applyApplicationScope(Builder $query, User $actor): Builder
@@ -45,9 +43,7 @@ class AccessScope
             return $query->where('customer_id', $actor->id);
         }
 
-        return $query->whereHas('customer', function (Builder $customerQuery) use ($actor) {
-            $this->applyLocationColumns($customerQuery, $actor);
-        });
+        return $this->applyApplicationLocationColumns($query, $actor);
     }
 
     public function applyLocationColumns(Builder $query, User $actor): Builder
@@ -66,6 +62,34 @@ class AccessScope
 
         if ($level === AppRoles::LEVEL_WOREDA && $actor->woreda_id) {
             return $query
+                ->where('city_id', $actor->city_id)
+                ->where('subcity_id', $actor->subcity_id)
+                ->where('woreda_id', $actor->woreda_id);
+        }
+
+        return $query;
+    }
+
+    public function applyApplicationLocationColumns(Builder $query, User $actor): Builder
+    {
+        $level = AppRoles::userLevel($actor);
+
+        if ($level === AppRoles::LEVEL_CITY && $actor->city_id) {
+            return $query
+                ->where('administrative_level', AppRoles::LEVEL_CITY)
+                ->where('city_id', $actor->city_id);
+        }
+
+        if ($level === AppRoles::LEVEL_SUBCITY && $actor->subcity_id) {
+            return $query
+                ->where('administrative_level', AppRoles::LEVEL_SUBCITY)
+                ->where('city_id', $actor->city_id)
+                ->where('subcity_id', $actor->subcity_id);
+        }
+
+        if ($level === AppRoles::LEVEL_WOREDA && $actor->woreda_id) {
+            return $query
+                ->where('administrative_level', AppRoles::LEVEL_WOREDA)
                 ->where('city_id', $actor->city_id)
                 ->where('subcity_id', $actor->subcity_id)
                 ->where('woreda_id', $actor->woreda_id);

@@ -15,23 +15,51 @@ use Log;
 
 class AuthController extends Controller
 {
-public function register(Request $request, SmsService $sms)
-{
-    $validator = Validator::make($request->all(), [
-        'name' => ['required', 'string', 'max:255'],
-        'email' => ['required', 'email', 'unique:users'],
-        'phone' => ['required', 'string', 'max:20'],
-        'password' => ['required', 'confirmed', 'min:8'],
-        'address' => ['nullable', 'string', 'max:500'],
-    ]);
+    public function register(Request $request, SmsService $sms)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone' => ['required', 'string', 'max:20'],
+            'password' => ['required', 'confirmed', 'min:8'],
+            'address' => ['nullable', 'string', 'max:500'],
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Validation failed',
-            'errors' => $validator->errors(),
-        ], 422);
-    }
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $plainPassword = $request->password;
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'password' => Hash::make($plainPassword),
+            'is_active' => true,
+        ]);
+
+        $user->assignRole(AppRoles::CUSTOMER);
+
+        $accessToken = $user->createToken('aig-api-token')->plainTextToken;
+        $refreshToken = Str::random(64);
+
+        $user->forceFill([
+            'refresh_token' => hash('sha256', $refreshToken),
+            'refresh_token_expires_at' => now()->addDays(30),
+        ])->save();
+
+        try {
+            $message = "Welcome {$user->name}! Your MESOB customer account is created. Phone: {$user->phone}. Password: {$plainPassword}";
+            $sms->sendToPhone($user->phone, $message);
+        } catch (\Throwable $exception) {
+            Log::error('Registration SMS failed: ' . $exception->getMessage());
+        }
 
     $user = User::create([
         'name' => $request->name,
