@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { MoreVertical, Search } from "lucide-react";
 
-import {
-  useUsers,
-  useDeleteUser,
-} from "@/hooks/user/useUsers";
-
+import { useDeleteUser, useUsers } from "@/hooks/user/useUsers";
 import { useToggleUserStatus } from "@/hooks/user/useToggleUserStatus";
-import { locationLevelLabel, roleLabel } from "@/config/roles.config";
+import { authService } from "@/services/auth/auth.service";
+import { locationLevelLabel, normalizeRoleName, roleLabel } from "@/config/roles.config";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 import {
   Card,
@@ -17,9 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 import {
   Table,
@@ -37,7 +35,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { MoreVertical, Search } from "lucide-react";
+function canToggleUsers() {
+  const user = authService.getStoredUser() as any;
+  const roles = authService.getStoredRoles();
+
+  const role = normalizeRoleName(roles?.[0] || user?.role);
+
+  if (role === "super_admin") {
+    return true;
+  }
+
+  if (role !== "admin") {
+    return false;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Activation rule
+  |--------------------------------------------------------------------------
+  | Only City Admin has final activation authority.
+  | Subcity Admin and Woreda Admin should not see Enable/Disable action.
+  */
+  return user?.location_level === "city" || (user?.city_id && !user?.subcity_id && !user?.woreda_id);
+}
 
 export default function UsersPage() {
   const router = useRouter();
@@ -52,6 +72,8 @@ export default function UsersPage() {
 
   const deleteUser = useDeleteUser();
   const toggleStatus = useToggleUserStatus();
+
+  const showToggleAction = canToggleUsers();
 
   const handleDelete = (id: number) => {
     if (confirm("Delete user?")) {
@@ -94,16 +116,14 @@ export default function UsersPage() {
 
       <Card>
         <CardHeader>
-          {/* count all users */}
-          <CardTitle>User List({meta?.total || 0})</CardTitle>
+          <CardTitle>User List</CardTitle>
         </CardHeader>
 
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Full Name</TableHead>
+                <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Role</TableHead>
@@ -132,23 +152,25 @@ export default function UsersPage() {
               ) : (
                 users.map((user: any) => (
                   <TableRow key={user.id}>
-                    {/* auto increment not use id */}
-                    <TableCell>
-                      {(meta?.current_page - 1) * meta?.per_page + users.indexOf(user) + 1}
-                      </TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.phone}</TableCell>
 
                     <TableCell>
                       {(user.role_names || [user.role]).filter(Boolean).map((role: string) => (
-                        <span key={role} className="mr-1 rounded bg-blue-100 px-2 py-1 text-xs text-blue-700">
+                        <span
+                          key={role}
+                          className="mr-1 rounded bg-blue-100 px-2 py-1 text-xs text-blue-700"
+                        >
                           {roleLabel(role)}
                         </span>
                       ))}
                     </TableCell>
 
-                    <TableCell>{locationLevelLabel(user.location_level) || "-"}</TableCell>
+                    <TableCell>
+                      {locationLevelLabel(user.location_level) || "-"}
+                    </TableCell>
+
                     <TableCell>{user.city?.name || "-"}</TableCell>
                     <TableCell>{user.subcity?.name || "-"}</TableCell>
                     <TableCell>{user.woreda?.name || "-"}</TableCell>
@@ -186,9 +208,11 @@ export default function UsersPage() {
                             Change Password
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem onClick={() => toggleStatus.mutate(user.id)}>
-                            {user.is_active ? "Disable User" : "Enable User"}
-                          </DropdownMenuItem>
+                          {showToggleAction && (
+                            <DropdownMenuItem onClick={() => toggleStatus.mutate(user.id)}>
+                              {user.is_active ? "Disable User" : "Enable User"}
+                            </DropdownMenuItem>
+                          )}
 
                           <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(user.id)}>
                             Delete
