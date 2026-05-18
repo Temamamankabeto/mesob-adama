@@ -107,7 +107,7 @@ export default function HomePage() {
             </div>
 
             <div>
-              <h1 className="text-lg font-bold tracking-tight">MESOB Adama</h1>
+              <h1 className="text-lg font-bold tracking-tight">Adama MESOB eService</h1>
 
               <p className="text-xs text-muted-foreground">
                 Digital Government
@@ -492,7 +492,7 @@ export default function HomePage() {
 
           {/* COPYRIGHT */}
           <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-            © 2025 MESOB Adama Digital Government Platform
+            © 2026 MESOB Adama Digital Government Platform
           </div>
         </div>
       </footer>
