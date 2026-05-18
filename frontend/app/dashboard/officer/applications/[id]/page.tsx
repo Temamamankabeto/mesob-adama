@@ -50,22 +50,67 @@ type PendingAction =
       requiresShare?: boolean;
     };
 
-function hasRoleKeyword(keyword: string) {
+function storedRoles() {
   return authService
     .getStoredRoles()
-    .some((role) => String(role).toLowerCase().includes(keyword));
+    .map((role) => String(role).toLowerCase());
 }
 
 function isBackOfficer() {
-  return hasRoleKeyword("back");
+  return storedRoles().some((role) => role.includes("back"));
 }
 
 function isFrontOfficer() {
-  return hasRoleKeyword("front");
+  return storedRoles().some((role) => role.includes("front"));
 }
 
-function canShowActions(status?: string | null) {
-  return !["completed", "rejected", "returned_to_customer"].includes(String(status || ""));
+function normalize(value?: string | null) {
+  return String(value || "").toLowerCase();
+}
+
+function isFinalStatus(status?: string | null) {
+  return ["completed", "rejected", "returned_to_customer", "cancelled"].includes(
+    normalize(status)
+  );
+}
+
+function isBackApproved(status?: string | null, stage?: string | null) {
+  const current = normalize(status);
+  const currentStage = normalize(stage);
+
+  return [
+    "approved",
+    "back_officer_approved",
+    "returned_to_front_officer",
+  ].includes(current) || [
+    "approved",
+    "back_officer_approved",
+    "returned_to_front_officer",
+  ].includes(currentStage);
+}
+
+function isBackRejected(status?: string | null, stage?: string | null) {
+  const current = normalize(status);
+  const currentStage = normalize(stage);
+
+  return [
+    "back_officer_rejected",
+    "returned_from_back_officer",
+    "returned_to_front_officer_rejected",
+  ].includes(current) || [
+    "back_officer_rejected",
+    "returned_from_back_officer",
+    "returned_to_front_officer_rejected",
+  ].includes(currentStage);
+}
+
+function officerRoleName(officer: any) {
+  return String(
+    officer?.role ||
+      officer?.role_names?.[0] ||
+      officer?.roles?.[0]?.name ||
+      ""
+  ).toLowerCase();
 }
 
 export default function OfficerApplicationDetailPage() {
@@ -81,75 +126,159 @@ export default function OfficerApplicationDetailPage() {
   const [shareWindowId, setShareWindowId] = useState<number | undefined>();
   const [shareOfficerId, setShareOfficerId] = useState<number | undefined>();
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
-  const [completedActions, setCompletedActions] = useState<string[]>([]);
+  const [actionSubmitted, setActionSubmitted] = useState(false);
 
   const shouldFetchSharing = pendingAction?.requiresShare === true;
 
-  const { data: shareWindows = [] } = useOfficerSharingWindows();
-  const { data: shareOfficers = [] } = useOfficerSharingOfficers(
-    shouldFetchSharing ? shareWindowId : undefined
+  const { data: shareWindows = [] } =
+    useOfficerSharingWindows(shouldFetchSharing);
+
+  const { data: rawShareOfficers = [] } = useOfficerSharingOfficers(
+    shareWindowId,
+    shouldFetchSharing
   );
 
   const front = isFrontOfficer();
   const back = isBackOfficer();
   const files = useMemo(() => documents, [documents]);
 
+  const status = data?.status;
+  const stage = data?.current_stage;
   const serviceHasBackOfficer = Boolean(data?.service?.has_back_officer);
-  const actionVisible = canShowActions(data?.status);
+  const backApproved = isBackApproved(status, stage);
+  const backRejected = isBackRejected(status, stage);
+  const actionVisible = !isFinalStatus(status) && !actionSubmitted;
+
+  const shareOfficers = useMemo(() => {
+    if (!pendingAction?.requiresShare) return [];
+
+    return rawShareOfficers.filter((officer: any) => {
+      const role = officerRoleName(officer);
+
+      if (pendingAction.actor === "back") {
+        return role.includes("back");
+      }
+
+      return role.includes("front");
+    });
+  }, [rawShareOfficers, pendingAction]);
 
   const frontActions = useMemo<PendingAction[]>(() => {
     if (!front || !actionVisible) return [];
 
-    const actions: PendingAction[] = serviceHasBackOfficer
-      ? [
-          {
-            actor: "front",
-            action: "accept",
-            label: "Accept",
-          },
-          {
-            actor: "front",
-            action: "forward-to-back-officer",
-            label: "Accept & Forward to Back Officer",
-          },
-          {
-            actor: "front",
-            action: "share-to-officer",
-            label: "Share with Officer",
-            requiresShare: true,
-          },
-        ]
-      : [
-          {
-            actor: "front",
-            action: "accept",
-            label: "Accept",
-          },
-          {
-            actor: "front",
-            action: "complete",
-            label: "Complete",
-          },
-          {
-            actor: "front",
-            action: "reject",
-            label: "Reject",
-          },
-          {
-            actor: "front",
-            action: "return",
-            label: "Return to Customer",
-          },
-          {
-            actor: "front",
-            action: "share-to-officer",
-            label: "Share with Officer",
-            requiresShare: true,
-          },
-        ];
+    /*
+    |--------------------------------------------------------------------------
+    | Front Officer action rules
+    |--------------------------------------------------------------------------
+    | 1. If Back Officer approved:
+    |    - show Accept & Complete
+    |    - keep Share with Another Officer
+    |
+    | 2. If Back Officer rejected/returned as rejected:
+    |    - show Reject & Return to Customer
+    |    - keep Share with Another Officer
+    |
+    | 3. If service has Back Officer and still waiting:
+    |    - show Accept
+    |    - show Accept & Forward to Back Officer
+    |    - keep Share with Another Officer
+    |
+    | 4. If service has no Back Officer:
+    |    - show Accept
+    |    - show Complete
+    |    - show Reject
+    |    - show Return
+    |    - keep Share with Another Officer
+    */
 
-    return actions.filter((item) => !completedActions.includes(`${item.actor}:${item.action}`));
-  }, [front, actionVisible, serviceHasBackOfficer, completedActions]);
+    if (backApproved) {
+      return [
+        {
+          actor: "front",
+          action: "complete",
+          label: "Accept & Complete",
+        },
+        {
+          actor: "front",
+          action: "share-to-officer",
+          label: "Share with Another Officer",
+          requiresShare: true,
+        },
+      ];
+    }
+
+    if (backRejected) {
+      return [
+        {
+          actor: "front",
+          action: "reject",
+          label: "Reject & Return to Customer",
+        },
+        {
+          actor: "front",
+          action: "share-to-officer",
+          label: "Share with Another Officer",
+          requiresShare: true,
+        },
+      ];
+    }
+
+    if (serviceHasBackOfficer) {
+      return [
+        {
+          actor: "front",
+          action: "accept",
+          label: "Accept",
+        },
+        {
+          actor: "front",
+          action: "forward-to-back-officer",
+          label: "Accept & Forward to Back Officer",
+        },
+        {
+          actor: "front",
+          action: "share-to-officer",
+          label: "Share with Another Officer",
+          requiresShare: true,
+        },
+      ];
+    }
+
+    return [
+      {
+        actor: "front",
+        action: "accept",
+        label: "Accept",
+      },
+      {
+        actor: "front",
+        action: "complete",
+        label: "Accept & Complete",
+      },
+      {
+        actor: "front",
+        action: "reject",
+        label: "Reject & Return to Customer",
+      },
+      {
+        actor: "front",
+        action: "return",
+        label: "Return to Customer",
+      },
+      {
+        actor: "front",
+        action: "share-to-officer",
+        label: "Share with Another Officer",
+        requiresShare: true,
+      },
+    ];
+  }, [
+    front,
+    actionVisible,
+    serviceHasBackOfficer,
+    backApproved,
+    backRejected,
+  ]);
 
   const backActions = useMemo<PendingAction[]>(() => {
     if (!back || !actionVisible) return [];
@@ -167,13 +296,8 @@ export default function OfficerApplicationDetailPage() {
       },
       {
         actor: "back",
-        action: "return",
-        label: "Return to Front Officer",
-      },
-      {
-        actor: "back",
         action: "share",
-        label: "Share with Back Officer",
+        label: "Share with Another Back Officer",
         requiresShare: true,
       },
       {
@@ -181,8 +305,10 @@ export default function OfficerApplicationDetailPage() {
         action: "escalate-to-manager",
         label: "Escalate to Manager",
       },
-    ].filter((item) => !completedActions.includes(`${item.actor}:${item.action}`));
-  }, [back, actionVisible, completedActions]);
+    ];
+  }, [back, actionVisible]);
+
+  const activeActions = back ? backActions : frontActions;
 
   function resetActionForm() {
     setPendingAction(null);
@@ -193,104 +319,100 @@ export default function OfficerApplicationDetailPage() {
   }
 
   async function submitFrontAction(action: PendingAction) {
-    try {
-      if (action.action === "share-to-officer") {
-        if (!shareWindowId || !shareOfficerId) {
-          toast.error("Select window and officer.");
-          return;
-        }
+    if (action.actor !== "front") return;
 
-        await frontAction.mutateAsync({
-          action: "share-to-officer",
-          payload: {
-            to_window_id: shareWindowId,
-            to_officer_id: shareOfficerId,
-            note: remark,
-            remark,
-          },
-        });
-      } else {
-        await frontAction.mutateAsync({
-          action: action.action,
-          payload: {
-            remark,
-            note: remark,
-            reason: remark,
-            documents: files,
-          },
-        });
+    if (action.requiresShare) {
+      if (!shareWindowId || !shareOfficerId) {
+        toast.error("Select window and officer.");
+        return;
       }
 
-      setCompletedActions((current) => [...current, `${action.actor}:${action.action}`]);
-      resetActionForm();
-      toast.success("Action completed successfully.");
-    } catch (error: any) {
-      toast.error(
-        error?.response?.data?.message ||
-          Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
-          error?.message ||
-          "Action failed"
-      );
+      await frontAction.mutateAsync({
+        action: "share-to-officer",
+        payload: {
+          to_window_id: shareWindowId,
+          to_officer_id: shareOfficerId,
+          note: remark,
+          remark,
+        },
+      });
+
+      return;
     }
+
+    await frontAction.mutateAsync({
+      action: action.action,
+      payload: {
+        remark,
+        note: remark,
+        reason: remark,
+        documents: files,
+      },
+    });
   }
 
   async function submitBackAction(action: PendingAction) {
-    try {
-      if (action.action === "share") {
-        if (!shareWindowId || !shareOfficerId) {
-          toast.error("Select window and officer.");
-          return;
-        }
+    if (action.actor !== "back") return;
 
-        await backAction.mutateAsync({
-          action: "share",
-          payload: {
-            to_window_id: shareWindowId,
-            to_officer_id: shareOfficerId,
-            window_id: shareWindowId,
-            officer_id: shareOfficerId,
-            note: remark,
-            remark,
-          },
-        });
-      } else {
-        await backAction.mutateAsync({
-          action: action.action,
-          payload: {
-            remark,
-            note: remark,
-            reason: remark,
-            documents: files,
-          },
-        });
+    if (action.action === "share") {
+      if (!shareWindowId || !shareOfficerId) {
+        toast.error("Select window and back officer.");
+        return;
       }
 
-      setCompletedActions((current) => [...current, `${action.actor}:${action.action}`]);
-      resetActionForm();
-      toast.success("Action completed successfully.");
-    } catch (error: any) {
-      toast.error(
-        error?.response?.data?.message ||
-          Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
-          error?.message ||
-          "Action failed"
-      );
+      await backAction.mutateAsync({
+        action: "share",
+        payload: {
+          to_window_id: shareWindowId,
+          to_officer_id: shareOfficerId,
+          window_id: shareWindowId,
+          officer_id: shareOfficerId,
+          note: remark,
+          remark,
+        },
+      });
+
+      return;
     }
+
+    await backAction.mutateAsync({
+      action: action.action,
+      payload: {
+        remark,
+        note: remark,
+        reason: remark,
+        documents: files,
+      },
+    });
   }
 
   async function submitSelectedAction() {
     if (!pendingAction) return;
 
-    if (pendingAction.actor === "front") {
-      await submitFrontAction(pendingAction);
-      return;
-    }
+    try {
+      if (pendingAction.actor === "front") {
+        await submitFrontAction(pendingAction);
+      } else {
+        await submitBackAction(pendingAction);
+      }
 
-    await submitBackAction(pendingAction);
+      setActionSubmitted(true);
+      resetActionForm();
+      toast.success("Action completed successfully.");
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
+          error?.message ||
+          "Action failed"
+      );
+    }
   }
 
-  function selectAction(action: PendingAction) {
-    setPendingAction(action);
+  function selectAction(value: string) {
+    const action = activeActions.find((item) => item.action === value);
+
+    setPendingAction(action || null);
     setRemark("");
     setDocuments([]);
     setShareWindowId(undefined);
@@ -328,67 +450,85 @@ export default function OfficerApplicationDetailPage() {
 
       <Card className="rounded-3xl">
         <CardHeader>
-          <CardTitle>Workflow Actions</CardTitle>
+          <CardTitle>Workflow Action</CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-5">
-          {front && actionVisible && (
-            <div className="space-y-3 rounded-2xl border p-4">
+          {actionVisible && activeActions.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-3">
               <div>
-                <h3 className="font-semibold">Front Officer Actions</h3>
-                <p className="text-sm text-muted-foreground">
-                  {serviceHasBackOfficer
-                    ? "This service requires Back Officer verification."
-                    : "This service does not require Back Officer verification."}
-                </p>
+                <label className="text-sm font-medium">
+                  {back ? "Back Officer Action" : "Front Officer Action"}
+                </label>
+                <select
+                  className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
+                  value={pendingAction?.action || ""}
+                  onChange={(event) => selectAction(event.target.value)}
+                >
+                  <option value="">Select action</option>
+                  {activeActions.map((action) => (
+                    <option key={action.action} value={action.action}>
+                      {action.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {frontActions.map((action) => (
-                  <Button
-                    key={`${action.actor}:${action.action}`}
-                    type="button"
-                    variant={
-                      pendingAction?.actor === action.actor &&
-                      pendingAction?.action === action.action
-                        ? "default"
-                        : "outline"
-                    }
-                    onClick={() => selectAction(action)}
-                  >
-                    {action.label}
-                  </Button>
-                ))}
-              </div>
+              {pendingAction?.requiresShare && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium">Window</label>
+                    <select
+                      className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
+                      value={shareWindowId || ""}
+                      onChange={(event) => {
+                        setShareWindowId(
+                          event.target.value
+                            ? Number(event.target.value)
+                            : undefined
+                        );
+                        setShareOfficerId(undefined);
+                      }}
+                    >
+                      <option value="">Select window</option>
+                      {shareWindows.map((window) => (
+                        <option key={window.id} value={window.id}>
+                          {window.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">
+                      {back ? "Back Officer" : "Front Officer"}
+                    </label>
+                    <select
+                      className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
+                      value={shareOfficerId || ""}
+                      onChange={(event) =>
+                        setShareOfficerId(
+                          event.target.value
+                            ? Number(event.target.value)
+                            : undefined
+                        )
+                      }
+                      disabled={!shareWindowId}
+                    >
+                      <option value="">Select officer</option>
+                      {shareOfficers.map((officer) => (
+                        <option key={officer.id} value={officer.id}>
+                          {officer.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
             </div>
-          )}
-
-          {back && actionVisible && (
-            <div className="space-y-3 rounded-2xl border p-4">
-              <div>
-                <h3 className="font-semibold">Back Officer Actions</h3>
-                <p className="text-sm text-muted-foreground">
-                  Review, approve, reject, share, or escalate the application.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {backActions.map((action) => (
-                  <Button
-                    key={`${action.actor}:${action.action}`}
-                    type="button"
-                    variant={
-                      pendingAction?.actor === action.actor &&
-                      pendingAction?.action === action.action
-                        ? "default"
-                        : "outline"
-                    }
-                    onClick={() => selectAction(action)}
-                  >
-                    {action.label}
-                  </Button>
-                ))}
-              </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+              No actions available for the current status, or action already submitted successfully.
             </div>
           )}
 
@@ -400,42 +540,6 @@ export default function OfficerApplicationDetailPage() {
                   Add note/description and attach files before submitting.
                 </p>
               </div>
-
-              {pendingAction.requiresShare && (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <select
-                    className="rounded-md border bg-background p-2"
-                    value={shareWindowId || ""}
-                    onChange={(event) => {
-                      setShareWindowId(event.target.value ? Number(event.target.value) : undefined);
-                      setShareOfficerId(undefined);
-                    }}
-                  >
-                    <option value="">Select window</option>
-                    {shareWindows.map((window) => (
-                      <option key={window.id} value={window.id}>
-                        {window.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    className="rounded-md border bg-background p-2"
-                    value={shareOfficerId || ""}
-                    onChange={(event) =>
-                      setShareOfficerId(event.target.value ? Number(event.target.value) : undefined)
-                    }
-                    disabled={!shareWindowId}
-                  >
-                    <option value="">Select officer</option>
-                    {shareOfficers.map((officer) => (
-                      <option key={officer.id} value={officer.id}>
-                        {officer.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <textarea
                 className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -450,7 +554,9 @@ export default function OfficerApplicationDetailPage() {
                   type="file"
                   multiple
                   className="block w-full rounded-md border bg-background p-2 text-sm"
-                  onChange={(event) => setDocuments(Array.from(event.target.files || []))}
+                  onChange={(event) =>
+                    setDocuments(Array.from(event.target.files || []))
+                  }
                 />
               </div>
 
@@ -464,10 +570,11 @@ export default function OfficerApplicationDetailPage() {
                   disabled={
                     frontAction.isPending ||
                     backAction.isPending ||
-                    (pendingAction.requiresShare && (!shareWindowId || !shareOfficerId))
+                    (pendingAction.requiresShare &&
+                      (!shareWindowId || !shareOfficerId))
                   }
                 >
-                  Submit {pendingAction.label}
+                  Submit
                 </Button>
               </div>
             </div>
@@ -528,7 +635,9 @@ export default function OfficerApplicationDetailPage() {
             </p>
             <p>
               <span className="text-muted-foreground">Submitted:</span>{" "}
-              {data.submitted_at ? new Date(data.submitted_at).toLocaleString() : "-"}
+              {data.submitted_at
+                ? new Date(data.submitted_at).toLocaleString()
+                : "-"}
             </p>
           </CardContent>
         </Card>
@@ -549,7 +658,10 @@ export default function OfficerApplicationDetailPage() {
             <CardTitle>Workflow History</CardTitle>
           </CardHeader>
           <CardContent>
-            <ApplicationWorkflowTimeline workflow={data.workflow} histories={data.histories} />
+            <ApplicationWorkflowTimeline
+              workflow={data.workflow}
+              histories={data.histories}
+            />
           </CardContent>
         </Card>
       </div>
