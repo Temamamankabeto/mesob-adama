@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { MoreVertical, Search } from "lucide-react";
 
 import {
   useCreateService,
@@ -23,11 +24,15 @@ import {
 } from "@/components/ui/dialog";
 
 import { Button } from "@/components/ui/button";
-
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-
 import { Label } from "@/components/ui/label";
-
 import {
   Select,
   SelectContent,
@@ -35,19 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { Textarea } from "@/components/ui/textarea";
-
-import { Checkbox } from "@/components/ui/checkbox";
-
-import { MoreVertical, Search } from "lucide-react";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 type FormState = {
   name: string;
@@ -58,1038 +51,674 @@ type FormState = {
   status: "active" | "inactive";
 };
 
-export default function ServicePage() {
+type LevelFilter = "all" | ServiceAvailability;
 
-  /*
-  |--------------------------------------------------------------------------
-  | PAGINATION
-  |--------------------------------------------------------------------------
-  */
+const SERVICE_LEVELS: ServiceAvailability[] = ["city", "subcity", "woreda"];
 
-  const [page, setPage] =
-    useState(1);
+const emptyForm: FormState = {
+  name: "",
+  description: "",
+  has_back_officer: false,
+  service_fee: 0,
+  availability: [],
+  status: "active",
+};
 
-  /*
-  |--------------------------------------------------------------------------
-  | FILTERS
-  |--------------------------------------------------------------------------
-  */
+function normalizeAvailability(value: unknown): ServiceAvailability[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item).toLowerCase())
+      .filter((item): item is ServiceAvailability =>
+        SERVICE_LEVELS.includes(item as ServiceAvailability)
+      );
+  }
 
-  const [search, setSearch] =
-    useState("");
+  if (typeof value === "string") {
+    try {
+      return normalizeAvailability(JSON.parse(value));
+    } catch {
+      return SERVICE_LEVELS.includes(value as ServiceAvailability)
+        ? [value as ServiceAvailability]
+        : [];
+    }
+  }
 
-  const [statusFilter,
-    setStatusFilter] =
-    useState("all");
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
 
-  /*
-  |--------------------------------------------------------------------------
-  | DIALOGS
-  |--------------------------------------------------------------------------
-  */
+    if (Array.isArray(record.levels)) {
+      return normalizeAvailability(record.levels);
+    }
 
-  const [createOpen,
-    setCreateOpen] =
-    useState(false);
+    if (Array.isArray(record.administrative_levels)) {
+      return normalizeAvailability(record.administrative_levels);
+    }
 
-  const [editOpen,
-    setEditOpen] =
-    useState(false);
+    return SERVICE_LEVELS.filter((level) => Boolean(record[level]));
+  }
 
-  /*
-  |--------------------------------------------------------------------------
-  | SELECTED SERVICE
-  |--------------------------------------------------------------------------
-  */
+  return [];
+}
 
-  const [selectedService,
-    setSelectedService] =
-    useState<Service | null>(
-      null
-    );
-
-  /*
-  |--------------------------------------------------------------------------
-  | FORM DATA
-  |--------------------------------------------------------------------------
-  */
-
-  const [formData,
-    setFormData] =
-    useState<FormState>({
-      name: "",
-      description: "",
-      has_back_officer: false,
-      service_fee: 0,
-      availability: [],
-      status: "active",
-    });
-
-  /*
-  |--------------------------------------------------------------------------
-  | QUERIES
-  |--------------------------------------------------------------------------
-  */
-
-  const {
-    data,
-    isLoading,
-  } = useServices(page);
-
-  /*
-  |--------------------------------------------------------------------------
-  | FILTERED SERVICES
-  |--------------------------------------------------------------------------
-  */
-
-  const filteredServices =
-    data?.data?.data?.filter(
-      (
-        service: Service
-      ) => {
-
-        const matchesSearch =
-          service.name
-            .toLowerCase()
-            .includes(
-              search.toLowerCase()
-            );
-
-        const matchesStatus =
-          statusFilter ===
-          "all"
-            ? true
-            : service.status ===
-              statusFilter;
-
-        return (
-          matchesSearch &&
-          matchesStatus
-        );
-      }
-    ) || [];
-
-  /*
-  |--------------------------------------------------------------------------
-  | MUTATIONS
-  |--------------------------------------------------------------------------
-  */
-
-  const createMutation =
-    useCreateService();
-
-  const updateMutation =
-    useUpdateService();
-
-  const deleteMutation =
-    useDeleteService();
-
-  /*
-  |--------------------------------------------------------------------------
-  | RESET FORM
-  |--------------------------------------------------------------------------
-  */
-
-  const resetForm = () => {
-
-    setFormData({
-      name: "",
-      description: "",
-      has_back_officer: false,
-      service_fee: 0,
-      availability: [],
-      status: "active",
-    });
+function serviceToForm(service: Service): FormState {
+  return {
+    name: service.name || "",
+    description: service.description || "",
+    has_back_officer: Boolean(service.has_back_officer),
+    service_fee: Number(service.service_fee || 0),
+    availability: normalizeAvailability(service.availability),
+    status: service.status || "active",
   };
+}
 
-  /*
-  |--------------------------------------------------------------------------
-  | CREATE
-  |--------------------------------------------------------------------------
-  */
+function levelLabel(level: string) {
+  return level.charAt(0).toUpperCase() + level.slice(1);
+}
 
-  const handleCreate =
-    async () => {
-
-      try {
-
-        await createMutation.mutateAsync(
-          formData
-        );
-
-        setCreateOpen(false);
-
-        resetForm();
-
-      } catch (error) {
-
-        console.error(error);
+/*
+|--------------------------------------------------------------------------
+| Stable dialog form
+|--------------------------------------------------------------------------
+| Keep this component outside the page component. This prevents input remounts
+| and keeps typing/focus stable in both create and edit dialogs.
+*/
+function ServiceDialogForm({
+  formData,
+  setFormData,
+  submitLabel,
+  loading,
+  onSubmit,
+  onCancel,
+}: {
+  formData: FormState;
+  setFormData: React.Dispatch<React.SetStateAction<FormState>>;
+  submitLabel: string;
+  loading: boolean;
+  onSubmit: () => void;
+  onCancel: () => void;
+}) {
+  function toggleLevel(level: ServiceAvailability, checked: boolean) {
+    setFormData((current) => {
+      if (checked) {
+        return {
+          ...current,
+          availability: Array.from(new Set([...current.availability, level])),
+        };
       }
-    };
 
-  /*
-  |--------------------------------------------------------------------------
-  | EDIT
-  |--------------------------------------------------------------------------
-  */
-
-  const handleEdit = (
-    service: Service
-  ) => {
-
-    setSelectedService(
-      service
-    );
-
-    setFormData({
-      name: service.name,
-      description:
-        service.description ||
-        "",
-      has_back_officer:
-        service.has_back_officer,
-      service_fee:
-        service.service_fee,
-      availability:
-        service.availability,
-      status:
-        service.status,
+      return {
+        ...current,
+        availability: current.availability.filter((item) => item !== level),
+      };
     });
+  }
 
-    setEditOpen(true);
-  };
-
-  /*
-  |--------------------------------------------------------------------------
-  | UPDATE
-  |--------------------------------------------------------------------------
-  */
-
-  const handleUpdate =
-    async () => {
-
-      if (!selectedService)
-        return;
-
-      try {
-
-        await updateMutation.mutateAsync({
-
-          id:
-            selectedService.id,
-
-          payload: formData,
-        });
-
-        setEditOpen(false);
-
-        setSelectedService(
-          null
-        );
-
-        resetForm();
-
-      } catch (error) {
-
-        console.error(error);
-      }
-    };
-
-  /*
-  |--------------------------------------------------------------------------
-  | DELETE
-  |--------------------------------------------------------------------------
-  */
-
-  const handleDelete =
-    async (
-      id: number
-    ) => {
-
-      const confirmed =
-        confirm(
-          "Delete this service?"
-        );
-
-      if (!confirmed)
-        return;
-
-      try {
-
-        await deleteMutation.mutateAsync(
-          id
-        );
-
-      } catch (error) {
-
-        console.error(error);
-      }
-    };
-
-  /*
-  |--------------------------------------------------------------------------
-  | TOGGLE STATUS
-  |--------------------------------------------------------------------------
-  */
-
-  const handleToggleStatus =
-    async (
-      service: Service
-    ) => {
-
-      try {
-
-        await updateMutation.mutateAsync({
-
-          id: service.id,
-
-          payload: {
-
-            ...service,
-
-            status:
-              service.status ===
-              "active"
-                ? "inactive"
-                : "active",
-          },
-        });
-
-      } catch (error) {
-
-        console.error(error);
-      }
-    };
-
-  /*
-  |--------------------------------------------------------------------------
-  | REUSABLE FORM
-  |--------------------------------------------------------------------------
-  */
-
-  const ServiceForm = ({
-    isEdit = false,
-  }: {
-    isEdit?: boolean;
-  }) => (
-
-    <div className="space-y-4">
-
-      {/* NAME */}
-
+  return (
+    <div className="space-y-5">
       <div className="space-y-2">
-
-        <Label>
-          Name
-        </Label>
-
+        <Label htmlFor="service-name">Name</Label>
         <Input
+          id="service-name"
+          autoComplete="off"
           value={formData.name}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              name:
-                e.target.value,
-            })
+          placeholder="Enter service name"
+          onChange={(event) =>
+            setFormData((current) => ({
+              ...current,
+              name: event.target.value,
+            }))
           }
         />
-
       </div>
 
-      {/* DESCRIPTION */}
-
       <div className="space-y-2">
-
-        <Label>
-          Description
-        </Label>
-
+        <Label htmlFor="service-description">Description</Label>
         <Textarea
-          value={
-            formData.description
-          }
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              description:
-                e.target.value,
-            })
+          id="service-description"
+          value={formData.description}
+          placeholder="Enter service description"
+          onChange={(event) =>
+            setFormData((current) => ({
+              ...current,
+              description: event.target.value,
+            }))
           }
         />
-
       </div>
-
-      {/* FEE */}
 
       <div className="space-y-2">
-
-        <Label>
-          Service Fee
-        </Label>
-
+        <Label htmlFor="service-fee">Service Fee</Label>
         <Input
+          id="service-fee"
           type="number"
-          value={
-            formData.service_fee
-          }
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              service_fee:
-                Number(
-                  e.target.value
-                ),
-            })
+          min={0}
+          step="0.01"
+          value={String(formData.service_fee)}
+          onChange={(event) =>
+            setFormData((current) => ({
+              ...current,
+              service_fee: Number(event.target.value || 0),
+            }))
           }
         />
-
       </div>
 
-      {/* BACK OFFICER */}
-
-      <div className="flex items-center gap-3">
-
+      <label className="flex cursor-pointer items-center gap-3 rounded-xl border p-3">
         <Checkbox
-          checked={
-            formData.has_back_officer
-          }
-          onCheckedChange={(
-            checked
-          ) =>
-            setFormData({
-              ...formData,
-              has_back_officer:
-                !!checked,
-            })
+          checked={formData.has_back_officer}
+          onCheckedChange={(checked) =>
+            setFormData((current) => ({
+              ...current,
+              has_back_officer: Boolean(checked),
+            }))
           }
         />
-
-        <Label>
-          Has Back Officer
-        </Label>
-
-      </div>
-
-      {/* AVAILABILITY */}
+        <span className="text-sm font-medium">Has Back Officer</span>
+      </label>
 
       <div className="space-y-3">
+        <Label>Availability Level</Label>
 
-        <Label>
-          Level
-        </Label>
-
-        <div className="grid grid-cols-2 gap-3">
-
-          {(
-            [
-              "city",
-              "subcity",
-              "woreda",
-            ] as ServiceAvailability[]
-          ).map(
-            (item) => (
-
-              <div
-                key={item}
-                className="flex items-center gap-2"
-              >
-
-                <Checkbox
-                  checked={formData.availability.includes(
-                    item
-                  )}
-                  onCheckedChange={(
-                    checked
-                  ) => {
-
-                    if (
-                      checked
-                    ) {
-
-                      setFormData({
-                        ...formData,
-
-                        availability:
-                          [
-                            ...formData.availability,
-                            item,
-                          ],
-                      });
-
-                    } else {
-
-                      setFormData({
-                        ...formData,
-
-                        availability:
-                          formData.availability.filter(
-                            (
-                              i
-                            ) =>
-                              i !==
-                              item
-                          ),
-                      });
-                    }
-                  }}
-                />
-
-                <Label className="capitalize">
-                  {item}
-                </Label>
-
-              </div>
-            )
-          )}
-
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {SERVICE_LEVELS.map((level) => (
+            <label
+              key={level}
+              className="flex cursor-pointer items-center gap-2 rounded-xl border p-3 transition hover:bg-muted"
+            >
+              <Checkbox
+                checked={formData.availability.includes(level)}
+                onCheckedChange={(checked) => toggleLevel(level, Boolean(checked))}
+              />
+              <span className="text-sm font-medium capitalize">{level}</span>
+            </label>
+          ))}
         </div>
 
+        <p className="text-xs text-muted-foreground">
+          Select where this service is available: city, subcity, woreda, or multiple levels.
+        </p>
       </div>
-
-      {/* STATUS */}
 
       <div className="space-y-2">
-
-        <Label>
-          Status
-        </Label>
-
+        <Label>Status</Label>
         <Select
-          value={
-            formData.status
-          }
-          onValueChange={(
-            value
-          ) =>
-            setFormData({
-              ...formData,
-              status:
-                value as
-                  | "active"
-                  | "inactive",
-            })
+          value={formData.status}
+          onValueChange={(value) =>
+            setFormData((current) => ({
+              ...current,
+              status: value as "active" | "inactive",
+            }))
           }
         >
-
           <SelectTrigger>
-
-            <SelectValue />
-
+            <SelectValue placeholder="Select status" />
           </SelectTrigger>
-
           <SelectContent>
-
-            <SelectItem value="active">
-              Active
-            </SelectItem>
-
-            <SelectItem value="inactive">
-              Inactive
-            </SelectItem>
-
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
-
         </Select>
-
       </div>
 
-      {/* ACTIONS */}
-
       <div className="flex justify-end gap-3 pt-4">
-
-        <Button
-          variant="outline"
-          onClick={() => {
-
-            if (isEdit) {
-
-              setEditOpen(false);
-
-            } else {
-
-              setCreateOpen(false);
-            }
-          }}
-        >
+        <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
 
         <Button
-          onClick={
-            isEdit
-              ? handleUpdate
-              : handleCreate
+          type="button"
+          disabled={
+            loading ||
+            !formData.name.trim() ||
+            formData.availability.length === 0
           }
+          onClick={onSubmit}
         >
-
-          {isEdit
-            ? "Update"
-            : "Create"}
-
+          {loading ? "Saving..." : submitLabel}
         </Button>
-
       </div>
-
     </div>
   );
+}
+
+export default function ServicePage() {
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [formData, setFormData] = useState<FormState>(emptyForm);
+
+  const { data, isLoading } = useServices(page);
+  const createMutation = useCreateService();
+  const updateMutation = useUpdateService();
+  const deleteMutation = useDeleteService();
+
+  const services = useMemo(() => {
+    const paginator = data?.data;
+    const rows = Array.isArray(paginator?.data) ? paginator.data : [];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Order by ID
+    |--------------------------------------------------------------------------
+    | The table is always displayed in ascending ID order, regardless of the API
+    | returned order.
+    */
+    return [...(rows as Service[])].sort((first, second) => {
+      return Number(first.id) - Number(second.id);
+    });
+  }, [data]);
+
+  const filteredServices = useMemo(() => {
+    const key = search.trim().toLowerCase();
+
+    return services
+      .filter((service) => {
+        const levels = normalizeAvailability(service.availability);
+
+        const matchesSearch =
+          !key ||
+          service.name?.toLowerCase().includes(key) ||
+          service.description?.toLowerCase().includes(key);
+
+        const matchesStatus =
+          statusFilter === "all" ? true : service.status === statusFilter;
+
+        const matchesLevel =
+          levelFilter === "all" ? true : levels.includes(levelFilter);
+
+        return matchesSearch && matchesStatus && matchesLevel;
+      })
+      .sort((first, second) => Number(first.id) - Number(second.id));
+  }, [services, search, statusFilter, levelFilter]);
+
+  function resetForm() {
+    setFormData(emptyForm);
+    setSelectedService(null);
+  }
+
+  function closeCreateDialog() {
+    setCreateOpen(false);
+    resetForm();
+  }
+
+  function closeEditDialog() {
+    setEditOpen(false);
+    resetForm();
+  }
+
+  async function handleCreate() {
+    await createMutation.mutateAsync({
+      ...formData,
+      name: formData.name.trim(),
+      description: formData.description.trim(),
+    });
+
+    closeCreateDialog();
+  }
+
+  function openEditDialog(service: Service) {
+    setSelectedService(service);
+    setFormData(serviceToForm(service));
+    setEditOpen(true);
+  }
+
+  async function handleUpdate() {
+    if (!selectedService) return;
+
+    await updateMutation.mutateAsync({
+      id: selectedService.id,
+      payload: {
+        ...formData,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+      },
+    });
+
+    closeEditDialog();
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Delete this service?")) return;
+    await deleteMutation.mutateAsync(id);
+  }
+
+  async function handleToggleStatus(service: Service) {
+    await updateMutation.mutateAsync({
+      id: service.id,
+      payload: {
+        ...service,
+        availability: normalizeAvailability(service.availability),
+        status: service.status === "active" ? "inactive" : "active",
+      },
+    });
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("all");
+    setLevelFilter("all");
+    setPage(1);
+  }
 
   return (
-
-    <div className="space-y-6 p-6">
-
-      {/* HEADER */}
-
-      <div className="flex items-center justify-between">
-
+    <div className="mx-auto w-full max-w-7xl space-y-6 p-3 sm:p-6">
+      <div className="flex flex-col gap-4 rounded-3xl border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-
           <h1 className="text-2xl font-bold">
-            {/* // total services count */}
-            Services Configured With windows ({
-              filteredServices.length
-            })
-
+            Services ({filteredServices.length})
           </h1>
-
           <p className="text-sm text-muted-foreground">
-            Manage system services
+            Manage services, fees, Back Officer requirement, level availability, and status.
           </p>
-
         </div>
 
         <Dialog
           open={createOpen}
           onOpenChange={(open) => {
-
             setCreateOpen(open);
-
-            if (!open) {
-              resetForm();
-            }
+            if (!open) resetForm();
           }}
         >
-
           <DialogTrigger asChild>
-
-            <Button>
-              Create Service
-            </Button>
-
+            <Button>Create Service</Button>
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-lg">
-
+          <DialogContent
+            className="z-[80] max-h-[90vh] overflow-y-auto sm:max-w-xl"
+            onOpenAutoFocus={(event) => event.preventDefault()}
+          >
             <DialogHeader>
-
-              <DialogTitle>
-                Create Service
-              </DialogTitle>
-
+              <DialogTitle>Create Service</DialogTitle>
             </DialogHeader>
 
-            <ServiceForm />
-
-          </DialogContent>
-
-        </Dialog>
-
-      </div>
-
-      {/* FILTERS */}
-
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-
-        <div className="flex flex-1 flex-col gap-4 md:flex-row">
-
-          {/* SEARCH */}
-
-          <div className="relative w-full md:max-w-sm">
-
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-
-            <Input
-              placeholder="Search service..."
-              value={search}
-              onChange={(e) =>
-                setSearch(
-                  e.target.value
-                )
-              }
-              className="pl-10"
+            <ServiceDialogForm
+              formData={formData}
+              setFormData={setFormData}
+              submitLabel="Create"
+              loading={createMutation.isPending}
+              onSubmit={handleCreate}
+              onCancel={closeCreateDialog}
             />
+          </DialogContent>
+        </Dialog>
+      </div>
 
+      <div className="rounded-3xl border bg-card p-4 shadow-sm">
+        <div className="grid gap-4 md:grid-cols-4">
+          <div className="md:col-span-2">
+            <Label>Search</Label>
+            <div className="relative mt-2">
+              <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by service name or description..."
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                className="pl-10"
+              />
+            </div>
           </div>
 
-          {/* STATUS FILTER */}
-
-          <div className="w-full md:w-52">
-
+          <div>
+            <Label>Status</Label>
             <Select
-              value={
-                statusFilter
-              }
-              onValueChange={
-                setStatusFilter
-              }
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value);
+                setPage(1);
+              }}
             >
-
-              <SelectTrigger>
-
+              <SelectTrigger className="mt-2">
                 <SelectValue placeholder="Status" />
-
               </SelectTrigger>
-
               <SelectContent>
-
-                <SelectItem value="all">
-                  All Status
-                </SelectItem>
-
-                <SelectItem value="active">
-                  Active
-                </SelectItem>
-
-                <SelectItem value="inactive">
-                  Inactive
-                </SelectItem>
-
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
-
             </Select>
-
           </div>
 
-        </div>
+          <div>
+            <Label>Level</Label>
+            <Select
+              value={levelFilter}
+              onValueChange={(value) => {
+                setLevelFilter(value as LevelFilter);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder="Level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="city">City</SelectItem>
+                <SelectItem value="subcity">Subcity</SelectItem>
+                <SelectItem value="woreda">Woreda</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
+          <div className="md:col-span-4">
+            <Button type="button" variant="outline" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* TABLE */}
-
-      <div className="overflow-hidden rounded-xl border bg-background">
-
-        <table className="w-full">
-
-          <thead className="bg-muted/50">
-
-            <tr>
-
-              <th className="p-4 w-10">
-                #
-              </th>
-
-              <th className="p-4 text-left">
-                Name
-              </th>
-
-              <th className="p-4 text-left">
-                Fee
-              </th>
-
-              <th className="p-4 text-left">
-                Level
-              </th>
-
-              <th className="p-4 text-left">
-                Back Officer
-              </th>
-
-              <th className="p-4 text-left">
-                Status
-              </th>
-
-              <th className="p-4 text-right">
-                Action
-              </th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {isLoading ? (
-
+      <div className="overflow-hidden rounded-3xl border bg-background shadow-sm">
+        <div className="w-full overflow-x-auto">
+          <table className="w-full min-w-[900px]">
+            <thead className="bg-muted/50">
               <tr>
-
-                <td
-                  colSpan={7}
-                  className="p-6 text-center"
-                >
-                  Loading...
-                </td>
-
+                <th className="w-16 p-4 text-left">#</th>
+                <th className="p-4 text-left">Name</th>
+                <th className="p-4 text-left">Fee</th>
+                <th className="p-4 text-left">Level</th>
+                <th className="p-4 text-left">Back Officer</th>
+                <th className="p-4 text-left">Status</th>
+                <th className="p-4 text-right">Action</th>
               </tr>
+            </thead>
 
-            ) : filteredServices.length ===
-              0 ? (
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                    Loading services...
+                  </td>
+                </tr>
+              ) : filteredServices.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                    No services found.
+                  </td>
+                </tr>
+              ) : (
+                filteredServices.map((service) => {
+                  const levels = normalizeAvailability(service.availability);
 
-              <tr>
+                  return (
+                    <tr key={service.id} className="border-t">
+                      <td className="p-4">{service.id}</td>
+                      <td className="p-4">
+                        <div>
+                          <p className="font-medium">{service.name}</p>
+                          {service.description && (
+                            <p className="line-clamp-1 text-sm text-muted-foreground">
+                              {service.description}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4">{Number(service.service_fee || 0)}</td>
+                      <td className="p-4">
+                        <div className="flex flex-wrap gap-2">
+                          {levels.length ? (
+                            levels.map((level) => (
+                              <span
+                                key={level}
+                                className="rounded-full bg-muted px-3 py-1 text-xs font-medium"
+                              >
+                                {levelLabel(level)}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        {service.has_back_officer ? "Yes" : "No"}
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-medium ${
+                            service.status === "active"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {service.status}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex justify-end">
+                          {/*
+                          |--------------------------------------------------------------------------
+                          | DropdownMenu modal={false}
+                          |--------------------------------------------------------------------------
+                          | Prevents dropdown focus trap from conflicting with edit Dialog.
+                          */}
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
 
-                <td
-                  colSpan={7}
-                  className="p-6 text-center text-muted-foreground"
-                >
-                  No services found
-                </td>
+                            <DropdownMenuContent align="end" className="z-[70]">
+                              <DropdownMenuItem
+                                onSelect={(event) => {
+                                  event.preventDefault();
 
-              </tr>
+                                  /*
+                                  |--------------------------------------------------------------------------
+                                  | Delay dialog open until dropdown closes
+                                  |--------------------------------------------------------------------------
+                                  | Fixes stacked/frozen page caused by opening Dialog from
+                                  | inside DropdownMenu item.
+                                  */
+                                  window.setTimeout(() => openEditDialog(service), 0);
+                                }}
+                              >
+                                Edit
+                              </DropdownMenuItem>
 
-            ) : (
+                              <DropdownMenuItem
+                                onSelect={(event) => {
+                                  event.preventDefault();
+                                  window.setTimeout(() => handleToggleStatus(service), 0);
+                                }}
+                              >
+                                {service.status === "active" ? "Disable" : "Enable"}
+                              </DropdownMenuItem>
 
-              filteredServices.map(
-                (
-                  service: Service
-                ) => (
-
-                  <tr
-                    key={
-                      service.id
-                    }
-                    className="border-t"
-                  >
-
-                    <td className="p-4">
-                      {service.id}
-                    </td>
-
-                    <td className="p-4">
-                      {service.name}
-                    </td>
-
-                    <td className="p-4">
-                      {
-                        service.service_fee
-                      }
-                    </td>
-
-                    <td className="p-4 capitalize">
-
-                      {service.availability.join(
-                        ", "
-                      )}
-
-                    </td>
-
-                    <td className="p-4">
-
-                      {service.has_back_officer
-                        ? "Yes"
-                        : "No"}
-
-                    </td>
-
-                    <td className="p-4">
-
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                          service.status ===
-                          "active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-
-                        {
-                          service.status
-                        }
-
-                      </span>
-
-                    </td>
-
-                    <td className="p-4">
-
-                      <div className="flex justify-end">
-
-                        <DropdownMenu>
-
-                          <DropdownMenuTrigger
-                            asChild
-                          >
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                            >
-
-                              <MoreVertical className="h-4 w-4" />
-
-                            </Button>
-
-                          </DropdownMenuTrigger>
-
-                          <DropdownMenuContent align="end">
-
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleEdit(
-                                  service
-                                )
-                              }
-                            >
-                              Edit
-                            </DropdownMenuItem>
-
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleToggleStatus(
-                                  service
-                                )
-                              }
-                            >
-
-                              {service.status ===
-                              "active"
-                                ? "Disable"
-                                : "Enable"}
-
-                            </DropdownMenuItem>
-
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() =>
-                                handleDelete(
-                                  service.id
-                                )
-                              }
-                            >
-                              Delete
-                            </DropdownMenuItem>
-
-                          </DropdownMenuContent>
-
-                        </DropdownMenu>
-
-                      </div>
-
-                    </td>
-
-                  </tr>
-                )
-              )
-
-            )}
-
-          </tbody>
-
-        </table>
-
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onSelect={(event) => {
+                                  event.preventDefault();
+                                  window.setTimeout(() => handleDelete(service.id), 0);
+                                }}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* PAGINATION */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Page {data?.data?.current_page || 1} of {data?.data?.last_page || 1}
+        </p>
 
-      <div className="flex items-center justify-between">
-
-        <div className="text-sm text-muted-foreground">
-
-          Page {data?.data?.current_page || 1} of{" "}
-          {data?.data?.last_page || 1}
-
-        </div>
-
-        <div className="flex items-center gap-2">
-
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
-            disabled={
-              !data?.data?.prev_page_url
-            }
-            onClick={() =>
-              setPage((prev) =>
-                Math.max(
-                  prev - 1,
-                  1
-                )
-              )
-            }
+            disabled={!data?.data?.prev_page_url}
+            onClick={() => setPage((current) => Math.max(current - 1, 1))}
           >
             Previous
           </Button>
 
-          {Array.from(
-            {
-              length:
-                data?.data?.last_page ||
-                1,
-            },
-            (_, i) => i + 1
-          ).map((pageNumber) => (
-
-            <Button
-              key={pageNumber}
-              variant={
-                page ===
-                pageNumber
-                  ? "default"
-                  : "outline"
-              }
-              size="sm"
-              onClick={() =>
-                setPage(
-                  pageNumber
-                )
-              }
-            >
-              {pageNumber}
-            </Button>
-
-          ))}
+          {Array.from({ length: data?.data?.last_page || 1 }, (_, index) => index + 1)
+            .slice(0, 10)
+            .map((pageNumber) => (
+              <Button
+                key={pageNumber}
+                variant={page === pageNumber ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPage(pageNumber)}
+              >
+                {pageNumber}
+              </Button>
+            ))}
 
           <Button
             variant="outline"
             size="sm"
-            disabled={
-              !data?.data?.next_page_url
-            }
-            onClick={() =>
-              setPage((prev) =>
-                prev + 1
-              )
-            }
+            disabled={!data?.data?.next_page_url}
+            onClick={() => setPage((current) => current + 1)}
           >
             Next
           </Button>
-
         </div>
-
       </div>
-
-      {/* UPDATE MODAL */}
 
       <Dialog
         open={editOpen}
         onOpenChange={(open) => {
-
           setEditOpen(open);
-
-          if (!open) {
-
-            setSelectedService(
-              null
-            );
-
-            resetForm();
-          }
+          if (!open) resetForm();
         }}
       >
-
-        <DialogContent className="sm:max-w-lg">
-
+        <DialogContent
+          className="z-[80] max-h-[90vh] overflow-y-auto sm:max-w-xl"
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
           <DialogHeader>
-
-            <DialogTitle>
-              Update Service
-            </DialogTitle>
-
+            <DialogTitle>Update Service</DialogTitle>
           </DialogHeader>
 
-          <ServiceForm isEdit />
-
+          <ServiceDialogForm
+            formData={formData}
+            setFormData={setFormData}
+            submitLabel="Update"
+            loading={updateMutation.isPending}
+            onSubmit={handleUpdate}
+            onCancel={closeEditDialog}
+          />
         </DialogContent>
-
       </Dialog>
-
     </div>
   );
 }
