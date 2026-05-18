@@ -14,8 +14,7 @@ class DatabaseSeeder extends Seeder
              
             RoleConversionSeeder::class,
             LocationSeeder::class,
-            WindowSeeder::class,
-            ServiceSeeder::class,
+          
               ScopedUserSeeder::class,
         ]);
     }
