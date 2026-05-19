@@ -36,7 +36,7 @@ class PublicServiceController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Service retrieved successfully',
-            'data' => $service->load('windows'),
+            'data' => $service->load(['windows:id,name,title,city_title,subcity_title,woreda_title,administrative_level,availability']),
         ]);
     }
 

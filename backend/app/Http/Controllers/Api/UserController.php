@@ -46,6 +46,15 @@ class UserController extends Controller
         ]);
     }
 
+    public function profile(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile retrieved successfully',
+            'data' => $request->user()->load(['roles', 'city', 'subcity', 'woreda']),
+        ]);
+    }
+
     public function rolesLite(): JsonResponse
     {
         $this->authorize('rolesLite', User::class);
@@ -156,7 +165,7 @@ class UserController extends Controller
         $updatedUser = $this->userService->updateProfile(
             $user,
             $request->validated(),
-            $request->file('profile')
+            $request->file('profile') ?: $request->file('profile_image')
         );
 
         return response()->json([
@@ -176,6 +185,25 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'User deleted successfully',
+        ]);
+    }
+
+    public function changeOwnPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $this->userService->changePassword(
+            $request->user(),
+            $request->input('current_password'),
+            $request->input('new_password')
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password changed successfully',
         ]);
     }
 

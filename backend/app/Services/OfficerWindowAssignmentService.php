@@ -15,6 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 class OfficerWindowAssignmentService
 {
+    public function __construct(
+        protected ApplicationFileService $fileService
+    ) {}
+
     public function board(
         User $actor,
         string $level = AppRoles::LEVEL_CITY,
@@ -145,7 +149,7 @@ class OfficerWindowAssignmentService
         );
     }
 
-    public function sharingWindowsForOfficer(User $officer): array
+    public function sharingWindowsForOfficer(User $officer, ?int $serviceId = null): array
     {
         $level = AppRoles::userLevel($officer);
 
@@ -153,18 +157,23 @@ class OfficerWindowAssignmentService
             return [];
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Share windows
+        |--------------------------------------------------------------------------
+        | Front/Back officer can select from all windows available for their own
+        | administrative level. After selecting a window, officers assigned to that
+        | window are loaded.
+        */
         return Window::query()
-            ->whereHas('officerAssignments', function ($query) use ($officer, $level) {
-                $query
-                    ->where('officer_id', $officer->id)
-                    ->where('assignment_level', $level)
-                    ->where('is_active', true);
-            })
             ->orderBy('name')
             ->get()
+            ->filter(fn (Window $window) => $this->windowAvailableForLevel($window, $level))
             ->map(fn (Window $window) => [
                 'id' => $window->id,
                 'name' => $window->name,
+                'title' => $this->windowTitleForLevel($window, $level),
+                'display_name' => $this->windowDisplayName($window, $level),
                 'level' => $level,
             ])
             ->values()
@@ -174,7 +183,8 @@ class OfficerWindowAssignmentService
     public function officersForWindow(
         User $actor,
         int $windowId,
-        ?string $level = null
+        ?string $level = null,
+        ?int $serviceId = null
     ): array {
         $level = $this->normalizeLevel(
             $level ?: AppRoles::userLevel($actor) ?: AppRoles::LEVEL_CITY
@@ -242,6 +252,7 @@ class OfficerWindowAssignmentService
             ]);
         }
 
+
         return DB::transaction(function () use ($actor, $application, $targetOfficer, $targetWindow, $level, $note) {
             $share = ServiceApplicationShare::create([
                 'application_id' => $application->id,
@@ -253,6 +264,8 @@ class OfficerWindowAssignmentService
                 'note' => $note,
                 'shared_at' => now(),
             ]);
+
+            $this->storeDocuments($application, $actor);
 
             $oldStatus = $application->status;
 
@@ -291,6 +304,17 @@ class OfficerWindowAssignmentService
                 'toWindow',
             ]);
         });
+    }
+
+    protected function storeDocuments(ServiceApplication $application, User $actor): void
+    {
+        $files = request()->file('documents', []);
+
+        if (!$files) {
+            return;
+        }
+
+        $this->fileService->storeFiles($application, ['workflow_documents' => $files], $actor);
     }
 
     protected function availableOfficers(
@@ -397,6 +421,23 @@ class OfficerWindowAssignmentService
     protected function windowAvailableForLevel(Window $window, string $level): bool
     {
         return in_array($level, $this->levels($window->availability), true);
+    }
+
+    protected function windowTitleForLevel(Window $window, string $level): ?string
+    {
+        return match ($level) {
+            AppRoles::LEVEL_CITY => $window->city_title ?? $window->title ?? null,
+            AppRoles::LEVEL_SUBCITY => $window->subcity_title ?? $window->title ?? null,
+            AppRoles::LEVEL_WOREDA => $window->woreda_title ?? $window->title ?? null,
+            default => $window->title ?? null,
+        };
+    }
+
+    protected function windowDisplayName(Window $window, string $level): string
+    {
+        $title = $this->windowTitleForLevel($window, $level);
+
+        return trim($window->name . ($title ? " - {$title}" : ""));
     }
 
     protected function officerPayload(User $officer): array

@@ -27,12 +27,7 @@ class ServiceWindowService
                     ->values()
                     ->map(fn (Service $service) => $this->servicePayload($service));
 
-                return [
-                    'id' => $window->id,
-                    'name' => $window->name,
-                    'availability' => $window->availability,
-                    'services' => $services,
-                ];
+                return $this->windowPayload($window, $level, $services);
             })
             ->values();
 
@@ -223,6 +218,34 @@ class ServiceWindowService
             'availability' => $service->availability,
             'status' => $service->status,
         ];
+    }
+
+    protected function windowPayload(Window $window, string $level, mixed $services): array
+    {
+        $title = $this->windowTitleForLevel($window, $level);
+
+        return [
+            'id' => $window->id,
+            'name' => $window->name,
+            'title' => $title,
+            'city_title' => $window->city_title ?? null,
+            'subcity_title' => $window->subcity_title ?? null,
+            'woreda_title' => $window->woreda_title ?? null,
+            'display_name' => trim($window->name . ($title ? " - {$title}" : "")),
+            'administrative_level' => $level,
+            'availability' => $window->availability,
+            'services' => $services,
+        ];
+    }
+
+    protected function windowTitleForLevel(Window $window, string $level): ?string
+    {
+        return match ($level) {
+            AppRoles::LEVEL_CITY => $window->city_title ?? $window->title ?? null,
+            AppRoles::LEVEL_SUBCITY => $window->subcity_title ?? $window->title ?? null,
+            AppRoles::LEVEL_WOREDA => $window->woreda_title ?? $window->title ?? null,
+            default => $window->title ?? null,
+        };
     }
 
     protected function firstLevel(mixed $availability): ?string

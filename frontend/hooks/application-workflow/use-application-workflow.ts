@@ -103,6 +103,61 @@ export function useWindowFrontOfficers(windowId?: number, serviceId?: number) {
   });
 }
 
+
+export type OfficerSharingWindow = {
+  id: number;
+  name: string;
+  title?: string | null;
+  display_name?: string | null;
+  level?: string | null;
+};
+
+export type OfficerSharingOfficer = {
+  id: number;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  role?: string | null;
+  role_names?: string[];
+};
+
+function unwrapList<T>(response: any): T[] {
+  const body = response?.data;
+  const value = body?.data ?? body;
+
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+
+  return [];
+}
+
+export function useOfficerSharingWindows(enabled = true, serviceId?: number) {
+  return useQuery({
+    queryKey: ["officer-sharing-windows", serviceId],
+    queryFn: async () => {
+      const response = await api.get("/officer/sharing/windows", {
+        params: { service_id: serviceId },
+      });
+      return unwrapList<OfficerSharingWindow>(response);
+    },
+    enabled,
+  });
+}
+
+export function useOfficerSharingOfficers(windowId?: number, enabled = true, serviceId?: number) {
+  return useQuery({
+    queryKey: ["officer-sharing-officers", windowId, serviceId],
+    queryFn: async () => {
+      const response = await api.get(`/officer/sharing/windows/${Number(windowId)}/officers`, {
+        params: { service_id: serviceId },
+      });
+      return unwrapList<OfficerSharingOfficer>(response);
+    },
+    enabled: enabled && Boolean(windowId),
+  });
+}
+
+
 export function useApplications() {
   return useQuery({
     queryKey: keys.applications,

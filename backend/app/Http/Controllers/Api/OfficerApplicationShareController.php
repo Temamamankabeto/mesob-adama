@@ -19,7 +19,10 @@ class OfficerApplicationShareController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Officer sharing windows retrieved successfully',
-            'data' => $this->service->sharingWindowsForOfficer($request->user()),
+            'data' => $this->service->sharingWindowsForOfficer(
+                $request->user(),
+                $request->integer('service_id') ?: null
+            ),
         ]);
     }
 
@@ -28,7 +31,12 @@ class OfficerApplicationShareController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Window officers retrieved successfully',
-            'data' => $this->service->officersForWindow($request->user(), $windowId),
+            'data' => $this->service->officersForWindow(
+                $request->user(),
+                $windowId,
+                $request->input('level'),
+                $request->integer('service_id') ?: null
+            ), $windowId),
         ]);
     }
 
@@ -38,6 +46,9 @@ class OfficerApplicationShareController extends Controller
             'to_window_id' => ['required', 'integer', 'exists:windows,id'],
             'to_officer_id' => ['required', 'integer', 'exists:users,id'],
             'note' => ['nullable', 'string', 'max:1000'],
+            'remark' => ['nullable', 'string', 'max:2000'],
+            'documents' => ['nullable', 'array'],
+            'documents.*' => ['file', 'max:10240'],
         ]);
 
         return response()->json([

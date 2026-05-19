@@ -43,6 +43,12 @@ class UserServiceAssignmentService
                 return [
                     'id' => $window->id,
                     'name' => $window->name,
+                    'title' => $this->windowTitleForLevel($window, $level),
+                    'city_title' => $window->city_title ?? null,
+                    'subcity_title' => $window->subcity_title ?? null,
+                    'woreda_title' => $window->woreda_title ?? null,
+                    'display_name' => $this->windowDisplayName($window, $level),
+                    'administrative_level' => $level,
                     'availability' => $window->availability,
                     'services' => $services,
                     'officers' => $officers,
@@ -194,6 +200,23 @@ class UserServiceAssignmentService
             ]);
 
         return $user->load('assignedServices');
+    }
+
+    protected function windowTitleForLevel(Window $window, string $level): ?string
+    {
+        return match ($level) {
+            AppRoles::LEVEL_CITY => $window->city_title ?? $window->title ?? null,
+            AppRoles::LEVEL_SUBCITY => $window->subcity_title ?? $window->title ?? null,
+            AppRoles::LEVEL_WOREDA => $window->woreda_title ?? $window->title ?? null,
+            default => $window->title ?? null,
+        };
+    }
+
+    protected function windowDisplayName(Window $window, string $level): string
+    {
+        $title = $this->windowTitleForLevel($window, $level);
+
+        return trim($window->name . ($title ? " - {$title}" : ""));
     }
 
     protected function assertAssignmentAllowed(

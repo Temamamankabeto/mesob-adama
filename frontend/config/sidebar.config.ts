@@ -53,6 +53,13 @@ const dashboardItem = (role: AppRoleKey): SidebarItem => ({
   icon: LayoutDashboard,
 });
 
+
+const profileItem: SidebarItem = {
+  label: "My Profile",
+  href: "/dashboard/profile",
+  icon: UserCheck,
+};
+
 const cityOnly = ["super_admin", "admin:city"];
 
 const userManagementMenu: SidebarItem = {
@@ -139,24 +146,24 @@ const systemMenu: SidebarItem = {
 };
 
 const adminSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role)]),
+  s("Main", [dashboardItem(role), profileItem]),
   s("Management", [userManagementMenu, serviceManagementMenu, windowManagementMenu]),
   s("Applications", [formBuilderMenu, applicationManagementMenu]),
   s("System", [systemMenu]),
 ];
 
 const managerSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role)]),
+  s("Main", [dashboardItem(role), profileItem]),
   s("Applications", [applicationManagementMenu]),
 ];
 
 const officerSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role)]),
+  s("Main", [dashboardItem(role), profileItem]),
   s("Applications", [officerApplicationMenu]),
 ];
 
 const customerSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role)]),
+  s("Main", [dashboardItem(role), profileItem]),
   s("Applications", [customerApplicationMenu]),
 ];
 

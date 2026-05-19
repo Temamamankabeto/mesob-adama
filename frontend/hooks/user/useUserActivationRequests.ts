@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { userActivationRequestService } from "@/services/user/user-activation-request.service";
 
-export function useUserActivationRequests(params: {
-  page?: number;
-  search?: string;
-  status?: string;
-} = {}) {
+export function useUserActivationRequests(
+  params: {
+    page?: number;
+    search?: string;
+    status?: string;
+  } = {}
+) {
   return useQuery({
     queryKey: ["user-activation-requests", params],
     queryFn: () => userActivationRequestService.list(params),
@@ -21,6 +23,19 @@ export function useVerifyActivationRequest() {
   return useMutation({
     mutationFn: ({ id, note }: { id: number; note?: string }) =>
       userActivationRequestService.verify(id, note),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["user-activation-requests"] });
+      qc.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
+export function useBulkVerifyActivationRequests() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ids, note }: { ids: number[]; note?: string }) =>
+      userActivationRequestService.bulkVerify(ids, note),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["user-activation-requests"] });
       qc.invalidateQueries({ queryKey: ["users"] });

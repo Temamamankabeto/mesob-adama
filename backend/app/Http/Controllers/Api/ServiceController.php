@@ -35,7 +35,7 @@ class ServiceController extends Controller
 
         $service->load([
             'assignedUsers:id,name,email',
-            'windows:id,name,availability',
+            'windows:id,name,title,city_title,subcity_title,woreda_title,administrative_level,availability',
         ]);
 
         return response()->json([

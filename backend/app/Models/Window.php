@@ -11,6 +11,14 @@ class Window extends Model
 
     protected $fillable = [
         'name',
+        'title',
+        'city_title',
+        'subcity_title',
+        'woreda_title',
+        'administrative_level',
+        'city_id',
+        'subcity_id',
+        'woreda_id',
         'availability',
     ];
 
@@ -48,5 +56,30 @@ class Window extends Model
                 'assigned_at',
             ])
             ->withTimestamps();
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function subcity()
+    {
+        return $this->belongsTo(Subcity::class);
+    }
+
+    public function woreda()
+    {
+        return $this->belongsTo(Woreda::class);
+    }
+
+    public function titleForLevel(string $level): ?string
+    {
+        return match ($level) {
+            'city' => $this->city_title,
+            'subcity' => $this->subcity_title,
+            'woreda' => $this->woreda_title,
+            default => $this->title,
+        };
     }
 }
