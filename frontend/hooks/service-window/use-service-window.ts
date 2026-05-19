@@ -24,6 +24,12 @@ export type ServiceWindowBoardService = {
 export type ServiceWindowBoardWindow = {
   id: number;
   name: string;
+  title?: string | null;
+  city_title?: string | null;
+  subcity_title?: string | null;
+  woreda_title?: string | null;
+  display_name?: string | null;
+  administrative_level?: ServiceWindowLevel | null;
   availability?: any;
   services?: ServiceWindowBoardService[];
 };

@@ -152,9 +152,43 @@ class OfficerApplicationService
 
     public function reject(ServiceApplication $application, User $actor, ?string $remark = null)
     {
-        $status = $actor->hasRole(AppRoles::BACK_OFFICER) ? 'back_officer_rejected' : 'rejected';
-        $receiver = $actor->hasRole(AppRoles::BACK_OFFICER) ? $this->firstAssignedOfficer($application, AppRoles::FRONT_OFFICER)?->id : $application->customer_id;
-        return $this->transition($application, $actor, $status, 'rejected', $remark, receiverId: $receiver, assignedTo: $receiver, extra: ['rejection_reason' => $remark, 'rejected_at' => now()]);
+        if ($actor->hasRole(AppRoles::BACK_OFFICER)) {
+            $front = $this->firstAssignedOfficer($application, AppRoles::FRONT_OFFICER);
+
+            return $this->transition(
+                $application,
+                $actor,
+                'back_officer_rejected',
+                'back_officer_rejected',
+                $remark,
+                receiverId: $front?->id,
+                assignedTo: $front?->id,
+                assignedRole: AppRoles::FRONT_OFFICER,
+                extra: [
+                    'rejection_reason' => $remark,
+                    'rejected_at' => now(),
+                ]
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Front Officer rejection means return for correction.
+        |--------------------------------------------------------------------------
+        */
+        return $this->transition(
+            $application,
+            $actor,
+            'returned_to_customer',
+            'returned_to_customer_for_correction',
+            $remark,
+            receiverId: $application->customer_id,
+            assignedTo: $application->customer_id,
+            extra: [
+                'rejection_reason' => $remark,
+                'returned_count' => ((int) $application->returned_count) + 1,
+            ]
+        );
     }
 
     public function returnApplication(ServiceApplication $application, User $actor, ?string $remark = null)

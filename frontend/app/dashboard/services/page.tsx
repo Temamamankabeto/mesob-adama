@@ -100,6 +100,10 @@ function normalizeAvailability(value: unknown): ServiceAvailability[] {
   return [];
 }
 
+function levelLabel(level: string) {
+  return level.charAt(0).toUpperCase() + level.slice(1);
+}
+
 function serviceToForm(service: Service): FormState {
   return {
     name: service.name || "",
@@ -111,17 +115,36 @@ function serviceToForm(service: Service): FormState {
   };
 }
 
-function levelLabel(level: string) {
-  return level.charAt(0).toUpperCase() + level.slice(1);
+function windowTitleForLevel(window: any, level: ServiceAvailability) {
+  if (level === "city") return window.city_title || window.title || null;
+  if (level === "subcity") return window.subcity_title || window.title || null;
+  if (level === "woreda") return window.woreda_title || window.title || null;
+  return window.title || null;
 }
 
-/*
-|--------------------------------------------------------------------------
-| Stable dialog form
-|--------------------------------------------------------------------------
-| Keep this component outside the page component. This prevents input remounts
-| and keeps typing/focus stable in both create and edit dialogs.
-*/
+function windowDisplayName(window: any, level: ServiceAvailability) {
+  const title = windowTitleForLevel(window, level);
+  return `${window.name || "Window"}${title ? ` - ${title}` : ""}`;
+}
+
+function serviceWindowDisplays(service: Service) {
+  const windows = service.windows || [];
+
+  return windows.flatMap((window: any) => {
+    const levels =
+      normalizeAvailability(window.availability).length > 0
+        ? normalizeAvailability(window.availability)
+        : window.pivot?.assignment_level
+          ? [window.pivot.assignment_level]
+          : [];
+
+    return levels.map((level) => ({
+      level,
+      label: windowDisplayName(window, level),
+    }));
+  });
+}
+
 function ServiceDialogForm({
   formData,
   setFormData,
@@ -233,10 +256,6 @@ function ServiceDialogForm({
             </label>
           ))}
         </div>
-
-        <p className="text-xs text-muted-foreground">
-          Select where this service is available: city, subcity, woreda, or multiple levels.
-        </p>
       </div>
 
       <div className="space-y-2">
@@ -301,13 +320,6 @@ export default function ServicePage() {
     const paginator = data?.data;
     const rows = Array.isArray(paginator?.data) ? paginator.data : [];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Order by ID
-    |--------------------------------------------------------------------------
-    | The table is always displayed in ascending ID order, regardless of the API
-    | returned order.
-    */
     return [...(rows as Service[])].sort((first, second) => {
       return Number(first.id) - Number(second.id);
     });
@@ -319,7 +331,6 @@ export default function ServicePage() {
     return services
       .filter((service) => {
         const levels = normalizeAvailability(service.availability);
-
         const matchesSearch =
           !key ||
           service.name?.toLowerCase().includes(key) ||
@@ -517,7 +528,7 @@ export default function ServicePage() {
 
       <div className="overflow-hidden rounded-3xl border bg-background shadow-sm">
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full min-w-[1100px]">
             <thead className="bg-muted/50">
               <tr>
                 <th className="w-16 p-4 text-left">#</th>
@@ -544,12 +555,11 @@ export default function ServicePage() {
                   </td>
                 </tr>
               ) : (
-                filteredServices.map((service) => {
+                filteredServices.map((service, index) => {
                   const levels = normalizeAvailability(service.availability);
-
                   return (
                     <tr key={service.id} className="border-t">
-                      <td className="p-4">{service.id}</td>
+                      <td className="p-4">{index + 1}</td>
                       <td className="p-4">
                         <div>
                           <p className="font-medium">{service.name}</p>
@@ -593,12 +603,6 @@ export default function ServicePage() {
                       </td>
                       <td className="p-4">
                         <div className="flex justify-end">
-                          {/*
-                          |--------------------------------------------------------------------------
-                          | DropdownMenu modal={false}
-                          |--------------------------------------------------------------------------
-                          | Prevents dropdown focus trap from conflicting with edit Dialog.
-                          */}
                           <DropdownMenu modal={false}>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
@@ -610,15 +614,7 @@ export default function ServicePage() {
                               <DropdownMenuItem
                                 onSelect={(event) => {
                                   event.preventDefault();
-
-                                  /*
-                                  |--------------------------------------------------------------------------
-                                  | Delay dialog open until dropdown closes
-                                  |--------------------------------------------------------------------------
-                                  | Fixes stacked/frozen page caused by opening Dialog from
-                                  | inside DropdownMenu item.
-                                  */
-                                  window.setTimeout(() => openEditDialog(service), 0);
+                                  globalThis.setTimeout(() => openEditDialog(service), 0);
                                 }}
                               >
                                 Edit
@@ -627,7 +623,7 @@ export default function ServicePage() {
                               <DropdownMenuItem
                                 onSelect={(event) => {
                                   event.preventDefault();
-                                  window.setTimeout(() => handleToggleStatus(service), 0);
+                                  globalThis.setTimeout(() => handleToggleStatus(service), 0);
                                 }}
                               >
                                 {service.status === "active" ? "Disable" : "Enable"}
@@ -637,7 +633,7 @@ export default function ServicePage() {
                                 className="text-red-600"
                                 onSelect={(event) => {
                                   event.preventDefault();
-                                  window.setTimeout(() => handleDelete(service.id), 0);
+                                  globalThis.setTimeout(() => handleDelete(service.id), 0);
                                 }}
                               >
                                 Delete
@@ -669,19 +665,6 @@ export default function ServicePage() {
           >
             Previous
           </Button>
-
-          {Array.from({ length: data?.data?.last_page || 1 }, (_, index) => index + 1)
-            .slice(0, 10)
-            .map((pageNumber) => (
-              <Button
-                key={pageNumber}
-                variant={page === pageNumber ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPage(pageNumber)}
-              >
-                {pageNumber}
-              </Button>
-            ))}
 
           <Button
             variant="outline"

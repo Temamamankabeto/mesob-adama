@@ -141,7 +141,7 @@ class UserService
             );
         }
 
-        audit_log(
+        $this->audit(
             'user_created',
             $activeByDefault
                 ? 'User created and activated by city admin.'
@@ -229,6 +229,12 @@ class UserService
 
     public function toggleUser(User $user): User
     {
+        if (auth()->id() && (int) auth()->id() === (int) $user->id) {
+            throw ValidationException::withMessages([
+                'user' => ['You cannot enable or disable your own account.'],
+            ]);
+        }
+
         $user->is_active = !$user->is_active;
         $user->status = $user->is_active ? 'active' : 'disabled';
 
@@ -495,18 +501,70 @@ class UserService
         $level = AppRoles::userLevel($actor);
 
         if ($level === AppRoles::LEVEL_CITY && $actor->city_id) {
+            /*
+            |--------------------------------------------------------------------------
+            | City Admin
+            |--------------------------------------------------------------------------
+            | City admin can view users under the city scope.
+            */
             $query->where('city_id', $actor->city_id);
+            return;
         }
 
         if ($level === AppRoles::LEVEL_SUBCITY && $actor->subcity_id) {
+            /*
+            |--------------------------------------------------------------------------
+            | Subcity Admin
+            |--------------------------------------------------------------------------
+            | Show ONLY users directly assigned to the same subcity.
+            | Do not include woreda-level users under that subcity.
+            */
             $query->where('city_id', $actor->city_id)
-                ->where('subcity_id', $actor->subcity_id);
+                ->where('subcity_id', $actor->subcity_id)
+                ->whereNull('woreda_id');
+            return;
         }
 
         if ($level === AppRoles::LEVEL_WOREDA && $actor->woreda_id) {
+            /*
+            |--------------------------------------------------------------------------
+            | Woreda Admin
+            |--------------------------------------------------------------------------
+            | Show ONLY users directly assigned to the same woreda.
+            */
             $query->where('city_id', $actor->city_id)
                 ->where('subcity_id', $actor->subcity_id)
                 ->where('woreda_id', $actor->woreda_id);
+            return;
+        }
+
+        $query->whereRaw('1 = 0');
+    }
+
+    protected function audit(
+        string $action,
+        string $message,
+        string $entityType,
+        int|string|null $entityId,
+        mixed $before = null,
+        mixed $after = null
+    ): void {
+        try {
+            if (function_exists('audit_log')) {
+                audit_log($action, $message, $entityType, $entityId, $before, $after);
+                return;
+            }
+
+            logger()->info($message, [
+                'action' => $action,
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'before' => $before,
+                'after' => $after,
+                'actor_id' => auth()->id(),
+            ]);
+        } catch (\Throwable $exception) {
+            logger()->warning('User audit logging skipped: ' . $exception->getMessage());
         }
     }
 

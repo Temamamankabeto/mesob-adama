@@ -19,7 +19,17 @@ class WindowController extends Controller
     {
         $this->authorize('viewAny', Window::class);
 
-        $windows = $this->windowService->getAll($request->user());
+        $windows = $this->windowService->getAll(
+            $request->user(),
+            $request->only([
+                'level',
+                'administrative_level',
+                'city_id',
+                'subcity_id',
+                'woreda_id',
+                'search',
+            ])
+        );
 
         return response()->json([
             'success' => true,
@@ -32,7 +42,10 @@ class WindowController extends Controller
     {
         $this->authorize('create', Window::class);
 
-        $window = $this->windowService->create($request->validated());
+        $window = $this->windowService->create(
+            $request->validated(),
+            $request->user()
+        );
 
         return response()->json([
             'success' => true,
@@ -45,7 +58,11 @@ class WindowController extends Controller
     {
         $this->authorize('update', $window);
 
-        $updatedWindow = $this->windowService->update($window, $request->validated());
+        $updatedWindow = $this->windowService->update(
+            $window,
+            $request->validated(),
+            $request->user()
+        );
 
         return response()->json([
             'success' => true,

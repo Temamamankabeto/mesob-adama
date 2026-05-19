@@ -60,6 +60,29 @@ class UserActivationRequestController extends Controller
         ]);
     }
 
+    public function bulkVerify(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'integer', 'exists:user_activation_requests,id'],
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $verified = $this->activationRequestService->bulkVerify(
+            $data['ids'],
+            $request->user(),
+            $data['note'] ?? null
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$verified} activation request(s) verified successfully.",
+            'data' => [
+                'verified_count' => $verified,
+            ],
+        ]);
+    }
+
     public function bulkApprove(Request $request): JsonResponse
     {
         $data = $request->validate([

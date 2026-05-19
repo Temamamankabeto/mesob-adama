@@ -45,12 +45,28 @@ class ServiceAvailabilityScopeService
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(function (Builder $query) use ($level) {
-            $query->whereJsonContains('availability', $level)
-                ->orWhereJsonContains('availability->levels', $level)
-                ->orWhereJsonContains('availability->administrative_levels', $level)
-                ->orWhere("availability->{$level}", true);
-        });
+        if ($actor->hasRole(AppRoles::ADMIN) && $level === AppRoles::LEVEL_CITY) {
+            return $query->where(function (Builder $query) use ($actor) {
+                $query->whereNull('city_id')
+                    ->orWhere('city_id', $actor->city_id);
+            });
+        }
+
+        if ($level === AppRoles::LEVEL_SUBCITY) {
+            return $query->where('administrative_level', AppRoles::LEVEL_SUBCITY)
+                ->where('city_id', $actor->city_id)
+                ->where('subcity_id', $actor->subcity_id)
+                ->whereNull('woreda_id');
+        }
+
+        if ($level === AppRoles::LEVEL_WOREDA) {
+            return $query->where('administrative_level', AppRoles::LEVEL_WOREDA)
+                ->where('city_id', $actor->city_id)
+                ->where('subcity_id', $actor->subcity_id)
+                ->where('woreda_id', $actor->woreda_id);
+        }
+
+        return $query->where('administrative_level', $level);
     }
 
     public function assertServiceAndWindowAllowed(User $actor, Service $service, Window $window): void
@@ -113,6 +129,10 @@ class ServiceAvailabilityScopeService
     {
         if (!$level) {
             return false;
+        }
+
+        if ($window->administrative_level) {
+            return $window->administrative_level === $level;
         }
 
         $availability = $this->normalizeAvailability($window->availability);

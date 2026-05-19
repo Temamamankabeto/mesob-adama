@@ -41,6 +41,10 @@ class UserPolicy
 
     public function toggle(User $user, User $model): bool
     {
+        if ((int) $user->id === (int) $model->id) {
+            return false;
+        }
+
         if (! $this->allows($user, 'users.activate', 'users.deactivate')) {
             return false;
         }

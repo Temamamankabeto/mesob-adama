@@ -8,24 +8,24 @@ import {
 
 export const windowService = {
   async getAll(
-    page = 1
+    page = 1,
+    params?: {
+      search?: string;
+      level?: string;
+    }
   ): Promise<PaginatedWindowResponse> {
-    const response = await api.get(
-      `/windows?page=${page}`
-    );
+    const response = await api.get("/windows", {
+      params: {
+        page,
+        ...params,
+      },
+    });
 
-    return unwrap<PaginatedWindowResponse>(
-      response
-    );
+    return unwrap<PaginatedWindowResponse>(response);
   },
 
-  async create(
-    payload: WindowPayload
-  ): Promise<Window> {
-    const response = await api.post(
-      "/windows",
-      payload
-    );
+  async create(payload: WindowPayload): Promise<Window> {
+    const response = await api.post("/windows", payload);
 
     const data = unwrap<{
       success: boolean;
@@ -36,14 +36,8 @@ export const windowService = {
     return data.data;
   },
 
-  async update(
-    id: number,
-    payload: Partial<WindowPayload>
-  ): Promise<Window> {
-    const response = await api.put(
-      `/windows/${id}`,
-      payload
-    );
+  async update(id: number, payload: Partial<WindowPayload>): Promise<Window> {
+    const response = await api.put(`/windows/${id}`, payload);
 
     const data = unwrap<{
       success: boolean;

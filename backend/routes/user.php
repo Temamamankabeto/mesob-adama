@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
 
     Route::get('/user-activation-requests', [UserActivationRequestController::class, 'index']);
+    Route::post('/user-activation-requests/bulk-verify', [UserActivationRequestController::class, 'bulkVerify']);
     Route::post('/user-activation-requests/bulk-approve', [UserActivationRequestController::class, 'bulkApprove']);
     Route::post('/user-activation-requests/{activationRequest}/verify', [UserActivationRequestController::class, 'verify']);
     Route::post('/user-activation-requests/{activationRequest}/approve', [UserActivationRequestController::class, 'approve']);
