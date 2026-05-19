@@ -2,7 +2,6 @@ import {
   ClipboardList,
   FileText,
   LayoutDashboard,
-  Map,
   Settings,
   ShieldCheck,
   UserCheck,
@@ -68,17 +67,6 @@ const userManagementMenu: SidebarItem = {
   ],
 };
 
-const locationManagementMenu: SidebarItem = {
-  label: "Location Management",
-  icon: Map,
-  scopes: cityOnly,
-  children: [
-    { label: "Locations", href: "/dashboard/locations", permission: "cities.read", scopes: cityOnly },
-    { label: "Cities", href: "/dashboard/locations/cities", permission: "cities.read", scopes: ["super_admin"] },
-    { label: "Subcities", href: "/dashboard/locations/subcities", permission: "subcities.read", scopes: cityOnly },
-    { label: "Woredas", href: "/dashboard/locations/woredas", permission: "woredas.read", scopes: cityOnly },
-  ],
-};
 
 const serviceManagementMenu: SidebarItem = {
   label: "Service Management",
@@ -110,9 +98,7 @@ const formBuilderMenu: SidebarItem = {
   children: [
     { label: "Service Forms", href: "/dashboard/service-forms", permission: "service_forms.read", scopes: cityOnly },
     { label: "Form Sections", href: "/dashboard/service-form-sections", permission: "service_forms.read", scopes: cityOnly },
-    { label: "Form Steps", href: "/dashboard/service-form-steps", permission: "service_forms.read", scopes: cityOnly },
-    { label: "Form Fields", href: "/dashboard/service-form-fields", permission: "service_forms.read", scopes: cityOnly },
-    { label: "Field Conditions", href: "/dashboard/service-form-field-conditions", permission: "service_forms.read", scopes: cityOnly },
+   
   ],
 };
 
@@ -121,7 +107,6 @@ const applicationManagementMenu: SidebarItem = {
   icon: FileText,
   children: [
     { label: "Application Summary", href: "/dashboard/applications/summary", permission: "applications.summary" },
-    { label: "Manager Cases", href: "/dashboard/manager/applications", permission: "service_applications.review" },
     { label: "Service Applications", href: "/dashboard/service-applications", permission: "service_applications.read" },
     { label: "Officer Queue", href: "/dashboard/officer/applications", permission: "service_applications.review" },
   ],
@@ -155,7 +140,7 @@ const systemMenu: SidebarItem = {
 
 const adminSections = (role: AppRoleKey): SidebarSection[] => [
   s("Main", [dashboardItem(role)]),
-  s("Management", [userManagementMenu, locationManagementMenu, serviceManagementMenu, windowManagementMenu]),
+  s("Management", [userManagementMenu, serviceManagementMenu, windowManagementMenu]),
   s("Applications", [formBuilderMenu, applicationManagementMenu]),
   s("System", [systemMenu]),
 ];
