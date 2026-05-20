@@ -70,7 +70,7 @@ const userManagementMenu: SidebarItem = {
     { label: "Create User", href: "/dashboard/users/add", permission: "users.create" },
     { label: "Activation Requests", href: "/dashboard/user-activation-requests", permission: "users.activate" },
     { label: "Roles", href: "/dashboard/roles", permission: "roles.read", scopes: cityOnly },
-    { label: "Permissions", href: "/dashboard/permissions", permission: "permissions.read", scopes: cityOnly },
+    // { label: "Permissions", href: "/dashboard/permissions", permission: "permissions.read", scopes: cityOnly },
   ],
 };
 
@@ -81,8 +81,8 @@ const serviceManagementMenu: SidebarItem = {
   scopes: cityOnly,
   children: [
     { label: "Services", href: "/dashboard/services", permission: "services.read", scopes: cityOnly },
-    { label: "User Services", href: "/dashboard/user-services", permission: "services.read", scopes: cityOnly },
-    { label: "Officer Services", href: "/dashboard/services/officers", permission: "services.read", scopes: cityOnly },
+    { label: "Officer Services", href: "/dashboard/user-services", permission: "services.read", scopes: cityOnly },
+    { label: "Assigned Services", href: "/dashboard/services/officers", permission: "services.read", scopes: cityOnly },
   ],
 };
 
@@ -93,8 +93,8 @@ const windowManagementMenu: SidebarItem = {
   children: [
     { label: "Windows", href: "/dashboard/windows", permission: "windows.read", scopes: cityOnly },
     { label: "Service Windows", href: "/dashboard/service-window", permission: "windows.read", scopes: cityOnly },
-    { label: "Window Assignment", href: "/dashboard/service-window/lists", permission: "windows.read", scopes: cityOnly },
-    { label: "Officer Window Assignment", href: "/dashboard/window-officer-assignment", permission: "windows.read", scopes: cityOnly },
+    { label: "Assigned Window", href: "/dashboard/service-window/lists", permission: "windows.read", scopes: cityOnly },
+    { label: "Officer Window", href: "/dashboard/window-officer-assignment", permission: "windows.read", scopes: cityOnly },
   ],
 };
 
