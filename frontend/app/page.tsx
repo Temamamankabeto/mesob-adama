@@ -131,6 +131,12 @@ export default function HomePage() {
               Services
             </Link>
             <Link
+              href="/training/application-workflow"
+              className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
+            >
+              Training
+            </Link>
+            <Link
               href="/service"
               className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
             >
@@ -316,6 +322,34 @@ export default function HomePage() {
               </Card>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* TRAINING PRESENTATION */}
+      <section className="border-b border-border bg-muted/20 py-16">
+        <div className="container mx-auto px-6">
+          <Card className="border-primary/20 bg-card/95 shadow-xl backdrop-blur">
+            <CardContent className="flex flex-col gap-5 p-6 text-left lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <FileSearch className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">Application Workflow Training</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                    Open the slide-style training page for ADAMA MESOB eService modules, assignments, role-based processing, and end-to-end application workflow.
+                  </p>
+                </div>
+              </div>
+
+              <Button asChild className="rounded-xl lg:shrink-0">
+                <Link href="/training/application-workflow">
+                      Open Presentation
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
