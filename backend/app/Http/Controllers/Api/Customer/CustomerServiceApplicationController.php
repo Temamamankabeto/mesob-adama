@@ -12,7 +12,7 @@ class CustomerServiceApplicationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $applications = ServiceApplication::query()
-            ->with(['service', 'city', 'subcity', 'woreda'])
+            ->with(['service', 'city', 'subcity', 'woreda', 'appointments'])
             ->where('customer_id', $request->user()->id)
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->where('status', $request->input('status'));
@@ -56,11 +56,23 @@ class CustomerServiceApplicationController extends Controller
                 'city',
                 'subcity',
                 'woreda',
+                'currentWindow',
+                'currentOfficer',
+                'assignee',
                 'data',
-                'files',
+                'files.uploader',
+                'appointments.scheduler',
                 'workflows.window',
                 'workflows.officer',
                 'histories.actor',
+                'histories.sender',
+                'histories.receiver',
+                'histories.fromWindow',
+                'histories.toWindow',
+                'shares.sharedFromOfficer',
+                'shares.sharedToOfficer',
+                'shares.fromWindow',
+                'shares.toWindow',
             ]),
         ]);
     }

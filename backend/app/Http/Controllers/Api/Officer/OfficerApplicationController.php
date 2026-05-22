@@ -31,6 +31,11 @@ class OfficerApplicationController extends Controller
         return response()->json(['success'=>true,'message'=>'Application accepted successfully','data'=>$this->applicationService->accept($application,$request->user(),$request->remark)]);
     }
 
+    public function appointment(OfficerApplicationActionRequest $request, ServiceApplication $application)
+    {
+        return response()->json(['success'=>true,'message'=>'Appointment scheduled successfully','data'=>$this->applicationService->appointment($application,$request->user(),$request->validated())]);
+    }
+
     public function share(OfficerApplicationActionRequest $request, ServiceApplication $application)
     {
         return response()->json(['success'=>true,'message'=>'Application shared successfully','data'=>$this->applicationService->share($application,$request->user(),$request->validated())]);

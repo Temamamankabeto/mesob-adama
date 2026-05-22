@@ -17,37 +17,20 @@ const queueFilters = [
   { value: "accepted", label: "Accepted Applications" },
   { value: "approved", label: "Approved Applications" },
   { value: "escalated", label: "Escalated Applications" },
+  { value: "appointment", label: "Appointment Queue" },
   { value: "returned", label: "Returned Applications" },
   { value: "rejected", label: "Rejected Applications" },
   { value: "completed", label: "Completed Applications" },
 ];
 
-const statusFilters = [
-  { value: "", label: "All Statuses" },
-  { value: "submitted", label: "Submitted" },
-  { value: "accepted", label: "Accepted" },
-  { value: "front_officer_review", label: "Front Officer Review" },
-  { value: "shared", label: "Shared" },
-  { value: "forwarded_to_back_officer", label: "Forwarded to Back Officer" },
-  { value: "back_officer_review", label: "Back Officer Review" },
-  { value: "back_officer_approved", label: "Back Officer Approved" },
-  { value: "approved", label: "Approved" },
-  { value: "returned", label: "Returned" },
-  { value: "returned_to_customer", label: "Returned to Customer" },
-  { value: "returned_to_front_officer", label: "Returned to Front Officer" },
-  { value: "rejected", label: "Rejected" },
-  { value: "escalated", label: "Escalated" },
-  { value: "manager_review", label: "Manager Review" },
-  { value: "completed", label: "Completed" },
-];
-
 const queueStatusMap: Record<string, string[]> = {
-  new: ["submitted", "pending"],
-  shared: ["shared"],
-  accepted: ["accepted", "front_officer_review"],
+  new: ["submitted", "pending", "resubmitted"],
+  shared: ["shared", "shared_to_front_officer", "shared_to_back_officer"],
+  accepted: ["accepted", "front_officer_review", "under_review", "back_officer_review", "under_back_review"],
   approved: ["approved", "back_officer_approved"],
   escalated: ["escalated", "manager_review"],
-  returned: ["returned", "returned_to_customer", "returned_to_front_officer"],
+  appointment: ["appointment_scheduled"],
+  returned: ["returned", "returned_to_customer", "returned_to_front_officer", "back_officer_rejected"],
   rejected: ["rejected"],
   completed: ["completed"],
 };
@@ -110,7 +93,6 @@ function windowLabel(application: any) {
 
 export default function OfficerApplicationsPage() {
   const [bucket, setBucket] = useState("");
-  const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
 
   /*
@@ -123,7 +105,6 @@ export default function OfficerApplicationsPage() {
   */
   const { data = [], isLoading } = useOfficerApplicationQueue({
     bucket: bucket || undefined,
-    status: status || undefined,
     search: search || undefined,
   });
 
@@ -131,11 +112,10 @@ export default function OfficerApplicationsPage() {
     return data.filter((application: any) => {
       return (
         applicationMatchesQueue(application, bucket) &&
-        applicationMatchesStatus(application, status) &&
         applicationMatchesSearch(application, search)
       );
     });
-  }, [data, bucket, status, search]);
+  }, [data, bucket, search]);
 
   const queueCounts = useMemo(() => {
     return Object.fromEntries(
@@ -159,7 +139,6 @@ export default function OfficerApplicationsPage() {
 
   function clearFilters() {
     setBucket("");
-    setStatus("");
     setSearch("");
   }
 
@@ -173,7 +152,6 @@ export default function OfficerApplicationsPage() {
     | If the user chooses a queue, we reset the direct status filter.
     | They can still choose status after queue if they need extra narrowing.
     */
-    setStatus("");
   }
 
   return (
@@ -218,22 +196,7 @@ export default function OfficerApplicationsPage() {
             </select>
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Status</label>
-            <select
-              className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-            >
-              {statusFilters.map((filter) => (
-                <option key={filter.value || "all"} value={filter.value}>
-                  {filter.label} ({queueCounts[filter.value || "all"] || 0})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
             <label className="text-sm font-medium">Search</label>
             <div className="relative mt-2">
               <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />

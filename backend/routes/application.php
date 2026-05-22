@@ -55,6 +55,7 @@ Route::middleware('auth:sanctum')->prefix('officer')->group(function () {
     Route::get('/sharing/windows/{window}/officers', [OfficerApplicationShareController::class, 'officers']);
     Route::post('/applications/{application}/share-to-officer', [OfficerApplicationShareController::class, 'share']);
     Route::post('/applications/{application}/accept', [OfficerApplicationController::class, 'accept']);
+    Route::post('/applications/{application}/appointment', [OfficerApplicationController::class, 'appointment']);
     Route::post('/applications/{application}/share', [OfficerApplicationController::class, 'share']);
     Route::post('/applications/{application}/forward-to-back-officer', [OfficerApplicationController::class, 'forwardToBackOfficer']);
     Route::post('/applications/{application}/approve', [OfficerApplicationController::class, 'approve']);

@@ -36,7 +36,7 @@ class OfficerApplicationShareController extends Controller
                 $windowId,
                 $request->input('level'),
                 $request->integer('service_id') ?: null
-            ), $windowId),
+            ),
         ]);
     }
 
@@ -59,7 +59,7 @@ class OfficerApplicationShareController extends Controller
                 $application,
                 (int) $data['to_window_id'],
                 (int) $data['to_officer_id'],
-                $data['note'] ?? null
+                $data['note'] ?? $data['remark'] ?? null
             ),
         ]);
     }

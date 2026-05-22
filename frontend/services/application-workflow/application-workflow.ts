@@ -15,20 +15,34 @@ import {
 
 export type OfficerWorkflowAction =
   | "accept"
+  | "appointment"
   | "share"
+  | "share-to-officer"
   | "return"
   | "forward-to-back-officer"
   | "approve"
   | "reject"
-  | "complete";
+  | "complete"
+  | "escalate-to-manager";
 
 export type OfficerActionPayload = {
   remark?: string;
+  note?: string;
   reason?: string;
+  message?: string;
+  priority?: "emergency" | "high" | "normal" | "low";
   officer_id?: number;
+  to_officer_id?: number;
   back_officer_id?: number;
   front_officer_id?: number;
   window_id?: number;
+  to_window_id?: number;
+  manager_id?: number;
+  appointment_at?: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  appointment_location?: string;
+  location?: string;
   documents?: File[];
 };
 
@@ -57,25 +71,35 @@ function params(filter?: Record<string, unknown>) {
 function actionPayload(payload: OfficerActionPayload = {}) {
   const hasFiles = Boolean(payload.documents?.length);
 
-  if (!hasFiles) {
-    return {
-      remark: payload.remark,
-      reason: payload.reason,
-      officer_id: payload.officer_id,
-      back_officer_id: payload.back_officer_id,
-      front_officer_id: payload.front_officer_id,
-      window_id: payload.window_id,
-    };
-  }
+  const plain: Record<string, unknown> = {
+    remark: payload.remark,
+    note: payload.note ?? payload.remark,
+    reason: payload.reason,
+    message: payload.message,
+    priority: payload.priority,
+    officer_id: payload.officer_id,
+    to_officer_id: payload.to_officer_id,
+    back_officer_id: payload.back_officer_id,
+    front_officer_id: payload.front_officer_id,
+    window_id: payload.window_id,
+    to_window_id: payload.to_window_id,
+    manager_id: payload.manager_id,
+    appointment_at: payload.appointment_at,
+    appointment_date: payload.appointment_date,
+    appointment_time: payload.appointment_time,
+    appointment_location: payload.appointment_location,
+    location: payload.location,
+  };
+
+  if (!hasFiles) return plain;
 
   const form = new FormData();
 
-  if (payload.remark) form.append("remark", payload.remark);
-  if (payload.reason) form.append("reason", payload.reason);
-  if (payload.officer_id) form.append("officer_id", String(payload.officer_id));
-  if (payload.back_officer_id) form.append("back_officer_id", String(payload.back_officer_id));
-  if (payload.front_officer_id) form.append("front_officer_id", String(payload.front_officer_id));
-  if (payload.window_id) form.append("window_id", String(payload.window_id));
+  Object.entries(plain).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      form.append(key, String(value));
+    }
+  });
 
   payload.documents?.forEach((file, index) => {
     form.append(`documents[${index}]`, file);
@@ -283,9 +307,9 @@ export const applicationWorkflowService = {
       return dataFrom<ServiceApplication>(unwrap<ApiResponse<ServiceApplication>>(response));
     },
 
-    async backOfficerAction(id: number, action: "approve" | "reject", payload: OfficerActionPayload = {}) {
+    async backOfficerAction(id: number, action: "approve" | "reject" | "return" | "share" | "escalate-to-manager", payload: OfficerActionPayload = {}) {
       const response = await api.post(
-        `/back-officer/applications/${id}/${action}`,
+        `/officer/applications/${id}/${action}`,
         actionPayload(payload),
         actionConfig(payload)
       );

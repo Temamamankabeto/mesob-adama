@@ -1,5 +1,6 @@
 "use client";
 
+import api from "@/lib/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -86,7 +87,7 @@ export function useBackOfficerApplicationAction(id: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ action, payload }: { action: "approve" | "reject"; payload?: OfficerActionPayload }) =>
+    mutationFn: ({ action, payload }: { action: "approve" | "reject" | "return" | "share" | "escalate-to-manager"; payload?: OfficerActionPayload }) =>
       applicationWorkflowService.officer.backOfficerAction(id, action, payload ?? {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["officer-application-queue"] });
@@ -102,6 +103,7 @@ export function useWindowFrontOfficers(windowId?: number, serviceId?: number) {
     enabled: Boolean(windowId),
   });
 }
+
 
 
 export type OfficerSharingWindow = {
