@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Eye, Plus, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Eye, FileText, Plus, Search } from "lucide-react";
 
 import ApplicationStatusBadge from "@/components/application/ApplicationStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -18,41 +18,101 @@ import {
 } from "@/components/ui/table";
 import { useCustomerApplications } from "@/hooks/customer/use-customer-applications";
 
+const STATUS_FILTERS = [
+  { key: "all", label: "Total" },
+  { key: "pending", label: "Pending" },
+  { key: "under_review", label: "Under Review" },
+  { key: "appointed", label: "Appointed" },
+  { key: "approved", label: "Approved" },
+  { key: "completed", label: "Completed" },
+  { key: "rejected", label: "Rejected" },
+] as const;
+
+type StatusKey = (typeof STATUS_FILTERS)[number]["key"];
+
 export default function DashboardMyApplicationsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<StatusKey>("all");
 
-  const { data, isLoading } = useCustomerApplications({ page, search });
+  const { data, isLoading } = useCustomerApplications({
+    page,
+    search,
+    status: status === "all" ? undefined : status,
+  });
 
   const applications = data?.data || [];
   const meta = data?.meta;
+  const statusCounts = data?.meta?.status_counts;
+
+  const activeLabel = useMemo(
+    () => STATUS_FILTERS.find((item) => item.key === status)?.label || "Total",
+    [status]
+  );
+
+  function getCount(key: StatusKey) {
+    if (key === "all") return statusCounts?.total ?? meta?.total ?? 0;
+    return statusCounts?.[key] ?? 0;
+  }
+
+  function changeStatus(nextStatus: StatusKey) {
+    setStatus(nextStatus);
+    setPage(1);
+  }
 
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border bg-card p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">My Applications</h1>
+            <h1 className="text-2xl font-bold tracking-tight">My Applications</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Your submitted service applications and current statuses.
+              Filter your applications by status and track office decisions.
             </p>
           </div>
 
           <Button asChild className="rounded-2xl">
             <Link href="/services">
               <Plus className="mr-2 h-4 w-4" />
-              Add New Application
+              New Application
             </Link>
           </Button>
         </div>
       </div>
 
-      <Card className="rounded-3xl">
-        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        {STATUS_FILTERS.map((item) => {
+          const active = status === item.key;
+
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => changeStatus(item.key)}
+              className={`rounded-2xl border p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                active
+                  ? "border-blue-600 bg-blue-50 text-blue-700"
+                  : "bg-card text-card-foreground"
+              }`}
+            >
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {item.label}
+                </span>
+                <FileText className="h-4 w-4" />
+              </div>
+              <p className="text-2xl font-bold">{getCount(item.key)}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      <Card className="rounded-3xl shadow-sm">
+        <CardHeader className="flex flex-col gap-4 border-b md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle>Application List</CardTitle>
+            <CardTitle>{activeLabel} Applications</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {meta?.total || 0} application(s)
+              {meta?.total || 0} record(s) found
             </p>
           </div>
 
@@ -64,14 +124,14 @@ export default function DashboardMyApplicationsPage() {
                 setSearch(event.target.value);
                 setPage(1);
               }}
-              placeholder="Search by tracking number or service..."
+              placeholder="Search tracking number or service..."
               className="pl-10"
             />
           </div>
         </CardHeader>
 
-        <CardContent>
-          <div className="rounded-2xl border">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -89,41 +149,35 @@ export default function DashboardMyApplicationsPage() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={7} className="py-10 text-center">
-                      Loading...
+                      Loading applications...
                     </TableCell>
                   </TableRow>
                 ) : applications.length ? (
                   applications.map((application) => (
                     <TableRow key={application.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-semibold">
                         {application.tracking_number}
                       </TableCell>
-
                       <TableCell>{application.service?.name || application.service_id}</TableCell>
-
                       <TableCell className="capitalize">
                         {application.administrative_level || "-"}
                       </TableCell>
-
                       <TableCell>
                         {application.woreda?.name ||
                           application.subcity?.name ||
                           application.city?.name ||
                           "-"}
                       </TableCell>
-
                       <TableCell>
                         <ApplicationStatusBadge status={application.status} />
                       </TableCell>
-
                       <TableCell>
                         {application.submitted_at
-                          ? new Date(application.submitted_at).toLocaleString()
+                          ? new Date(application.submitted_at).toLocaleDateString()
                           : "-"}
                       </TableCell>
-
                       <TableCell className="text-right">
-                        <Button asChild variant="outline" size="sm">
+                        <Button asChild variant="outline" size="sm" className="rounded-xl">
                           <Link href={`/dashboard/my-applications/${application.id}`}>
                             <Eye className="mr-2 h-4 w-4" />
                             View
@@ -134,17 +188,8 @@ export default function DashboardMyApplicationsPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                      <div className="flex flex-col items-center gap-3">
-                        <span>No applications found.</span>
-
-                        <Button asChild size="sm" className="rounded-2xl">
-                          <Link href="/services">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add New Application
-                          </Link>
-                        </Button>
-                      </div>
+                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                      No applications found for this filter.
                     </TableCell>
                   </TableRow>
                 )}
@@ -152,7 +197,7 @@ export default function DashboardMyApplicationsPage() {
             </Table>
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
+          <div className="flex items-center justify-between border-t p-4">
             <p className="text-sm text-muted-foreground">
               Page {meta?.current_page || 1} of {meta?.last_page || 1}
             </p>
@@ -165,7 +210,6 @@ export default function DashboardMyApplicationsPage() {
               >
                 Previous
               </Button>
-
               <Button
                 variant="outline"
                 disabled={!meta || meta.current_page >= meta.last_page}

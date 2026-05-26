@@ -104,6 +104,20 @@ export type ServiceApplicationData = {
   field_value?: string | null;
 };
 
+export type ServiceApplicationAppointment = {
+  id: number;
+  application_id: number;
+  scheduled_by?: number | null;
+  appointment_at: string;
+  location?: string | null;
+  message?: string | null;
+  status?: string | null;
+  scheduler?: {
+    id: number;
+    name: string;
+  };
+};
+
 export type ServiceApplicationFile = {
   id: number;
   application_id: number;

@@ -159,11 +159,10 @@ class OfficerWindowAssignmentService
 
         /*
         |--------------------------------------------------------------------------
-        | Share windows
+        | Return every window available on the officer's administrative level.
         |--------------------------------------------------------------------------
-        | Front/Back officer can select from all windows available for their own
-        | administrative level. After selecting a window, officers assigned to that
-        | window are loaded.
+        | The officer does not need to be assigned to the window before seeing it.
+        | After selecting a window, officers assigned to that selected window are loaded.
         */
         return Window::query()
             ->orderBy('name')
