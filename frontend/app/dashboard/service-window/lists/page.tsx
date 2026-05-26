@@ -15,20 +15,6 @@ import {
   useUnassignServiceWindow,
 } from "@/hooks/service-window/use-service-window";
 
-
-
-
-function windowDisplayName(window: {
-  name?: string | null;
-  title?: string | null;
-  display_name?: string | null;
-}) {
-  const name = window.name || "Window";
-  const title = window.title || "";
-
-  return window.display_name || (title ? `${name} - ${title}` : name);
-}
-
 const levels: Array<{ level: ServiceWindowLevel; label: string }> = [
   { level: "city", label: "City Level" },
   { level: "subcity", label: "Subcity Level" },
@@ -166,10 +152,8 @@ export default function AssignedServiceWindowListPage() {
                     className="flex w-full items-center justify-between text-left"
                   >
                     <div>
-                      <h3 className="font-bold">{windowDisplayName(window)}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {window.title || "No title"} · {(window.services || []).length} service(s)
-                      </p>
+                      <h3 className="font-bold">{window.name}</h3>
+                      <p className="text-sm text-muted-foreground">{(window.services || []).length} service(s)</p>
                     </div>
                     {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                   </button>

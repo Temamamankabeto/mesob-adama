@@ -129,17 +129,18 @@ export default function FormBuilderPage() {
         width: "half",
       };
 
-      const createdField =
-        await create.mutateAsync(
-          payload
-        );
+      const response =
+  await create.mutateAsync(payload);
 
-      setFields((prev) => [
+const createdField =
+  (response as any)?.data?.data ??
+  (response as any)?.data ??
+  response;
 
-        ...prev,
-
-        createdField,
-      ]);
+setFields((prev) => [
+  ...prev,
+  createdField as ServiceFormField,
+]);
 
     } catch (error) {
 

@@ -1,1 +1,1 @@
-export { AppProviders as default, AppProviders } from "@/providers/AppProviders";
+export { default } from "@/providers/AppProviders";

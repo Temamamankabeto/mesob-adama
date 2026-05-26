@@ -1,9 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Building2, Loader2, LogIn, ShieldCheck } from "lucide-react";
+import { FormEvent, Suspense, useState } from "react";
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+
+import {
+  Building2,
+  Loader2,
+  LogIn,
+  ShieldCheck,
+} from "lucide-react";
+
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
@@ -11,34 +21,84 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/services/auth/auth.service";
 
-export default function LoginPage() {
+type RoleValue =
+  | string
+  | {
+      name?: string;
+    };
+
+function getUserRole(user: any): string {
+  const firstRole =
+    user?.roles?.[0] as
+      | RoleValue
+      | undefined;
+
+  if (typeof firstRole === "string") {
+    return firstRole;
+  }
+
+  if (firstRole?.name) {
+    return firstRole.name;
+  }
+
+  if (typeof user?.role === "string") {
+    return user.role;
+  }
+
+  return "customer";
+}
+
+function LoginContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const [login, setLogin] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const searchParams =
+    useSearchParams();
 
-  async function onSubmit(e: FormEvent) {
+  const [login, setLogin] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  async function onSubmit(
+    e: FormEvent
+  ) {
     e.preventDefault();
+
     setLoading(true);
 
     try {
-      const response = await authService.login({ login, password });
-      authService.saveSession(response);
+      const response =
+        await authService.login({
+          email: login,
+          password,
+        });
+
+      authService.saveSession(
+        response
+      );
 
       document.cookie = `token=${response.token}; path=/`;
 
-      const role =
-        response.user?.roles?.[0]?.name ||
-        response.user?.role ||
-        "customer";
+      const role = getUserRole(
+        response.user
+      );
 
       document.cookie = `role=${role.toLowerCase()}; path=/`;
 
-      toast.success("Logged in successfully");
+      toast.success(
+        "Logged in successfully"
+      );
 
-      router.replace(searchParams.get("redirect") || "/dashboard");
+      const redirect =
+        searchParams.get(
+          "redirect"
+        ) || "/dashboard";
+
+      router.replace(redirect);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Login failed");
     } finally {
@@ -141,5 +201,19 @@ export default function LoginPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

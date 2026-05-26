@@ -13,31 +13,39 @@ import {
 } from "@/types/windows/window";
 
 export function useWindows(
-  page = 1,
-  params?: {
-    search?: string;
-    level?: string;
-  }
+  page = 1
 ) {
   return useQuery({
-    queryKey: ["windows", page, params],
-    queryFn: () => windowService.getAll(page, params),
+    queryKey: ["windows", page],
+
+    queryFn: () =>
+      windowService.getAll(page),
   });
 }
 
 export function useCreateWindow() {
-  const queryClient = useQueryClient();
+  const queryClient =
+    useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: WindowPayload) => windowService.create(payload),
+    mutationFn: (
+      payload: WindowPayload
+    ) =>
+      windowService.create(
+        payload
+      ),
+
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["windows"] });
+      queryClient.invalidateQueries({
+        queryKey: ["windows"],
+      });
     },
   });
 }
 
 export function useUpdateWindow() {
-  const queryClient = useQueryClient();
+  const queryClient =
+    useQueryClient();
 
   return useMutation({
     mutationFn: ({
@@ -46,21 +54,32 @@ export function useUpdateWindow() {
     }: {
       id: number;
       payload: Partial<WindowPayload>;
-    }) => windowService.update(id, payload),
+    }) =>
+      windowService.update(
+        id,
+        payload
+      ),
 
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["windows"] });
+      queryClient.invalidateQueries({
+        queryKey: ["windows"],
+      });
     },
   });
 }
 
 export function useDeleteWindow() {
-  const queryClient = useQueryClient();
+  const queryClient =
+    useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => windowService.delete(id),
+    mutationFn: (id: number) =>
+      windowService.delete(id),
+
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["windows"] });
+      queryClient.invalidateQueries({
+        queryKey: ["windows"],
+      });
     },
   });
 }

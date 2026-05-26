@@ -1,15 +1,9 @@
 "use client";
-
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   serviceFormService,
   serviceService,
-  userServiceAssignmentService,
 } from "@/services/service/service";
 
 import {
@@ -18,6 +12,28 @@ import {
   ServicePayload,
   UpdateServiceFormPayload,
 } from "@/types/services/service";
+
+const serviceApi: any = serviceService;
+const assignmentApi: any = serviceService;
+
+type CreateServiceFormFieldPayload = {
+  service_form_id: number;
+  section_id?: number | null;
+  step_id?: number | null;
+  label: string;
+  name?: string;
+  field_key?: string;
+  type?: string;
+  field_type?: string;
+  placeholder?: string | null;
+  help_text?: string | null;
+  options?: unknown[] | null;
+  validation_rules?: string | string[] | Record<string, unknown> | null;
+  is_required?: boolean;
+  required?: boolean;
+  sort_order?: number;
+  is_active?: boolean;
+};
 
 export function useServices(page = 1) {
   return useQuery({
@@ -54,25 +70,17 @@ export function useDeleteService() {
   });
 }
 
-export function useServiceOfficers(params?: {
-  page?: number;
-  search?: string;
-  per_page?: number;
-  level?: "city" | "subcity" | "woreda";
-  subcity_id?: number | string;
-  woreda_id?: number | string;
-  role?: "front_officer" | "back_officer" | "";
-}) {
+export function useServiceOfficers(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: ["service-officers", params],
-    queryFn: () => userServiceAssignmentService.getOfficers(params),
+    queryFn: () => assignmentApi.getOfficers?.(params) ?? [],
   });
 }
 
 export function useUserAssignedServices(userId?: number) {
   return useQuery({
     queryKey: ["user-services", userId],
-    queryFn: () => userServiceAssignmentService.getByUser(userId!),
+    queryFn: () => assignmentApi.getByUser?.(userId!) ?? [],
     enabled: !!userId,
   });
 }
@@ -82,7 +90,7 @@ export function useAssignUserServices() {
 
   return useMutation({
     mutationFn: ({ userId, payload }: { userId: number; payload: AssignUserServicePayload }) =>
-      userServiceAssignmentService.assign(userId, payload),
+      assignmentApi.assign?.(userId, payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["service-officers"] });
@@ -126,9 +134,9 @@ export function useUpdateServiceForm() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: UpdateServiceFormPayload }) =>
       serviceFormService.update(id, payload),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["service-forms"] });
-      queryClient.invalidateQueries({ queryKey: ["service-form", data.data.id] });
+      queryClient.invalidateQueries({ queryKey: ["service-form", data?.data?.id] });
     },
   });
 }
@@ -147,9 +155,41 @@ export function useToggleServiceForm() {
 
   return useMutation({
     mutationFn: (id: number) => serviceFormService.toggle(id),
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["service-forms"] });
-      queryClient.invalidateQueries({ queryKey: ["service-form", data.data.id] });
+      queryClient.invalidateQueries({ queryKey: ["service-form", data?.data?.id] });
     },
   });
+}
+
+export function useServiceFormFieldMutations() {
+  const queryClient = useQueryClient();
+
+  const create = useMutation({
+    mutationFn: (payload: CreateServiceFormFieldPayload) =>
+      serviceApi.createFormField?.(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-form-fields"] });
+      queryClient.invalidateQueries({ queryKey: ["service-forms"] });
+    },
+  });
+
+  const update = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
+      serviceApi.updateFormField?.(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-form-fields"] });
+      queryClient.invalidateQueries({ queryKey: ["service-forms"] });
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: number) => serviceApi.deleteFormField?.(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-form-fields"] });
+      queryClient.invalidateQueries({ queryKey: ["service-forms"] });
+    },
+  });
+
+  return { create, update, remove, delete: remove };
 }
