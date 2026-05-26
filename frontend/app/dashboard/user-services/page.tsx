@@ -23,18 +23,6 @@ import {
   useUserServiceAssignmentBoard,
 } from "@/hooks/user-services/use-user-service-assignment-board";
 
-
-function windowDisplayName(window: {
-  name?: string | null;
-  title?: string | null;
-  display_name?: string | null;
-}) {
-  const name = window.name || "Window";
-  const title = window.title || "";
-
-  return window.display_name || (title ? `${name} - ${title}` : name);
-}
-
 const cards: Array<{
   level: AssignmentLevel;
   title: string;
@@ -107,7 +95,7 @@ export default function UserServicePage() {
       (window.officers || []).map((officer: any) => ({
         ...officer,
         window_id: window.id,
-        window_name: windowDisplayName(window),
+        window_name: window.name,
       }))
     );
   }, [windows]);
@@ -405,9 +393,9 @@ export default function UserServicePage() {
                 <Card key={window.id} className="rounded-3xl">
                   <CardContent className="space-y-4 p-4 sm:p-5">
                     <div>
-                      <h3 className="font-bold">{windowDisplayName(window)}</h3>
+                      <h3 className="font-bold">{window.name}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {window.title || "No title"} · {window.title || "No title"} · {(window.services || []).length} service(s), {(window.officers || []).length} officer(s)
+                        {(window.services || []).length} service(s), {(window.officers || []).length} officer(s)
                       </p>
                     </div>
 

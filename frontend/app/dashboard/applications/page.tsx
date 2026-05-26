@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardCard from "@/components/application/DashboardCard";
-import { useDashboardStats } from "@/hooks/useApplications";
+import { useDashboardStats } from "@/hooks/application/use-application";
 
 export default function ApplicationsPage() {
 

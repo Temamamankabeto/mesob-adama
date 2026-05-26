@@ -7,13 +7,6 @@ export type AuthUser = {
   email?: string;
   phone?: string;
   address?: string | null;
-  gender?: string | null;
-  date_of_birth?: string | null;
-  profile_image_url?: string | null;
-  city_id?: number | string | null;
-  subcity_id?: number | string | null;
-  woreda_id?: number | string | null;
-  location_level?: string | null;
   role?: string;
   roles?: string[];
   permissions?: string[];
@@ -33,18 +26,9 @@ function normalizeLoginResponse(response: unknown): LoginResponse {
   return "data" in value && value.data ? value.data : (value as LoginResponse);
 }
 
-function dataFrom<T>(response: unknown): T {
-  const value = unwrap<any>(response);
-  return (value?.data ?? value) as T;
-}
-
 function setCookie(name: string, value: unknown, maxAgeSeconds = 60 * 60 * 24 * 7) {
   if (typeof document === "undefined") return;
-
-  const encoded = encodeURIComponent(
-    typeof value === "string" ? value : JSON.stringify(value)
-  );
-
+  const encoded = encodeURIComponent(typeof value === "string" ? value : JSON.stringify(value));
   document.cookie = `${name}=${encoded}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`;
 }
 
@@ -60,13 +44,6 @@ function clearAuthCookies() {
   deleteCookie("user");
 }
 
-function saveUserToStorage(user: AuthUser) {
-  if (typeof window === "undefined") return;
-
-  localStorage.setItem("user", JSON.stringify(user));
-  setCookie("user", user);
-}
-
 export const authService = {
   async login(credentials: { email: string; password: string }) {
     const response = await api.post("/auth/login", credentials);
@@ -80,40 +57,7 @@ export const authService = {
 
   async me() {
     const response = await api.get("/auth/me");
-    return dataFrom<AuthUser>(response);
-  },
-
-  /*
-  |--------------------------------------------------------------------------
-  | AUTHENTICATED PROFILE
-  |--------------------------------------------------------------------------
-  | Used by /dashboard/profile.
-  */
-  async profile() {
-    const response = await api.get("/auth/profile");
-    return dataFrom<AuthUser>(response);
-  },
-
-  async updateProfile(payload: FormData) {
-    const response = await api.post("/auth/profile", payload, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-
-    const user = dataFrom<AuthUser>(response);
-    saveUserToStorage(user);
-
-    return user;
-  },
-
-  async changeOwnPassword(payload: {
-    current_password: string;
-    new_password: string;
-    new_password_confirmation: string;
-  }) {
-    const response = await api.post("/auth/profile/password", payload);
-    return unwrap(response);
+    return unwrap<AuthUser>(response);
   },
 
   async logout() {
@@ -127,70 +71,38 @@ export const authService = {
 
   saveSession(response: LoginResponse) {
     if (typeof window === "undefined") return;
-
-    const token =
-      response.token ??
-      response.access_token ??
-      response.data?.token ??
-      response.data?.access_token;
-
+    const token = response.token ?? response.access_token ?? response.data?.token ?? response.data?.access_token;
     const user = response.user ?? response.data?.user ?? null;
-
-    const roles =
-      response.roles ??
-      response.data?.roles ??
-      user?.roles ??
-      (user?.role ? [user.role] : []);
-
-    const permissions =
-      response.permissions ??
-      response.data?.permissions ??
-      user?.permissions ??
-      [];
+    const roles = response.roles ?? response.data?.roles ?? user?.roles ?? (user?.role ? [user.role] : []);
+    const permissions = response.permissions ?? response.data?.permissions ?? user?.permissions ?? [];
 
     if (token) {
       localStorage.setItem("token", token);
       setCookie("token", token);
     }
-
     if (user) {
-      saveUserToStorage(user);
+      localStorage.setItem("user", JSON.stringify(user));
+      setCookie("user", user);
     }
 
     localStorage.setItem("roles", JSON.stringify(roles));
     localStorage.setItem("permissions", JSON.stringify(permissions));
-
     setCookie("roles", roles);
     setCookie("permissions", permissions);
   },
 
   getStoredUser(): AuthUser | null {
     if (typeof window === "undefined") return null;
-
-    try {
-      return JSON.parse(localStorage.getItem("user") || "null");
-    } catch {
-      return null;
-    }
+    try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
   },
 
   getStoredRoles(): string[] {
     if (typeof window === "undefined") return [];
-
-    try {
-      return JSON.parse(localStorage.getItem("roles") || "[]");
-    } catch {
-      return [];
-    }
+    try { return JSON.parse(localStorage.getItem("roles") || "[]"); } catch { return []; }
   },
 
   getStoredPermissions(): string[] {
     if (typeof window === "undefined") return [];
-
-    try {
-      return JSON.parse(localStorage.getItem("permissions") || "[]");
-    } catch {
-      return [];
-    }
+    try { return JSON.parse(localStorage.getItem("permissions") || "[]"); } catch { return []; }
   },
 };

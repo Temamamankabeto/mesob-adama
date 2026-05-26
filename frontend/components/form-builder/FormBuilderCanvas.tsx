@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import DroppableSection from "@/components/form-builder/DroppableSection";
 import FieldEditorDialog from "@/components/form-builder/FieldEditorDialog";
 import FieldPalette from "@/components/form-builder/FieldPalette";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,11 +25,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import {
   BuilderData,
   FieldType,
   ServiceFormField,
 } from "@/types/application-workflow";
+
 import {
   useCreateServiceFormCondition,
   useCreateServiceFormField,
@@ -45,16 +48,25 @@ type Props = {
 };
 
 function makeName(type: string, count: number) {
-  return `${type}_${count + 1}`.replace(/[^a-z0-9_]/gi, "_").toLowerCase();
+  return `${type}_${count + 1}`
+    .replace(/[^a-z0-9_]/gi, "_")
+    .toLowerCase();
 }
 
 function sectionIdOf(field: ServiceFormField) {
   return field.section_id ?? field.service_form_section_id ?? 0;
 }
 
-export default function FormBuilderCanvas({ serviceFormId, data }: Props) {
-  const [selectedField, setSelectedField] = useState<ServiceFormField | null>(null);
-  const [localFields, setLocalFields] = useState<ServiceFormField[]>(data.fields);
+export default function FormBuilderCanvas({
+  serviceFormId,
+  data,
+}: Props) {
+  const [selectedField, setSelectedField] =
+    useState<ServiceFormField | null>(null);
+
+  const [localFields, setLocalFields] =
+    useState<ServiceFormField[]>(data.fields);
+
   const [stepTitle, setStepTitle] = useState("");
   const [sectionTitle, setSectionTitle] = useState("");
 
@@ -63,8 +75,12 @@ export default function FormBuilderCanvas({ serviceFormId, data }: Props) {
   const createField = useCreateServiceFormField(serviceFormId);
   const updateField = useUpdateServiceFormField(serviceFormId);
   const deleteField = useDeleteServiceFormField(serviceFormId);
-  const createCondition = useCreateServiceFormCondition(serviceFormId);
-  const deleteCondition = useDeleteServiceFormCondition(serviceFormId);
+
+  const createCondition =
+    useCreateServiceFormCondition(serviceFormId);
+
+  const deleteCondition =
+    useDeleteServiceFormCondition(serviceFormId);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -86,7 +102,11 @@ export default function FormBuilderCanvas({ serviceFormId, data }: Props) {
     });
 
     Object.keys(grouped).forEach((key) => {
-      grouped[Number(key)].sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
+      grouped[Number(key)].sort(
+        (a, b) =>
+          Number(a.sort_order || 0) -
+          Number(b.sort_order || 0)
+      );
     });
 
     return grouped;
@@ -119,19 +139,34 @@ export default function FormBuilderCanvas({ serviceFormId, data }: Props) {
     toast.success("Section created");
   }
 
-  async function createDroppedField(type: FieldType, sectionId: number) {
-    const sectionFields = fieldsBySection[sectionId] ?? [];
+  async function createDroppedField(
+    type: FieldType,
+    sectionId: number
+  ) {
+    const sectionFields =
+      fieldsBySection[sectionId] ?? [];
+
     const order = sectionFields.length + 1;
-    const name = makeName(type, localFields.length);
+
+    const name = makeName(
+      type,
+      localFields.length
+    );
 
     await createField.mutateAsync({
       service_form_section_id: sectionId,
       section_id: sectionId,
-      label: `${type[0].toUpperCase()}${type.slice(1)} Field`,
+      label: `${type
+        .toString()
+        .toUpperCase()} Field`,
       name,
       type,
       placeholder: "",
-      options: ["select", "radio"].includes(type) ? ["Option 1", "Option 2"] : [],
+      options: ["select", "radio"].includes(
+        type
+      )
+        ? ["Option 1", "Option 2"]
+        : [],
       validation_rules: "",
       is_required: false,
       is_active: true,
@@ -142,13 +177,25 @@ export default function FormBuilderCanvas({ serviceFormId, data }: Props) {
     toast.success("Field added");
   }
 
-  async function reorderFields(activeId: number, overId: number) {
-    const oldIndex = localFields.findIndex((field) => field.id === activeId);
-    const newIndex = localFields.findIndex((field) => field.id === overId);
+  async function reorderFields(
+    activeId: number,
+    overId: number
+  ) {
+    const oldIndex = localFields.findIndex(
+      (field) => field.id === activeId
+    );
+
+    const newIndex = localFields.findIndex(
+      (field) => field.id === overId
+    );
 
     if (oldIndex < 0 || newIndex < 0) return;
 
-    const next = arrayMove(localFields, oldIndex, newIndex).map((field, index) => ({
+    const next = arrayMove(
+      localFields,
+      oldIndex,
+      newIndex
+    ).map((field, index) => ({
       ...field,
       sort_order: index + 1,
     }));
@@ -161,15 +208,24 @@ export default function FormBuilderCanvas({ serviceFormId, data }: Props) {
           id: field.id,
           payload: {
             sort_order: field.sort_order,
-            service_form_section_id: field.service_form_section_id ?? field.section_id ?? null,
-            section_id: field.section_id ?? field.service_form_section_id ?? null,
+            service_form_section_id:
+              field.service_form_section_id ??
+              field.section_id ??
+              null,
+            section_id:
+              field.section_id ??
+              field.service_form_section_id ??
+              null,
           },
         })
       )
     );
   }
 
-  async function moveFieldToSection(fieldId: number, sectionId: number) {
+  async function moveFieldToSection(
+    fieldId: number,
+    sectionId: number
+  ) {
     const next = localFields.map((field) =>
       field.id === fieldId
         ? {
@@ -191,67 +247,170 @@ export default function FormBuilderCanvas({ serviceFormId, data }: Props) {
     });
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
-    const activeId = String(event.active.id);
-    const overId = event.over ? String(event.over.id) : "";
+  async function handleDragEnd(
+    event: DragEndEvent
+  ) {
+    const activeId = String(
+      event.active.id
+    );
+
+    const overId = event.over
+      ? String(event.over.id)
+      : "";
 
     if (!overId) return;
 
-    if (activeId.startsWith("palette:") && overId.startsWith("section:")) {
-      await createDroppedField(activeId.replace("palette:", "") as FieldType, Number(overId.replace("section:", "")));
+    if (
+      activeId.startsWith("palette:") &&
+      overId.startsWith("section:")
+    ) {
+      await createDroppedField(
+        activeId.replace(
+          "palette:",
+          ""
+        ) as FieldType,
+        Number(
+          overId.replace(
+            "section:",
+            ""
+          )
+        )
+      );
       return;
     }
 
-    if (!activeId.startsWith("palette:") && overId.startsWith("section:")) {
-      await moveFieldToSection(Number(activeId), Number(overId.replace("section:", "")));
+    if (
+      !activeId.startsWith("palette:") &&
+      overId.startsWith("section:")
+    ) {
+      await moveFieldToSection(
+        Number(activeId),
+        Number(
+          overId.replace(
+            "section:",
+            ""
+          )
+        )
+      );
       return;
     }
 
-    if (!activeId.startsWith("palette:") && !overId.startsWith("section:")) {
-      await reorderFields(Number(activeId), Number(overId));
+    if (
+      !activeId.startsWith("palette:") &&
+      !overId.startsWith("section:")
+    ) {
+      await reorderFields(
+        Number(activeId),
+        Number(overId)
+      );
     }
   }
 
-  async function handleSaveField(id: number, payload: Partial<ServiceFormField>) {
-    await updateField.mutateAsync({ id, payload });
+  async function handleSaveField(
+    id: number,
+    payload: Partial<ServiceFormField>
+  ) {
+    await updateField.mutateAsync({
+      id,
+      payload,
+    });
+
     toast.success("Field updated");
   }
 
   async function handleDeleteField(id: number) {
     await deleteField.mutateAsync(id);
-    setLocalFields((current) => current.filter((field) => field.id !== id));
+
+    setLocalFields((current) =>
+      current.filter(
+        (field) => field.id !== id
+      )
+    );
+
     toast.success("Field deleted");
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+        {/* LEFT PANEL */}
         <div className="space-y-4">
           <Card className="rounded-3xl">
             <CardHeader>
-              <CardTitle className="text-base">Field Palette</CardTitle>
+              <CardTitle className="text-base">
+                Field Palette
+              </CardTitle>
             </CardHeader>
+
             <CardContent>
-              <FieldPalette />
-              <p className="mt-3 text-xs text-muted-foreground">Drag a field into any section.</p>
+              {/* ✅ FIXED HERE */}
+              <FieldPalette
+                onAdd={async (type) => {
+                  if (!data.sections.length) {
+                    toast.error(
+                      "Create a section first"
+                    );
+                    return;
+                  }
+
+                  const firstSection =
+                    data.sections[0];
+
+                  await createDroppedField(
+                    type,
+                    firstSection.id
+                  );
+                }}
+              />
+
+              <p className="mt-3 text-xs text-muted-foreground">
+                Drag a field into any
+                section.
+              </p>
             </CardContent>
           </Card>
 
           <Card className="rounded-3xl">
             <CardHeader>
-              <CardTitle className="text-base">Quick Create</CardTitle>
+              <CardTitle className="text-base">
+                Quick Create
+              </CardTitle>
             </CardHeader>
+
             <CardContent className="space-y-3">
               <div className="flex gap-2">
-                <Input placeholder="Step title" value={stepTitle} onChange={(event) => setStepTitle(event.target.value)} />
+                <Input
+                  placeholder="Step title"
+                  value={stepTitle}
+                  onChange={(e) =>
+                    setStepTitle(
+                      e.target.value
+                    )
+                  }
+                />
                 <Button size="icon" onClick={addStep}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
 
               <div className="flex gap-2">
-                <Input placeholder="Section title" value={sectionTitle} onChange={(event) => setSectionTitle(event.target.value)} />
-                <Button size="icon" onClick={addSection}>
+                <Input
+                  placeholder="Section title"
+                  value={sectionTitle}
+                  onChange={(e) =>
+                    setSectionTitle(
+                      e.target.value
+                    )
+                  }
+                />
+                <Button
+                  size="icon"
+                  onClick={addSection}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -259,43 +418,40 @@ export default function FormBuilderCanvas({ serviceFormId, data }: Props) {
           </Card>
         </div>
 
+        {/* RIGHT PANEL */}
         <div className="space-y-6">
           <Card className="rounded-3xl">
             <CardHeader>
-              <CardTitle>{data.form?.title || "Form Builder"}</CardTitle>
-              <p className="text-sm text-muted-foreground">{data.form?.description}</p>
+              <CardTitle>
+                {data.form?.title ||
+                  "Form Builder"}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {data.form?.description}
+              </p>
             </CardHeader>
           </Card>
 
-          {data.steps.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {data.steps
-                .slice()
-                .sort((a, b) => Number(a.step_order || a.sort_order || 0) - Number(b.step_order || b.sort_order || 0))
-                .map((step) => (
-                  <div key={step.id} className="rounded-full border bg-background px-4 py-2 text-sm">
-                    {step.step_order || step.sort_order}. {step.title}
-                  </div>
-                ))}
-            </div>
-          )}
-
-          {data.sections.length ? (
-            data.sections
-              .slice()
-              .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
-              .map((section) => (
-                <DroppableSection
-                  key={section.id}
-                  section={section}
-                  fields={fieldsBySection[section.id] ?? []}
-                  onEditField={setSelectedField}
-                  onDeleteField={handleDeleteField}
-                />
-              ))
+          {data.sections.length > 0 ? (
+            data.sections.map((section) => (
+              <DroppableSection
+                key={section.id}
+                section={section}
+                fields={
+                  fieldsBySection[
+                    section.id
+                  ] ?? []
+                }
+                onEditField={setSelectedField}
+                onDeleteField={
+                  handleDeleteField
+                }
+              />
+            ))
           ) : (
             <div className="rounded-3xl border border-dashed p-10 text-center text-muted-foreground">
-              Create a section first, then drag fields into it.
+              Create a section first,
+              then drag fields into it.
             </div>
           )}
         </div>
@@ -307,15 +463,27 @@ export default function FormBuilderCanvas({ serviceFormId, data }: Props) {
         fields={data.fields}
         sections={data.sections}
         conditions={data.conditions}
-        onOpenChange={(open) => !open && setSelectedField(null)}
+        onOpenChange={(open) =>
+          !open && setSelectedField(null)
+        }
         onSave={handleSaveField}
-        onCreateCondition={async (payload) => {
-          await createCondition.mutateAsync(payload);
+        onCreateCondition={async (
+          payload
+        ) => {
+          await createCondition.mutateAsync(
+            payload
+          );
           toast.success("Condition added");
         }}
-        onDeleteCondition={async (id) => {
-          await deleteCondition.mutateAsync(id);
-          toast.success("Condition deleted");
+        onDeleteCondition={async (
+          id
+        ) => {
+          await deleteCondition.mutateAsync(
+            id
+          );
+          toast.success(
+            "Condition deleted"
+          );
         }}
         loading={updateField.isPending}
       />

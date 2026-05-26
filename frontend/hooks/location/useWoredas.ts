@@ -1,33 +1,52 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+
 import {
   getWoredas,
   createWoreda,
   updateWoreda,
   deleteWoreda,
 } from "@/services/locations/service";
+
 import api from "@/lib/api";
 
-/* ================= LIST ================= */
-export const useWoredas = () => {
+type WoredaPayload = {
+  name: string;
+  subcity_id: number;
+};
+
+type UpdateWoredaPayload = {
+  id: number;
+  data: WoredaPayload;
+};
+
+export const useWoredas = (page = 1) => {
   return useQuery({
-    queryKey: ["woredas"],
+    queryKey: ["woredas", page],
 
     queryFn: async () => {
-      const res = await getWoredas();
+      const res = await getWoredas(page);
 
-      console.log("Woredas Response:", res);
-
-      return res?.data?.data || res?.data || [];
+      return {
+        data: res?.data?.data || res?.data || [],
+        meta: res?.data?.meta || null,
+      };
     },
 
     staleTime: 1000 * 60 * 5,
   });
 };
-export const useWoredasWithSubcity = (subcityId?: string) => {
+
+export const useWoredasWithSubcity = (
+  subcityId?: string
+) => {
   return useQuery({
-    queryKey: ["woredas", subcityId],
+    queryKey: ["woredas", "subcity", subcityId],
 
     queryFn: async () => {
       if (!subcityId) return [];
@@ -36,7 +55,6 @@ export const useWoredasWithSubcity = (subcityId?: string) => {
         params: { subcity_id: subcityId },
       });
 
-      // 🔥 FORCE ARRAY RETURN
       return Array.isArray(res?.data)
         ? res.data
         : res?.data?.data ?? [];
@@ -45,34 +63,42 @@ export const useWoredasWithSubcity = (subcityId?: string) => {
     enabled: !!subcityId,
   });
 };
-/* ================= CREATE ================= */
+
 export const useCreateWoreda = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: createWoreda,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["woredas"] }),
+    mutationFn: (data: WoredaPayload) =>
+      createWoreda(data),
+
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["woredas"] });
+    },
   });
 };
 
-
-
-/* ================= UPDATE ================= */
 export const useUpdateWoreda = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: any) => updateWoreda(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["woredas"] }),
+    mutationFn: ({ id, data }: UpdateWoredaPayload) =>
+      updateWoreda(id, data),
+
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["woredas"] });
+    },
   });
 };
 
-/* ================= DELETE ================= */
 export const useDeleteWoreda = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteWoreda,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["woredas"] }),
+    mutationFn: (id: number) =>
+      deleteWoreda(id),
+
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["woredas"] });
+    },
   });
 };

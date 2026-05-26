@@ -216,12 +216,11 @@ export default function OfficerApplicationDetailPage() {
   const shouldFetchSharing = pendingAction?.requiresShare === true;
 
   const { data: shareWindows = [] } =
-    useOfficerSharingWindows(shouldFetchSharing, data?.service_id);
+    useOfficerSharingWindows(shouldFetchSharing);
 
   const { data: rawShareOfficers = [] } = useOfficerSharingOfficers(
     shareWindowId,
-    shouldFetchSharing,
-    data?.service_id
+    shouldFetchSharing
   );
 
   const front = isFrontOfficer();
@@ -230,7 +229,10 @@ export default function OfficerApplicationDetailPage() {
 
   const status = data?.status;
   const stage = data?.current_stage;
-  const serviceHasBackOfficer = Boolean(data?.service?.has_back_officer);
+const serviceHasBackOfficer = Boolean(
+  (data?.service as { has_back_officer?: boolean | number } | null | undefined)
+    ?.has_back_officer
+);
   const backApproved = isBackApproved(status, stage);
   const backRejected = isBackRejected(status, stage);
   const backDecisionDone = back && isBackOfficerDecisionDone(status, stage);
@@ -278,26 +280,68 @@ export default function OfficerApplicationDetailPage() {
 
     if (backRejected) {
       return [
-        { actor: "front", action: "reject", label: "Reject & Return for Correction" },
-        appointmentAction,
-        shareAction,
+        {
+          actor: "front",
+          action: "reject",
+          label: "Reject & Return to Customer",
+        },
+        {
+          actor: "front",
+          action: "share-to-officer",
+          label: "Share with Another Officer",
+          requiresShare: true,
+        },
       ];
     }
 
     if (serviceHasBackOfficer) {
       return [
-        { actor: "front", action: "forward-to-back-officer", label: "Accept & Forward to Back Officer" },
-        appointmentAction,
-        { actor: "front", action: "reject", label: "Reject & Return for Correction" },
-        shareAction,
+        {
+          actor: "front",
+          action: "accept",
+          label: "Accept",
+        },
+        {
+          actor: "front",
+          action: "forward-to-back-officer",
+          label: "Accept & Forward to Back Officer",
+        },
+        {
+          actor: "front",
+          action: "share-to-officer",
+          label: "Share with Another Officer",
+          requiresShare: true,
+        },
       ];
     }
 
     return [
-      { actor: "front", action: "complete", label: "Accept & Complete" },
-      appointmentAction,
-      { actor: "front", action: "reject", label: "Reject & Return for Correction" },
-      shareAction,
+      {
+        actor: "front",
+        action: "accept",
+        label: "Accept",
+      },
+      {
+        actor: "front",
+        action: "complete",
+        label: "Accept & Complete",
+      },
+      {
+        actor: "front",
+        action: "reject",
+        label: "Reject & Return to Customer",
+      },
+      {
+        actor: "front",
+        action: "return",
+        label: "Return to Customer",
+      },
+      {
+        actor: "front",
+        action: "share-to-officer",
+        label: "Share with Another Officer",
+        requiresShare: true,
+      },
     ];
   }, [front, actionVisible, serviceHasBackOfficer, backApproved, backRejected]);
 
@@ -358,7 +402,6 @@ export default function OfficerApplicationDetailPage() {
           to_officer_id: shareOfficerId,
           note: remark,
           remark,
-          documents: files,
         },
       });
 
@@ -585,7 +628,7 @@ export default function OfficerApplicationDetailPage() {
                       <option value="">Select window</option>
                       {shareWindows.map((window) => (
                         <option key={window.id} value={window.id}>
-                          {sharingWindowDisplayName(window)}
+                          {window.name}
                         </option>
                       ))}
                     </select>
