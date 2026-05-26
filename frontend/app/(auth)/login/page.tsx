@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-<<<<<<< HEAD
 import { FormEvent, Suspense, useState } from "react";
 import {
   useRouter,
@@ -9,15 +8,12 @@ import {
 } from "next/navigation";
 
 import {
+  Building2,
   Loader2,
   LogIn,
+  ShieldCheck,
 } from "lucide-react";
 
-=======
-import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Building2, Loader2, LogIn, ShieldCheck } from "lucide-react";
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
@@ -75,7 +71,6 @@ function LoginContent() {
     setLoading(true);
 
     try {
-<<<<<<< HEAD
       const response =
         await authService.login({
           email: login,
@@ -91,17 +86,6 @@ function LoginContent() {
       const role = getUserRole(
         response.user
       );
-=======
-      const response = await authService.login({ login, password });
-      authService.saveSession(response);
-
-      document.cookie = `token=${response.token}; path=/`;
-
-      const role =
-        response.user?.roles?.[0]?.name ||
-        response.user?.role ||
-        "customer";
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
 
       document.cookie = `role=${role.toLowerCase()}; path=/`;
 
@@ -109,16 +93,12 @@ function LoginContent() {
         "Logged in successfully"
       );
 
-<<<<<<< HEAD
       const redirect =
         searchParams.get(
           "redirect"
         ) || "/dashboard";
 
       router.replace(redirect);
-=======
-      router.replace(searchParams.get("redirect") || "/dashboard");
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Login failed");
     } finally {
@@ -127,89 +107,6 @@ function LoginContent() {
   }
 
   return (
-<<<<<<< HEAD
-    <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">
-            Sign in
-          </CardTitle>
-
-          <CardDescription>
-            Login with email or
-            phone number
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <form
-            onSubmit={onSubmit}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label>
-                Email or Phone
-              </Label>
-
-              <Input
-                value={login}
-                onChange={(e) =>
-                  setLogin(
-                    e.target.value
-                  )
-                }
-                placeholder="example@gmail.com or +2519xxxxxxx"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>
-                Password
-              </Label>
-
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) =>
-                  setPassword(
-                    e.target.value
-                  )
-                }
-                required
-              />
-            </div>
-
-            <Button
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <LogIn className="mr-2 h-4 w-4" />
-              )}
-
-              Login
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            New customer?{" "}
-            <Link
-              href="/register"
-              className="text-primary underline"
-            >
-              Create account
-            </Link>
-
-            <Link
-              href="/"
-              className="ml-4 text-primary underline"
-            >
-              Back to home
-            </Link>
-=======
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-emerald-950 p-4">
       <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-8 lg:grid-cols-2">
         <section className="hidden text-white lg:block">
@@ -225,7 +122,6 @@ function LoginContent() {
           <p className="mt-5 max-w-lg text-lg text-white/75">
             Access government services, track applications, manage approvals,
             and serve citizens through one trusted digital office.
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
           </p>
 
           <div className="mt-8 grid max-w-lg grid-cols-2 gap-4">

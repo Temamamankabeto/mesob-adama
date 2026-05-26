@@ -148,26 +148,7 @@ export default function OfficerApplicationsPage() {
             </select>
           </div>
 
-<<<<<<< HEAD
-          <div>
-            <label className="text-sm font-medium">Status</label>
-            <select
-              className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-            >
-              {statusFilters.map((filter) => (
-                <option key={filter.value || "all"} value={filter.value}>
-                  {filter.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="md:col-span-2">
-=======
           <div className="md:col-span-3">
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
             <label className="text-sm font-medium">Search</label>
             <div className="relative mt-2">
               <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />

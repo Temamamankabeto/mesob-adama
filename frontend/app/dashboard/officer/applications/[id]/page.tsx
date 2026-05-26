@@ -257,32 +257,6 @@ const serviceHasBackOfficer = Boolean(
   const frontActions = useMemo<PendingAction[]>(() => {
     if (!front || !actionVisible) return [];
 
-<<<<<<< HEAD
-    /*
-    |--------------------------------------------------------------------------
-    | Front Officer action rules
-    |--------------------------------------------------------------------------
-    | 1. If Back Officer approved:
-    |    - show Accept & Complete
-    |    - keep Share with Another Officer
-    |
-    | 2. If Back Officer rejected/returned as rejected:
-    |    - show Reject & Return to Customer
-    |    - keep Share with Another Officer
-    |
-    | 3. If service has Back Officer and still waiting:
-    |    - show Accept
-    |    - show Accept & Forward to Back Officer
-    |    - keep Share with Another Officer
-    |
-    | 4. If service has no Back Officer:
-    |    - show Accept
-    |    - show Complete
-    |    - show Reject
-    |    - show Return
-    |    - keep Share with Another Officer
-    */
-=======
     const appointmentAction: PendingAction = {
       actor: "front",
       action: "appointment",
@@ -295,7 +269,6 @@ const serviceHasBackOfficer = Boolean(
       label: "Share with Another Officer",
       requiresShare: true,
     };
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
 
     if (backApproved) {
       return [
@@ -307,7 +280,6 @@ const serviceHasBackOfficer = Boolean(
 
     if (backRejected) {
       return [
-<<<<<<< HEAD
         {
           actor: "front",
           action: "reject",
@@ -319,17 +291,11 @@ const serviceHasBackOfficer = Boolean(
           label: "Share with Another Officer",
           requiresShare: true,
         },
-=======
-        { actor: "front", action: "reject", label: "Reject & Return for Correction" },
-        appointmentAction,
-        shareAction,
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
       ];
     }
 
     if (serviceHasBackOfficer) {
       return [
-<<<<<<< HEAD
         {
           actor: "front",
           action: "accept",
@@ -346,17 +312,10 @@ const serviceHasBackOfficer = Boolean(
           label: "Share with Another Officer",
           requiresShare: true,
         },
-=======
-        { actor: "front", action: "forward-to-back-officer", label: "Accept & Forward to Back Officer" },
-        appointmentAction,
-        { actor: "front", action: "reject", label: "Reject & Return for Correction" },
-        shareAction,
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
       ];
     }
 
     return [
-<<<<<<< HEAD
       {
         actor: "front",
         action: "accept",
@@ -383,12 +342,6 @@ const serviceHasBackOfficer = Boolean(
         label: "Share with Another Officer",
         requiresShare: true,
       },
-=======
-      { actor: "front", action: "complete", label: "Accept & Complete" },
-      appointmentAction,
-      { actor: "front", action: "reject", label: "Reject & Return for Correction" },
-      shareAction,
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
     ];
   }, [front, actionVisible, serviceHasBackOfficer, backApproved, backRejected]);
 

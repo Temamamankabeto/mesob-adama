@@ -1,13 +1,8 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-<<<<<<< HEAD
 import { FormEvent, useEffect, useState } from "react";
-import { Search } from "lucide-react";
-=======
-import { useEffect, useState } from "react";
 import { CalendarClock, CheckCircle2, Clock3, FileText, Search } from "lucide-react";
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
 import { toast } from "sonner";
 
 import ApplicationFilesList from "@/components/application/ApplicationFilesList";
@@ -141,18 +136,11 @@ export default function DashboardTrackApplicationPage() {
           <div className="rounded-3xl border bg-card p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-<<<<<<< HEAD
                 <h1 className="text-2xl font-bold">
                   {application.tracking_number}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {application.service?.name}
-=======
-                <p className="text-sm text-muted-foreground">Application Number</p>
-                <h1 className="text-3xl font-bold">{application.tracking_number}</h1>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {application.service?.name || application.service_id}
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
                 </p>
               </div>
 
@@ -191,7 +179,6 @@ export default function DashboardTrackApplicationPage() {
               </CardHeader>
 
               <CardContent className="grid gap-4 md:grid-cols-2">
-<<<<<<< HEAD
                 <Info
                   label="Service"
                   value={application.service?.name || application.service_id}
@@ -213,14 +200,6 @@ export default function DashboardTrackApplicationPage() {
                     "-"
                   }
                 />
-=======
-                <Info label="Service" value={application.service?.name || application.service_id} />
-                <Info label="Tracking Number" value={application.tracking_number} />
-                <Info label="Administrative Level" value={application.administrative_level || "-"} />
-                <Info label="Location" value={locationText(application)} />
-                <Info label="Submitted Date" value={formatDateTime(application.submitted_at)} />
-                <Info label="Completed Date" value={formatDateTime(application.completed_at)} />
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
               </CardContent>
             </Card>
 
@@ -234,15 +213,6 @@ export default function DashboardTrackApplicationPage() {
 
               <CardContent className="space-y-3">
                 <ApplicationStatusBadge status={application.status} />
-<<<<<<< HEAD
-
-=======
-                {application.current_window && (
-                  <p className="text-sm text-muted-foreground">
-                    Current Window: {application.current_window.display_name || application.current_window.name}
-                  </p>
-                )}
->>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
                 {application.rejection_reason && (
                   <p className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">
                     {application.rejection_reason}
