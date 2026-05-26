@@ -134,7 +134,7 @@ export default function HomePage() {
               href="/training/application-workflow"
               className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
             >
-              Training
+              Development Progress
             </Link>
             <Link
               href="/service"

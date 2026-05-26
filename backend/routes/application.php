@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\ServiceFormSectionController;
 use App\Http\Controllers\Api\Admin\ServiceFormStepController;
 use App\Http\Controllers\Api\Admin\ApplicationDashboardController;
 use App\Http\Controllers\Api\Customer\CustomerServiceApplicationController;
+use App\Http\Controllers\Api\Customer\CustomerNotificationController;
 use App\Http\Controllers\Api\OfficerApplicationShareController;
 use App\Http\Controllers\Api\Public\PublicApplicationController;
 use App\Http\Controllers\Api\Public\ApplicationTrackingController;
@@ -24,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/applications/{application}', [ApplicationController::class, 'show']);
     Route::put('/applications/{application}', [ApplicationController::class, 'update']);
     Route::delete('/applications/{application}', [ApplicationController::class, 'destroy']);
+    Route::get('/customer/notifications', [CustomerNotificationController::class, 'index']);
     Route::get('/customer/service-applications', [CustomerServiceApplicationController::class, 'index']);
     Route::get('/customer/service-applications/{application}', [CustomerServiceApplicationController::class, 'show']);
 });

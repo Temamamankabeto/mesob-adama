@@ -10,6 +10,15 @@ export type CustomerApplicationListResponse = {
     per_page: number;
     total: number;
     last_page: number;
+    status_counts?: {
+      total: number;
+      pending: number;
+      under_review: number;
+      appointed: number;
+      approved: number;
+      completed: number;
+      rejected: number;
+    };
   };
 };
 
