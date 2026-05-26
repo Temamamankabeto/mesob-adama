@@ -131,12 +131,11 @@ export default function OfficerApplicationDetailPage() {
   const shouldFetchSharing = pendingAction?.requiresShare === true;
 
   const { data: shareWindows = [] } =
-    useOfficerSharingWindows(shouldFetchSharing, data?.service_id);
+    useOfficerSharingWindows(shouldFetchSharing);
 
   const { data: rawShareOfficers = [] } = useOfficerSharingOfficers(
     shareWindowId,
-    shouldFetchSharing,
-    data?.service_id
+    shouldFetchSharing
   );
 
   const front = isFrontOfficer();
@@ -145,7 +144,10 @@ export default function OfficerApplicationDetailPage() {
 
   const status = data?.status;
   const stage = data?.current_stage;
-  const serviceHasBackOfficer = Boolean(data?.service?.has_back_officer);
+const serviceHasBackOfficer = Boolean(
+  (data?.service as { has_back_officer?: boolean | number } | null | undefined)
+    ?.has_back_officer
+);
   const backApproved = isBackApproved(status, stage);
   const backRejected = isBackRejected(status, stage);
   const actionVisible = !isFinalStatus(status) && !actionSubmitted;
@@ -166,6 +168,31 @@ export default function OfficerApplicationDetailPage() {
 
   const frontActions = useMemo<PendingAction[]>(() => {
     if (!front || !actionVisible) return [];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Front Officer action rules
+    |--------------------------------------------------------------------------
+    | 1. If Back Officer approved:
+    |    - show Accept & Complete
+    |    - keep Share with Another Officer
+    |
+    | 2. If Back Officer rejected/returned as rejected:
+    |    - show Reject & Return to Customer
+    |    - keep Share with Another Officer
+    |
+    | 3. If service has Back Officer and still waiting:
+    |    - show Accept
+    |    - show Accept & Forward to Back Officer
+    |    - keep Share with Another Officer
+    |
+    | 4. If service has no Back Officer:
+    |    - show Accept
+    |    - show Complete
+    |    - show Reject
+    |    - show Return
+    |    - keep Share with Another Officer
+    */
 
     if (backApproved) {
       return [
@@ -188,7 +215,7 @@ export default function OfficerApplicationDetailPage() {
         {
           actor: "front",
           action: "reject",
-          label: "Reject & Return for Correction",
+          label: "Reject & Return to Customer",
         },
         {
           actor: "front",
@@ -203,13 +230,13 @@ export default function OfficerApplicationDetailPage() {
       return [
         {
           actor: "front",
-          action: "forward-to-back-officer",
-          label: "Accept & Forward to Back Officer",
+          action: "accept",
+          label: "Accept",
         },
         {
           actor: "front",
-          action: "reject",
-          label: "Reject & Return for Correction",
+          action: "forward-to-back-officer",
+          label: "Accept & Forward to Back Officer",
         },
         {
           actor: "front",
@@ -223,13 +250,23 @@ export default function OfficerApplicationDetailPage() {
     return [
       {
         actor: "front",
+        action: "accept",
+        label: "Accept",
+      },
+      {
+        actor: "front",
         action: "complete",
         label: "Accept & Complete",
       },
       {
         actor: "front",
         action: "reject",
-        label: "Reject & Return for Correction",
+        label: "Reject & Return to Customer",
+      },
+      {
+        actor: "front",
+        action: "return",
+        label: "Return to Customer",
       },
       {
         actor: "front",
@@ -300,7 +337,6 @@ export default function OfficerApplicationDetailPage() {
           to_officer_id: shareOfficerId,
           note: remark,
           remark,
-          documents: files,
         },
       });
 
@@ -460,7 +496,7 @@ export default function OfficerApplicationDetailPage() {
                       <option value="">Select window</option>
                       {shareWindows.map((window) => (
                         <option key={window.id} value={window.id}>
-                          {sharingWindowDisplayName(window)}
+                          {window.name}
                         </option>
                       ))}
                     </select>

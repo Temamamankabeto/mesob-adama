@@ -9,9 +9,15 @@ export type Paginated<T> = {
   data?: T[];
   items?: T[];
   current_page?: number;
-  last_page?: number;
   per_page?: number;
   total?: number;
+};
+
+export type NamedRelation = {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
 };
 
 export type ServiceForm = {
@@ -90,7 +96,13 @@ export type ServiceFormFieldCondition = {
   id: number;
   field_id: number;
   depends_on_field_id: number;
-  operator: "equals" | "not_equals" | "contains" | "greater_than" | "less_than" | string;
+  operator:
+    | "equals"
+    | "not_equals"
+    | "contains"
+    | "greater_than"
+    | "less_than"
+    | string;
   expected_value: string;
   action?: "show" | "hide" | "require" | string;
   field?: ServiceFormField;
@@ -99,15 +111,22 @@ export type ServiceFormFieldCondition = {
 
 export type ServiceApplicationData = {
   id: number;
-  application_id: number;
+  application_id?: number;
   field_name: string;
-  field_value?: string | null;
+  field_value?: string | number | null;
+};
+
+export type ServiceApplicationAnswer = {
+  id: number;
+  field_label?: string;
+  field_name?: string;
+  value?: string | number | null;
 };
 
 export type ServiceApplicationFile = {
   id: number;
-  application_id: number;
-  field_name: string;
+  application_id?: number;
+  field_name?: string;
   original_name: string;
   stored_name?: string;
   path: string;
@@ -119,36 +138,28 @@ export type ServiceApplicationFile = {
 
 export type ServiceApplicationWorkflow = {
   id: number;
-  application_id: number;
+  application_id?: number;
   window_id?: number | null;
   officer_id?: number | null;
   status: string;
   remark?: string | null;
   comment?: string | null;
   acted_at?: string | null;
-  window?: {
-    id: number;
-    name: string;
-  };
-  officer?: {
-    id: number;
-    name: string;
-  };
+  window?: NamedRelation | null;
+  officer?: NamedRelation | null;
 };
 
 export type ServiceApplicationHistory = {
   id: number;
-  application_id: number;
+  application_id?: number;
   from_status?: string | null;
-  to_status: string;
+  to_status?: string;
   action: string;
   remark?: string | null;
+  comment?: string | null;
   actor_id?: number | null;
   created_at?: string;
-  actor?: {
-    id: number;
-    name: string;
-  };
+  actor?: NamedRelation | null;
 };
 
 export type ServiceApplication = {
@@ -157,29 +168,47 @@ export type ServiceApplication = {
   service_id: number;
   customer_id: number;
   status: string;
+
+  administrative_level?: string | null;
   current_stage?: string | null;
   current_window_id?: number | null;
   current_officer_id?: number | null;
+  assigned_role?: string | null;
+  priority?: string | null;
+
+  city_id?: number | null;
+  subcity_id?: number | null;
+  woreda_id?: number | null;
+
   submitted_at?: string | null;
   approved_at?: string | null;
   rejected_at?: string | null;
   completed_at?: string | null;
   rejection_reason?: string | null;
   returned_count?: number;
+
+  service_name?: string;
+  applicant_name?: string;
+  files_count?: number;
+
   service?: {
     id: number;
     name: string;
     service_fee?: number;
-  };
-  customer?: {
-    id: number;
-    name: string;
-    email?: string;
-    phone?: string;
-  };
+  } | null;
+
+  customer?: NamedRelation | null;
+  city?: NamedRelation | null;
+  subcity?: NamedRelation | null;
+  woreda?: NamedRelation | null;
+  current_window?: NamedRelation | null;
+  current_officer?: NamedRelation | null;
+
   data?: ServiceApplicationData[];
+  answers?: ServiceApplicationAnswer[];
   files?: ServiceApplicationFile[];
   workflow?: ServiceApplicationWorkflow[];
+  workflows?: ServiceApplicationWorkflow[];
   histories?: ServiceApplicationHistory[];
 };
 
@@ -193,14 +222,8 @@ export type Application = {
   submitted_at?: string | null;
   completed_at?: string | null;
   remarks?: string | null;
-  service?: {
-    id: number;
-    name: string;
-  };
-  customer?: {
-    id: number;
-    name: string;
-  };
+  service?: NamedRelation;
+  customer?: NamedRelation;
 };
 
 export type ApplicationSummary = {

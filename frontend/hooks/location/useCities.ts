@@ -1,6 +1,10 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import {
   getCities,
@@ -23,17 +27,25 @@ type UpdateCityPayload = {
 
 /* ================= GET ALL CITIES ================= */
 
-export const useCities = () => {
+export const useCities = (page = 1) => {
   return useQuery({
-    queryKey: ["cities"],
+    queryKey: ["cities", page],
 
     queryFn: async () => {
-      const res = await getCities();
+      const res = await getCities(page);
 
       console.log("Cities Response:", res);
 
-      // FIX RESPONSE STRUCTURE HERE
-      return res?.data?.data || res?.data || [];
+      return {
+        data:
+          res?.data?.data ||
+          res?.data ||
+          [],
+
+        meta:
+          res?.data?.meta ||
+          null,
+      };
     },
 
     staleTime: 1000 * 60 * 5,
@@ -46,7 +58,8 @@ export const useCreateCity = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CityPayload) => createCity(data),
+    mutationFn: (data: CityPayload) =>
+      createCity(data),
 
     onSuccess: () => {
       qc.invalidateQueries({
@@ -62,7 +75,10 @@ export const useUpdateCity = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: UpdateCityPayload) =>
+    mutationFn: ({
+      id,
+      data,
+    }: UpdateCityPayload) =>
       updateCity(id, data),
 
     onSuccess: () => {
@@ -79,7 +95,8 @@ export const useDeleteCity = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => deleteCity(id),
+    mutationFn: (id: number) =>
+      deleteCity(id),
 
     onSuccess: () => {
       qc.invalidateQueries({

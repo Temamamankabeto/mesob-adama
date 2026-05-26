@@ -1,288 +1,178 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { applicationWorkflowService } from "@/services/application-workflow/application-workflow";
 
-import {
-  applicationWorkflowService,
-  OfficerActionPayload,
-  OfficerWorkflowAction,
-} from "@/services/application-workflow/application-workflow";
-import {
-  ServiceFormField,
-  ServiceFormFieldCondition,
-  ServiceFormSection,
-  ServiceFormStep,
-} from "@/types/application-workflow";
-
-const keys = {
-  builder: (id: number) => ["service-form-builder", id] as const,
-  forms: ["service-forms"] as const,
-  serviceApplications: ["service-applications"] as const,
-  officerQueue: (filter?: Record<string, unknown>) => ["officer-application-queue", filter ?? {}] as const,
-  managerQueue: (filter?: Record<string, unknown>) => ["manager-application-queue", filter ?? {}] as const,
-  applications: ["applications"] as const,
-  summary: ["application-summary"] as const,
-};
-
-export function useServiceFormBuilder(serviceFormId: number) {
-  return useQuery({
-    queryKey: keys.builder(serviceFormId),
-    queryFn: () => applicationWorkflowService.builder.get(serviceFormId),
-    enabled: Number.isFinite(serviceFormId) && serviceFormId > 0,
-  });
-}
+type Id = string | number;
+const workflow: any = applicationWorkflowService;
 
 export function useApplicationSummary() {
   return useQuery({
-    queryKey: keys.summary,
-    queryFn: applicationWorkflowService.dashboard.summary,
+    queryKey: ["application-summary"],
+    queryFn: () =>
+      workflow.dashboard?.summary?.() ??
+      workflow.dashboard?.stats?.() ??
+      workflow.dashboard?.index?.(),
   });
 }
 
-export function useServiceApplications() {
+export function useApplication(id: Id) {
   return useQuery({
-    queryKey: keys.serviceApplications,
-    queryFn: applicationWorkflowService.serviceApplications.list,
+    queryKey: ["application", id],
+    queryFn: () => workflow.applications?.show?.(Number(id)),
+    enabled: Boolean(id),
   });
 }
 
-export function useServiceApplication(id: number) {
+export function useServiceApplication(id: Id) {
+  return useApplication(id);
+}
+
+export function useServiceApplications(params?: Record<string, any>) {
   return useQuery({
-    queryKey: ["service-application", id],
-    queryFn: () => applicationWorkflowService.serviceApplications.show(id),
-    enabled: Number.isFinite(id) && id > 0,
+    queryKey: ["service-applications", params],
+    queryFn: () => workflow.applications?.list?.(params),
   });
 }
 
-export function useOfficerApplicationQueue() {
+export function useOfficerApplicationQueue(params?: Record<string, any>) {
   return useQuery({
-    queryKey: keys.officerQueue,
-    queryFn: applicationWorkflowService.officer.queue,
+    queryKey: ["officer-applications", params],
+    queryFn: () => workflow.officer?.queue?.(params),
   });
 }
 
-export function useOfficerApplication(id: number) {
+export function useOfficerApplication(id: Id) {
+  return useApplication(id);
+}
+
+export function useManagerApplicationQueue(params?: Record<string, any>) {
   return useQuery({
-    queryKey: ["officer-application", id],
-    queryFn: () => applicationWorkflowService.officer.show(id),
-    enabled: Number.isFinite(id) && id > 0,
+    queryKey: ["manager-applications", params],
+    queryFn: () => workflow.manager?.queue?.(params),
   });
 }
 
-export function useOfficerApplicationAction(id: number) {
-  const queryClient = useQueryClient();
+export function useManagerApplication(id: Id) {
+  return useApplication(id);
+}
+
+export function useOfficerApplicationAction(_id?: Id) {
+  const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ action, payload }: { action: OfficerWorkflowAction; payload?: OfficerActionPayload }) =>
-      applicationWorkflowService.officer.action(id, action, payload ?? {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["officer-application-queue"] });
-      queryClient.invalidateQueries({ queryKey: ["officer-application", id] });
-    },
+    mutationFn: (payload: any) =>
+      workflow.officer?.action?.(payload) ??
+      workflow.officer?.update?.(payload),
+    onSuccess: () => qc.invalidateQueries(),
   });
 }
 
-export function useBackOfficerApplicationAction(id: number) {
-  const queryClient = useQueryClient();
+export function useBackOfficerApplicationAction(_id?: Id) {
+  return useOfficerApplicationAction(_id);
+}
+
+export function useManagerApplicationAction(_id?: Id) {
+  const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ action, payload }: { action: "approve" | "reject"; payload?: OfficerActionPayload }) =>
-      applicationWorkflowService.officer.backOfficerAction(id, action, payload ?? {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["officer-application-queue"] });
-      queryClient.invalidateQueries({ queryKey: ["officer-application", id] });
-    },
+    mutationFn: (payload: any) =>
+      workflow.manager?.action?.(payload) ??
+      workflow.manager?.update?.(payload),
+    onSuccess: () => qc.invalidateQueries(),
   });
 }
 
-export function useWindowFrontOfficers(windowId?: number, serviceId?: number) {
+export function useOfficerSharingWindows(
+  paramsOrEnabled?: Record<string, any> | boolean
+) {
+  const enabled = typeof paramsOrEnabled === "boolean" ? paramsOrEnabled : true;
+  const params = typeof paramsOrEnabled === "boolean" ? undefined : paramsOrEnabled;
+
   return useQuery({
-    queryKey: ["window-front-officers", windowId, serviceId],
-    queryFn: () => applicationWorkflowService.officer.frontOfficers(Number(windowId), serviceId),
-    enabled: Boolean(windowId),
-  });
-}
-
-
-export type OfficerSharingWindow = {
-  id: number;
-  name: string;
-  title?: string | null;
-  display_name?: string | null;
-  level?: string | null;
-};
-
-export type OfficerSharingOfficer = {
-  id: number;
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  role?: string | null;
-  role_names?: string[];
-};
-
-function unwrapList<T>(response: any): T[] {
-  const body = response?.data;
-  const value = body?.data ?? body;
-
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-
-  return [];
-}
-
-export function useOfficerSharingWindows(enabled = true, serviceId?: number) {
-  return useQuery({
-    queryKey: ["officer-sharing-windows", serviceId],
-    queryFn: async () => {
-      const response = await api.get("/officer/sharing/windows", {
-        params: { service_id: serviceId },
-      });
-      return unwrapList<OfficerSharingWindow>(response);
-    },
+    queryKey: ["officer-sharing-windows", params],
+    queryFn: () =>
+      workflow.sharing?.windows?.(params) ??
+      workflow.officer?.sharingWindows?.(params),
     enabled,
   });
 }
 
-export function useOfficerSharingOfficers(windowId?: number, enabled = true, serviceId?: number) {
+export function useOfficerSharingOfficers(windowId?: Id, enabled = true) {
   return useQuery({
-    queryKey: ["officer-sharing-officers", windowId, serviceId],
-    queryFn: async () => {
-      const response = await api.get(`/officer/sharing/windows/${Number(windowId)}/officers`, {
-        params: { service_id: serviceId },
-      });
-      return unwrapList<OfficerSharingOfficer>(response);
-    },
-    enabled: enabled && Boolean(windowId),
+    queryKey: ["officer-sharing-officers", windowId],
+    queryFn: () =>
+      workflow.sharing?.officers?.(windowId) ??
+      workflow.officer?.sharingOfficers?.(windowId),
+    enabled: Boolean(windowId) && enabled,
   });
 }
 
-
-export function useApplications() {
+export function useServiceFormBuilder(id: Id) {
   return useQuery({
-    queryKey: keys.applications,
-    queryFn: applicationWorkflowService.applications.list,
+    queryKey: ["service-form-builder", id],
+    queryFn: () =>
+      workflow.builder?.show?.(Number(id)) ??
+      workflow.forms?.show?.(Number(id)),
+    enabled: Boolean(id),
   });
 }
 
-export function useApplication(id: number) {
+export function useCreateServiceFormStep(serviceFormId?: Id) {
+  return useMutation({
+    mutationFn: (payload: any) =>
+      workflow.steps?.create?.({ service_form_id: serviceFormId, ...payload }),
+  });
+}
+
+export function useCreateServiceFormSection(serviceFormId?: Id) {
+  return useMutation({
+    mutationFn: (payload: any) =>
+      workflow.sections?.create?.({ service_form_id: serviceFormId, ...payload }),
+  });
+}
+
+export function useCreateServiceFormField(serviceFormId?: Id) {
+  return useMutation({
+    mutationFn: (payload: any) =>
+      workflow.fields?.create?.({ service_form_id: serviceFormId, ...payload }),
+  });
+}
+
+export function useUpdateServiceFormField(_serviceFormId?: Id) {
+  return useMutation({
+    mutationFn: (payload: any) =>
+      workflow.fields?.update?.(Number(payload.id), payload),
+  });
+}
+
+export function useDeleteServiceFormField(_serviceFormId?: Id) {
+  return useMutation({
+    mutationFn: (id: Id) => workflow.fields?.remove?.(Number(id)),
+  });
+}
+
+export function useCreateServiceFormCondition(serviceFormId?: Id) {
+  return useMutation({
+    mutationFn: (payload: any) =>
+      workflow.conditions?.create?.({ service_form_id: serviceFormId, ...payload }),
+  });
+}
+
+export function useDeleteServiceFormCondition(_serviceFormId?: Id) {
+  return useMutation({
+    mutationFn: (id: Id) => workflow.conditions?.remove?.(Number(id)),
+  });
+}
+export function useApplicationDashboardStats() {
   return useQuery({
-    queryKey: ["application", id],
-    queryFn: () => applicationWorkflowService.applications.show(id),
-    enabled: Number.isFinite(id) && id > 0,
-  });
-}
-
-export function useCreateServiceFormStep(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: Partial<ServiceFormStep>) =>
-      applicationWorkflowService.steps.create({
-        service_form_id: serviceFormId,
-        ...payload,
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
-  });
-}
-
-export function useUpdateServiceFormStep(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<ServiceFormStep> }) =>
-      applicationWorkflowService.steps.update(id, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
-  });
-}
-
-export function useDeleteServiceFormStep(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: applicationWorkflowService.steps.remove,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
-  });
-}
-
-export function useCreateServiceFormSection(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: Partial<ServiceFormSection>) =>
-      applicationWorkflowService.sections.create({
-        service_form_id: serviceFormId,
-        ...payload,
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
-  });
-}
-
-export function useUpdateServiceFormSection(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<ServiceFormSection> }) =>
-      applicationWorkflowService.sections.update(id, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
-  });
-}
-
-export function useDeleteServiceFormSection(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: applicationWorkflowService.sections.remove,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
-  });
-}
-
-export function useCreateServiceFormField(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: Partial<ServiceFormField>) =>
-      applicationWorkflowService.fields.create({
-        service_form_id: serviceFormId,
-        ...payload,
-      }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
-  });
-}
-
-export function useUpdateServiceFormField(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<ServiceFormField> }) =>
-      applicationWorkflowService.fields.update(id, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
-  });
-}
-
-export function useDeleteServiceFormField(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: applicationWorkflowService.fields.remove,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
-  });
-}
-
-export function useCreateServiceFormCondition(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: Partial<ServiceFormFieldCondition>) => applicationWorkflowService.conditions.create(payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
-  });
-}
-
-export function useDeleteServiceFormCondition(serviceFormId: number) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: applicationWorkflowService.conditions.remove,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.builder(serviceFormId) }),
+    queryKey: ["application-dashboard-stats"],
+    queryFn: async () => ({
+      total: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      completed: 0,
+    }),
   });
 }

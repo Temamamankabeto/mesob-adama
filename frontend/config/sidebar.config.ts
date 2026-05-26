@@ -53,13 +53,6 @@ const dashboardItem = (role: AppRoleKey): SidebarItem => ({
   icon: LayoutDashboard,
 });
 
-
-const profileItem: SidebarItem = {
-  label: "My Profile",
-  href: "/dashboard/profile",
-  icon: UserCheck,
-};
-
 const cityOnly = ["super_admin", "admin:city"];
 
 const userManagementMenu: SidebarItem = {
@@ -70,7 +63,7 @@ const userManagementMenu: SidebarItem = {
     { label: "Create User", href: "/dashboard/users/add", permission: "users.create" },
     { label: "Activation Requests", href: "/dashboard/user-activation-requests", permission: "users.activate" },
     { label: "Roles", href: "/dashboard/roles", permission: "roles.read", scopes: cityOnly },
-    { label: "Permissions", href: "/dashboard/permissions", permission: "permissions.read", scopes: cityOnly },
+    // { label: "Permissions", href: "/dashboard/permissions", permission: "permissions.read", scopes: cityOnly },
   ],
 };
 
@@ -146,24 +139,24 @@ const systemMenu: SidebarItem = {
 };
 
 const adminSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role), profileItem]),
+  s("Main", [dashboardItem(role)]),
   s("Management", [userManagementMenu, serviceManagementMenu, windowManagementMenu]),
   s("Applications", [formBuilderMenu, applicationManagementMenu]),
   s("System", [systemMenu]),
 ];
 
 const managerSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role), profileItem]),
+  s("Main", [dashboardItem(role)]),
   s("Applications", [applicationManagementMenu]),
 ];
 
 const officerSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role), profileItem]),
+  s("Main", [dashboardItem(role)]),
   s("Applications", [officerApplicationMenu]),
 ];
 
 const customerSections = (role: AppRoleKey): SidebarSection[] => [
-  s("Main", [dashboardItem(role), profileItem]),
+  s("Main", [dashboardItem(role)]),
   s("Applications", [customerApplicationMenu]),
 ];
 

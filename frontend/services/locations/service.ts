@@ -1,11 +1,11 @@
 import api from "@/lib/api";
 
 // ================= CITIES =================
-export const getCities = async (page = 1) => {
-  const res = await api.get(`/admin/cities?page=${page}`);
-  return res.data.data;
+export const getCities = async (
+  page = 1
+) => {
+  return api.get(`/cities?page=${page}`);
 };
-
 export const createCity = async (data: any) => {
   const res = await api.post(`/admin/cities`, data);
   return res.data.data;
@@ -23,10 +23,8 @@ export const deleteCity = async (id: number) => {
 
 // ================= SUBCITIES =================
 export const getSubcities = async (page = 1) => {
-  const res = await api.get(`/admin/subcities?page=${page}`);
-  return res.data.data;
+  return api.get(`/admin/subcities?page=${page}`);
 };
-
 export const createSubcity = async (data: any) => {
   const res = await api.post(`/admin/subcities`, data);
   return res.data.data;
@@ -44,8 +42,7 @@ export const deleteSubcity = async (id: number) => {
 
 // ================= WOREDAS =================
 export const getWoredas = async (page = 1) => {
-  const res = await api.get(`/admin/woredas?page=${page}`);
-  return res.data.data;
+  return api.get(`/admin/woredas?page=${page}`);
 };
 
 export const createWoreda = async (data: any) => {

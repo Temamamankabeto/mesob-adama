@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,17 +22,24 @@ export default function DashboardTrackApplicationPage() {
 
   const track = useTrackApplication();
 
-  async function submit(event?: React.FormEvent) {
+  async function submit(event?: FormEvent) {
     event?.preventDefault();
 
-    if (!trackingNumber.trim()) {
+    const tracking = trackingNumber.trim();
+
+    if (!tracking) {
       toast.error("Enter tracking number");
       return;
     }
 
     try {
-      const response = await track.mutateAsync({ tracking_number: trackingNumber.trim() });
-      setApplication(response.data);
+      const response = await track.mutateAsync(tracking);
+
+      setApplication(
+        (response as any)?.data?.data ??
+          (response as any)?.data ??
+          response
+      );
     } catch (error: any) {
       toast.error(error?.message || "Application not found");
       setApplication(null);
@@ -40,7 +47,9 @@ export default function DashboardTrackApplicationPage() {
   }
 
   useEffect(() => {
-    if (initialTracking) submit();
+    if (initialTracking) {
+      void submit();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTracking]);
 
@@ -61,6 +70,7 @@ export default function DashboardTrackApplicationPage() {
               onChange={(event) => setTrackingNumber(event.target.value)}
               placeholder="Example: ADA-2026-000001"
             />
+
             <Button disabled={track.isPending}>
               <Search className="mr-2 h-4 w-4" />
               Track
@@ -74,7 +84,9 @@ export default function DashboardTrackApplicationPage() {
           <div className="rounded-3xl border bg-card p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold">{application.tracking_number}</h1>
+                <h1 className="text-2xl font-bold">
+                  {application.tracking_number}
+                </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {application.service?.name}
                 </p>
@@ -91,12 +103,26 @@ export default function DashboardTrackApplicationPage() {
               </CardHeader>
 
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <Info label="Service" value={application.service?.name || application.service_id} />
-                <Info label="Tracking Number" value={application.tracking_number} />
-                <Info label="Administrative Level" value={application.administrative_level || "-"} />
+                <Info
+                  label="Service"
+                  value={application.service?.name || application.service_id}
+                />
+                <Info
+                  label="Tracking Number"
+                  value={application.tracking_number}
+                />
+                <Info
+                  label="Administrative Level"
+                  value={application.administrative_level || "-"}
+                />
                 <Info
                   label="Location"
-                  value={application.woreda?.name || application.subcity?.name || application.city?.name || "-"}
+                  value={
+                    application.woreda?.name ||
+                    application.subcity?.name ||
+                    application.city?.name ||
+                    "-"
+                  }
                 />
               </CardContent>
             </Card>
@@ -108,6 +134,7 @@ export default function DashboardTrackApplicationPage() {
 
               <CardContent className="space-y-3">
                 <ApplicationStatusBadge status={application.status} />
+
                 {application.rejection_reason && (
                   <p className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">
                     {application.rejection_reason}
@@ -123,7 +150,10 @@ export default function DashboardTrackApplicationPage() {
                 <CardTitle>Workflow Timeline</CardTitle>
               </CardHeader>
               <CardContent>
-                <ApplicationWorkflowTimeline workflow={application.workflow || application.workflows} histories={application.histories} />
+                <ApplicationWorkflowTimeline
+                  workflow={application.workflow || application.workflows}
+                  histories={application.histories}
+                />
               </CardContent>
             </Card>
 
@@ -142,7 +172,13 @@ export default function DashboardTrackApplicationPage() {
   );
 }
 
-function Info({ label, value }: { label: string; value: any }) {
+function Info({
+  label,
+  value,
+}: {
+  label: string;
+  value: any;
+}) {
   return (
     <div className="rounded-2xl border p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
