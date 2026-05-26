@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\ServiceFormSectionController;
 use App\Http\Controllers\Api\Admin\ServiceFormStepController;
 use App\Http\Controllers\Api\Admin\ApplicationDashboardController;
 use App\Http\Controllers\Api\Customer\CustomerServiceApplicationController;
+use App\Http\Controllers\Api\Customer\CustomerNotificationController;
 use App\Http\Controllers\Api\OfficerApplicationShareController;
 use App\Http\Controllers\Api\Public\PublicApplicationController;
 use App\Http\Controllers\Api\Public\ApplicationTrackingController;
@@ -24,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/applications/{application}', [ApplicationController::class, 'show']);
     Route::put('/applications/{application}', [ApplicationController::class, 'update']);
     Route::delete('/applications/{application}', [ApplicationController::class, 'destroy']);
+    Route::get('/customer/notifications', [CustomerNotificationController::class, 'index']);
     Route::get('/customer/service-applications', [CustomerServiceApplicationController::class, 'index']);
     Route::get('/customer/service-applications/{application}', [CustomerServiceApplicationController::class, 'show']);
 });
@@ -55,6 +57,7 @@ Route::middleware('auth:sanctum')->prefix('officer')->group(function () {
     Route::get('/sharing/windows/{window}/officers', [OfficerApplicationShareController::class, 'officers']);
     Route::post('/applications/{application}/share-to-officer', [OfficerApplicationShareController::class, 'share']);
     Route::post('/applications/{application}/accept', [OfficerApplicationController::class, 'accept']);
+    Route::post('/applications/{application}/appointment', [OfficerApplicationController::class, 'appointment']);
     Route::post('/applications/{application}/share', [OfficerApplicationController::class, 'share']);
     Route::post('/applications/{application}/forward-to-back-officer', [OfficerApplicationController::class, 'forwardToBackOfficer']);
     Route::post('/applications/{application}/approve', [OfficerApplicationController::class, 'approve']);

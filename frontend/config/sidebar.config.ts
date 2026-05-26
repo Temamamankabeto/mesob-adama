@@ -35,16 +35,8 @@ export type SidebarItem = {
   children?: SidebarChildItem[];
 };
 
-export type SidebarSection = {
-  title: string;
-  items: SidebarItem[];
-};
-
-export type RoleSidebar = {
-  title: string;
-  icon: LucideIcon;
-  sections: SidebarSection[];
-};
+export type SidebarSection = { title: string; items: SidebarItem[] };
+export type RoleSidebar = { title: string; icon: LucideIcon; sections: SidebarSection[] };
 
 const s = (title: string, items: SidebarItem[]): SidebarSection => ({ title, items });
 const dashboardItem = (role: AppRoleKey): SidebarItem => ({
@@ -53,6 +45,10 @@ const dashboardItem = (role: AppRoleKey): SidebarItem => ({
   icon: LayoutDashboard,
 });
 
+<<<<<<< HEAD
+=======
+const profileItem: SidebarItem = { label: "My Profile", href: "/dashboard/profile", icon: UserCheck };
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
 const cityOnly = ["super_admin", "admin:city"];
 
 const userManagementMenu: SidebarItem = {
@@ -63,10 +59,12 @@ const userManagementMenu: SidebarItem = {
     { label: "Create User", href: "/dashboard/users/add", permission: "users.create" },
     { label: "Activation Requests", href: "/dashboard/user-activation-requests", permission: "users.activate" },
     { label: "Roles", href: "/dashboard/roles", permission: "roles.read", scopes: cityOnly },
+<<<<<<< HEAD
     // { label: "Permissions", href: "/dashboard/permissions", permission: "permissions.read", scopes: cityOnly },
+=======
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
   ],
 };
-
 
 const serviceManagementMenu: SidebarItem = {
   label: "Service Management",
@@ -74,8 +72,8 @@ const serviceManagementMenu: SidebarItem = {
   scopes: cityOnly,
   children: [
     { label: "Services", href: "/dashboard/services", permission: "services.read", scopes: cityOnly },
-    { label: "User Services", href: "/dashboard/user-services", permission: "services.read", scopes: cityOnly },
-    { label: "Officer Services", href: "/dashboard/services/officers", permission: "services.read", scopes: cityOnly },
+    { label: "Officer Services", href: "/dashboard/user-services", permission: "services.read", scopes: cityOnly },
+    { label: "Assigned Services", href: "/dashboard/services/officers", permission: "services.read", scopes: cityOnly },
   ],
 };
 
@@ -86,8 +84,8 @@ const windowManagementMenu: SidebarItem = {
   children: [
     { label: "Windows", href: "/dashboard/windows", permission: "windows.read", scopes: cityOnly },
     { label: "Service Windows", href: "/dashboard/service-window", permission: "windows.read", scopes: cityOnly },
-    { label: "Window Assignment", href: "/dashboard/service-window/lists", permission: "windows.read", scopes: cityOnly },
-    { label: "Officer Window Assignment", href: "/dashboard/window-officer-assignment", permission: "windows.read", scopes: cityOnly },
+    { label: "Assigned Window", href: "/dashboard/service-window/lists", permission: "windows.read", scopes: cityOnly },
+    { label: "Officer Window", href: "/dashboard/window-officer-assignment", permission: "windows.read", scopes: cityOnly },
   ],
 };
 
@@ -98,7 +96,6 @@ const formBuilderMenu: SidebarItem = {
   children: [
     { label: "Service Forms", href: "/dashboard/service-forms", permission: "service_forms.read", scopes: cityOnly },
     { label: "Form Sections", href: "/dashboard/service-form-sections", permission: "service_forms.read", scopes: cityOnly },
-   
   ],
 };
 
@@ -115,16 +112,14 @@ const applicationManagementMenu: SidebarItem = {
 const officerApplicationMenu: SidebarItem = {
   label: "Officer Applications",
   icon: ClipboardCheck,
-  children: [
-    { label: "Application Queue", href: "/dashboard/officer/applications", permission: "service_applications.review" },
-  ],
+  children: [{ label: "Application Queue", href: "/dashboard/officer/applications", permission: "service_applications.review" }],
 };
 
 const customerApplicationMenu: SidebarItem = {
   label: "My Applications",
   icon: FileText,
   children: [
-    { label: "Application List", href: "/dashboard/my-applications", permission: "applications.own" },
+    { label: "Total Application", href: "/dashboard/my-applications", permission: "applications.own" },
     { label: "Track Application", href: "/dashboard/track-application", permission: "applications.track" },
   ],
 };
@@ -133,9 +128,7 @@ const systemMenu: SidebarItem = {
   label: "System",
   icon: Settings,
   scopes: cityOnly,
-  children: [
-    { label: "Audit Logs", href: "/dashboard/audit-logs", permission: "audit_logs.read", scopes: cityOnly },
-  ],
+  children: [{ label: "Audit Logs", href: "/dashboard/audit-logs", permission: "audit_logs.read", scopes: cityOnly }],
 };
 
 const adminSections = (role: AppRoleKey): SidebarSection[] => [
@@ -144,6 +137,7 @@ const adminSections = (role: AppRoleKey): SidebarSection[] => [
   s("Applications", [formBuilderMenu, applicationManagementMenu]),
   s("System", [systemMenu]),
 ];
+<<<<<<< HEAD
 
 const managerSections = (role: AppRoleKey): SidebarSection[] => [
   s("Main", [dashboardItem(role)]),
@@ -155,6 +149,10 @@ const officerSections = (role: AppRoleKey): SidebarSection[] => [
   s("Applications", [officerApplicationMenu]),
 ];
 
+=======
+const managerSections = (role: AppRoleKey): SidebarSection[] => [s("Main", [dashboardItem(role), profileItem]), s("Applications", [applicationManagementMenu])];
+const officerSections = (role: AppRoleKey): SidebarSection[] => [s("Main", [dashboardItem(role), profileItem]), s("Applications", [officerApplicationMenu])];
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
 const customerSections = (role: AppRoleKey): SidebarSection[] => [
   s("Main", [dashboardItem(role)]),
   s("Applications", [customerApplicationMenu]),
@@ -175,7 +173,6 @@ export function getSidebarForRole(role?: string | null): RoleSidebar {
 
 function currentScopeKey(): string {
   if (typeof window === "undefined") return "super_admin";
-
   try {
     const rawUser = localStorage.getItem("user") || localStorage.getItem("mesob_user");
     const rawRoles = localStorage.getItem("roles") || localStorage.getItem("mesob_roles");
@@ -183,10 +180,8 @@ function currentScopeKey(): string {
     const roles = rawRoles ? JSON.parse(rawRoles) : [];
     const role = Array.isArray(roles) ? roles[0] : roles || user.role;
     const normalized = String(role || "").toLowerCase().replace(/[-\s]+/g, "_");
-
     if (normalized === "super_admin") return "super_admin";
     if (normalized === "customer") return "customer";
-
     const level = user.location_level || (user.woreda_id ? "woreda" : user.subcity_id ? "subcity" : user.city_id ? "city" : "");
     return level ? `${normalized}:${level}` : normalized;
   } catch {
@@ -198,15 +193,12 @@ function scopeAllowed(scopes: string[] | undefined): boolean {
   if (!scopes?.length) return true;
   return scopes.includes(currentScopeKey());
 }
-
 function childAllowed(child: SidebarChildItem, permissions: string[]): boolean {
   return (!child.permission || permissions.includes(child.permission)) && scopeAllowed(child.scopes);
 }
-
 function itemAllowed(item: SidebarItem, permissions: string[]): boolean {
   return (!item.permission || permissions.includes(item.permission)) && scopeAllowed(item.scopes);
 }
-
 export function filterSidebarByPermissions(roleSidebar: RoleSidebar, permissions: string[] = []): SidebarSection[] {
   return roleSidebar.sections
     .map((section) => {

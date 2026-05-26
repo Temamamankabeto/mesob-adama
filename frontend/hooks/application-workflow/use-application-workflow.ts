@@ -1,5 +1,6 @@
 "use client";
 
+import api from "@/lib/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { applicationWorkflowService } from "@/services/application-workflow/application-workflow";
 
@@ -76,10 +77,19 @@ export function useManagerApplicationAction(_id?: Id) {
   const qc = useQueryClient();
 
   return useMutation({
+<<<<<<< HEAD
     mutationFn: (payload: any) =>
       workflow.manager?.action?.(payload) ??
       workflow.manager?.update?.(payload),
     onSuccess: () => qc.invalidateQueries(),
+=======
+    mutationFn: ({ action, payload }: { action: "approve" | "reject" | "return" | "share" | "escalate-to-manager"; payload?: OfficerActionPayload }) =>
+      applicationWorkflowService.officer.backOfficerAction(id, action, payload ?? {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["officer-application-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["officer-application", id] });
+    },
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
   });
 }
 
@@ -90,10 +100,57 @@ export function useOfficerSharingWindows(
   const params = typeof paramsOrEnabled === "boolean" ? undefined : paramsOrEnabled;
 
   return useQuery({
+<<<<<<< HEAD
     queryKey: ["officer-sharing-windows", params],
     queryFn: () =>
       workflow.sharing?.windows?.(params) ??
       workflow.officer?.sharingWindows?.(params),
+=======
+    queryKey: ["window-front-officers", windowId, serviceId],
+    queryFn: () => applicationWorkflowService.officer.frontOfficers(Number(windowId), serviceId),
+    enabled: Boolean(windowId),
+  });
+}
+
+
+
+export type OfficerSharingWindow = {
+  id: number;
+  name: string;
+  title?: string | null;
+  display_name?: string | null;
+  level?: string | null;
+};
+
+export type OfficerSharingOfficer = {
+  id: number;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  role?: string | null;
+  role_names?: string[];
+};
+
+function unwrapList<T>(response: any): T[] {
+  const body = response?.data;
+  const value = body?.data ?? body;
+
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+
+  return [];
+}
+
+export function useOfficerSharingWindows(enabled = true, serviceId?: number) {
+  return useQuery({
+    queryKey: ["officer-sharing-windows", serviceId],
+    queryFn: async () => {
+      const response = await api.get("/officer/sharing/windows", {
+        params: { service_id: serviceId },
+      });
+      return unwrapList<OfficerSharingWindow>(response);
+    },
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
     enabled,
   });
 }

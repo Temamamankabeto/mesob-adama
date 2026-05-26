@@ -1,8 +1,13 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+<<<<<<< HEAD
 import { FormEvent, useEffect, useState } from "react";
 import { Search } from "lucide-react";
+=======
+import { useEffect, useState } from "react";
+import { CalendarClock, CheckCircle2, Clock3, FileText, Search } from "lucide-react";
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
 import { toast } from "sonner";
 
 import ApplicationFilesList from "@/components/application/ApplicationFilesList";
@@ -12,6 +17,56 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useTrackApplication } from "@/hooks/application/use-application";
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+  return new Date(value).toLocaleString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+  return new Date(value).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function formatTime(value?: string | null) {
+  if (!value) return "-";
+  return new Date(value).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function latestAppointment(application: any) {
+  if (Array.isArray(application?.appointments) && application.appointments.length) {
+    return application.appointments[0];
+  }
+
+  if (application?.appointment_at) {
+    return {
+      id: "current",
+      appointment_at: application.appointment_at,
+      location: application.appointment_location,
+      message: application.appointment_message,
+      status: application.appointment_status,
+    };
+  }
+
+  return null;
+}
+
+function locationText(data: any) {
+  return data?.woreda?.name || data?.subcity?.name || data?.city?.name || "-";
+}
 
 export default function DashboardTrackApplicationPage() {
   const params = useSearchParams();
@@ -53,13 +108,15 @@ export default function DashboardTrackApplicationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTracking]);
 
+  const appointment = latestAppointment(application);
+
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 p-3 sm:p-6">
       <Card className="rounded-3xl">
         <CardHeader>
           <CardTitle>Track Application</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Enter your tracking number to check application status and workflow progress.
+            Enter your tracking number to check status, appointment schedule, documents, and workflow progress.
           </p>
         </CardHeader>
 
@@ -84,17 +141,48 @@ export default function DashboardTrackApplicationPage() {
           <div className="rounded-3xl border bg-card p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
+<<<<<<< HEAD
                 <h1 className="text-2xl font-bold">
                   {application.tracking_number}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {application.service?.name}
+=======
+                <p className="text-sm text-muted-foreground">Application Number</p>
+                <h1 className="text-3xl font-bold">{application.tracking_number}</h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {application.service?.name || application.service_id}
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
                 </p>
               </div>
 
               <ApplicationStatusBadge status={application.status} />
             </div>
           </div>
+
+          {appointment && (
+            <Card className="rounded-3xl border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarClock className="h-5 w-5 text-primary" />
+                  Appointment Schedule
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="grid gap-4 md:grid-cols-4">
+                <Info label="Appointment Date" value={formatDate(appointment.appointment_at)} />
+                <Info label="Appointment Time" value={formatTime(appointment.appointment_at)} />
+                <Info label="Location" value={appointment.location || "-"} />
+                <Info label="Status" value={appointment.status || "scheduled"} />
+                {appointment.message && (
+                  <div className="rounded-2xl border bg-background p-4 md:col-span-4">
+                    <p className="text-sm text-muted-foreground">Officer Message</p>
+                    <p className="mt-1 font-medium">{appointment.message}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid gap-6 xl:grid-cols-3">
             <Card className="rounded-3xl xl:col-span-2">
@@ -103,6 +191,7 @@ export default function DashboardTrackApplicationPage() {
               </CardHeader>
 
               <CardContent className="grid gap-4 md:grid-cols-2">
+<<<<<<< HEAD
                 <Info
                   label="Service"
                   value={application.service?.name || application.service_id}
@@ -124,17 +213,36 @@ export default function DashboardTrackApplicationPage() {
                     "-"
                   }
                 />
+=======
+                <Info label="Service" value={application.service?.name || application.service_id} />
+                <Info label="Tracking Number" value={application.tracking_number} />
+                <Info label="Administrative Level" value={application.administrative_level || "-"} />
+                <Info label="Location" value={locationText(application)} />
+                <Info label="Submitted Date" value={formatDateTime(application.submitted_at)} />
+                <Info label="Completed Date" value={formatDateTime(application.completed_at)} />
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
               </CardContent>
             </Card>
 
             <Card className="rounded-3xl">
               <CardHeader>
-                <CardTitle>Status</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  Current Status
+                </CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-3">
                 <ApplicationStatusBadge status={application.status} />
+<<<<<<< HEAD
 
+=======
+                {application.current_window && (
+                  <p className="text-sm text-muted-foreground">
+                    Current Window: {application.current_window.display_name || application.current_window.name}
+                  </p>
+                )}
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
                 {application.rejection_reason && (
                   <p className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">
                     {application.rejection_reason}
@@ -147,7 +255,10 @@ export default function DashboardTrackApplicationPage() {
           <div className="grid gap-6 xl:grid-cols-2">
             <Card className="rounded-3xl">
               <CardHeader>
-                <CardTitle>Workflow Timeline</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock3 className="h-5 w-5 text-primary" />
+                  Workflow Timeline
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ApplicationWorkflowTimeline
@@ -159,7 +270,10 @@ export default function DashboardTrackApplicationPage() {
 
             <Card className="rounded-3xl">
               <CardHeader>
-                <CardTitle>Files</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Documents
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ApplicationFilesList files={application.files} />
@@ -180,9 +294,9 @@ function Info({
   value: any;
 }) {
   return (
-    <div className="rounded-2xl border p-4">
+    <div className="rounded-2xl border bg-background p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 font-medium capitalize">{value}</p>
+      <p className="mt-1 font-medium capitalize">{value || "-"}</p>
     </div>
   );
 }

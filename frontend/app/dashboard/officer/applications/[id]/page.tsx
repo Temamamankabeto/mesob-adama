@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 import ApplicationFilesList from "@/components/application/ApplicationFilesList";
@@ -18,7 +18,6 @@ import {
   useOfficerSharingOfficers,
   useOfficerSharingWindows,
 } from "@/hooks/application-workflow/use-application-workflow";
-import { applicationWorkflowService } from "@/services/application-workflow/application-workflow";
 import { authService } from "@/services/auth/auth.service";
 
 type FrontAction =
@@ -27,6 +26,7 @@ type FrontAction =
   | "return"
   | "reject"
   | "forward-to-back-officer"
+  | "appointment"
   | "share-to-officer";
 
 type BackAction =
@@ -55,6 +55,66 @@ function storedRoles() {
     .getStoredRoles()
     .map((role) => String(role).toLowerCase());
 }
+
+
+
+function latestAppointment(application: any) {
+  if (Array.isArray(application?.appointments) && application.appointments.length) {
+    return application.appointments[0];
+  }
+
+  if (application?.appointment_at) {
+    return {
+      appointment_at: application.appointment_at,
+      location: application.appointment_location,
+      message: application.appointment_message,
+      status: application.appointment_status,
+    };
+  }
+
+  return null;
+}
+
+function isAppointmentStatus(application: any) {
+  const status = normalize(application?.status);
+  const stage = normalize(application?.current_stage);
+
+  return status === "appointment_scheduled" || stage === "appointment_scheduled";
+}
+
+function isAppointmentLocked(application: any) {
+  if (!isAppointmentStatus(application)) {
+    return false;
+  }
+
+  const appointment = latestAppointment(application);
+
+  /*
+  |--------------------------------------------------------------------------
+  | Fail-safe
+  |--------------------------------------------------------------------------
+  | If the application is appointment_scheduled but appointment_at is missing
+  | from the API, keep actions locked instead of allowing work before appointment.
+  */
+  if (!appointment?.appointment_at) {
+    return true;
+  }
+
+  return new Date(appointment.appointment_at).getTime() > Date.now();
+}
+
+function formatAppointmentDateTime(value?: string | null) {
+  if (!value) return "appointment date not loaded";
+
+  return new Date(value).toLocaleString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 
 function isBackOfficer() {
   return storedRoles().some((role) => role.includes("back"));
@@ -89,6 +149,23 @@ function isBackApproved(status?: string | null, stage?: string | null) {
   ].includes(currentStage);
 }
 
+function isBackOfficerDecisionDone(status?: string | null, stage?: string | null) {
+  const current = normalize(status);
+  const currentStage = normalize(stage);
+
+  return [
+    "back_officer_approved",
+    "back_officer_rejected",
+    "returned_to_front_officer",
+    "approved",
+  ].includes(current) || [
+    "back_officer_approved",
+    "back_officer_rejected",
+    "returned_to_front_officer",
+    "approved",
+  ].includes(currentStage);
+}
+
 function isBackRejected(status?: string | null, stage?: string | null) {
   const current = normalize(status);
   const currentStage = normalize(stage);
@@ -102,6 +179,11 @@ function isBackRejected(status?: string | null, stage?: string | null) {
     "returned_from_back_officer",
     "returned_to_front_officer_rejected",
   ].includes(currentStage);
+}
+
+function sharingWindowDisplayName(window: any) {
+  if (!window) return "Window";
+  return window.display_name || window.name || "Window";
 }
 
 function officerRoleName(officer: any) {
@@ -123,6 +205,9 @@ export default function OfficerApplicationDetailPage() {
 
   const [remark, setRemark] = useState("");
   const [documents, setDocuments] = useState<File[]>([]);
+  const [appointmentDate, setAppointmentDate] = useState("");
+  const [appointmentTime, setAppointmentTime] = useState("");
+  const [appointmentLocation, setAppointmentLocation] = useState("");
   const [shareWindowId, setShareWindowId] = useState<number | undefined>();
   const [shareOfficerId, setShareOfficerId] = useState<number | undefined>();
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
@@ -150,7 +235,10 @@ const serviceHasBackOfficer = Boolean(
 );
   const backApproved = isBackApproved(status, stage);
   const backRejected = isBackRejected(status, stage);
-  const actionVisible = !isFinalStatus(status) && !actionSubmitted;
+  const backDecisionDone = back && isBackOfficerDecisionDone(status, stage);
+  const appointment = latestAppointment(data);
+  const appointmentLocked = isAppointmentLocked(data);
+  const actionVisible = !isFinalStatus(status) && !actionSubmitted && !appointmentLocked && !backDecisionDone;
 
   const shareOfficers = useMemo(() => {
     if (!pendingAction?.requiresShare) return [];
@@ -169,6 +257,7 @@ const serviceHasBackOfficer = Boolean(
   const frontActions = useMemo<PendingAction[]>(() => {
     if (!front || !actionVisible) return [];
 
+<<<<<<< HEAD
     /*
     |--------------------------------------------------------------------------
     | Front Officer action rules
@@ -193,25 +282,32 @@ const serviceHasBackOfficer = Boolean(
     |    - show Return
     |    - keep Share with Another Officer
     */
+=======
+    const appointmentAction: PendingAction = {
+      actor: "front",
+      action: "appointment",
+      label: "Set Appointment",
+    };
+
+    const shareAction: PendingAction = {
+      actor: "front",
+      action: "share-to-officer",
+      label: "Share with Another Officer",
+      requiresShare: true,
+    };
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
 
     if (backApproved) {
       return [
-        {
-          actor: "front",
-          action: "complete",
-          label: "Accept & Complete",
-        },
-        {
-          actor: "front",
-          action: "share-to-officer",
-          label: "Share with Another Officer",
-          requiresShare: true,
-        },
+        { actor: "front", action: "complete", label: "Accept & Complete" },
+        appointmentAction,
+        shareAction,
       ];
     }
 
     if (backRejected) {
       return [
+<<<<<<< HEAD
         {
           actor: "front",
           action: "reject",
@@ -223,11 +319,17 @@ const serviceHasBackOfficer = Boolean(
           label: "Share with Another Officer",
           requiresShare: true,
         },
+=======
+        { actor: "front", action: "reject", label: "Reject & Return for Correction" },
+        appointmentAction,
+        shareAction,
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
       ];
     }
 
     if (serviceHasBackOfficer) {
       return [
+<<<<<<< HEAD
         {
           actor: "front",
           action: "accept",
@@ -244,10 +346,17 @@ const serviceHasBackOfficer = Boolean(
           label: "Share with Another Officer",
           requiresShare: true,
         },
+=======
+        { actor: "front", action: "forward-to-back-officer", label: "Accept & Forward to Back Officer" },
+        appointmentAction,
+        { actor: "front", action: "reject", label: "Reject & Return for Correction" },
+        shareAction,
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
       ];
     }
 
     return [
+<<<<<<< HEAD
       {
         actor: "front",
         action: "accept",
@@ -274,14 +383,14 @@ const serviceHasBackOfficer = Boolean(
         label: "Share with Another Officer",
         requiresShare: true,
       },
+=======
+      { actor: "front", action: "complete", label: "Accept & Complete" },
+      appointmentAction,
+      { actor: "front", action: "reject", label: "Reject & Return for Correction" },
+      shareAction,
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
     ];
-  }, [
-    front,
-    actionVisible,
-    serviceHasBackOfficer,
-    backApproved,
-    backRejected,
-  ]);
+  }, [front, actionVisible, serviceHasBackOfficer, backApproved, backRejected]);
 
   const backActions = useMemo<PendingAction[]>(() => {
     if (!back || !actionVisible) return [];
@@ -309,7 +418,7 @@ const serviceHasBackOfficer = Boolean(
         label: "Escalate to Manager",
       },
     ];
-  }, [back, actionVisible]);
+  }, [back, actionVisible, backDecisionDone]);
 
   const activeActions = back ? backActions : frontActions;
 
@@ -317,6 +426,9 @@ const serviceHasBackOfficer = Boolean(
     setPendingAction(null);
     setRemark("");
     setDocuments([]);
+    setAppointmentDate("");
+    setAppointmentTime("");
+    setAppointmentLocation("");
     setShareWindowId(undefined);
     setShareOfficerId(undefined);
   }
@@ -337,6 +449,27 @@ const serviceHasBackOfficer = Boolean(
           to_officer_id: shareOfficerId,
           note: remark,
           remark,
+        },
+      });
+
+      return;
+    }
+
+    if (action.action === "appointment") {
+      if (!appointmentDate || !appointmentTime) {
+        toast.error("Select appointment date and time.");
+        return;
+      }
+
+      await frontAction.mutateAsync({
+        action: "appointment",
+        payload: {
+          appointment_date: appointmentDate,
+          appointment_time: appointmentTime,
+          appointment_location: appointmentLocation,
+          message: remark,
+          remark,
+          documents: files,
         },
       });
 
@@ -372,6 +505,7 @@ const serviceHasBackOfficer = Boolean(
           officer_id: shareOfficerId,
           note: remark,
           remark,
+          documents: files,
         },
       });
 
@@ -418,6 +552,9 @@ const serviceHasBackOfficer = Boolean(
     setPendingAction(action || null);
     setRemark("");
     setDocuments([]);
+    setAppointmentDate("");
+    setAppointmentTime("");
+    setAppointmentLocation("");
     setShareWindowId(undefined);
     setShareOfficerId(undefined);
   }
@@ -459,6 +596,47 @@ const serviceHasBackOfficer = Boolean(
         <CardContent className="space-y-5">
           {actionVisible && activeActions.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-3">
+              {backDecisionDone && (
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+              <p className="font-semibold">Back officer decision already completed.</p>
+              <p className="mt-1">
+                This application has already been approved/rejected by the back officer and returned to the front officer.
+              </p>
+            </div>
+          )}
+
+          {appointmentLocked && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  <p className="font-semibold">Appointment Scheduled</p>
+                  <p className="mt-1">
+                    This application is locked until the appointment date and time:
+                    <span className="ml-1 font-semibold">
+                      {formatAppointmentDateTime(appointment?.appointment_at)}
+                    </span>
+                  </p>
+                  {appointment?.location && (
+                    <p className="mt-1">Location: {appointment.location}</p>
+                  )}
+                  {appointment?.message && (
+                    <p className="mt-1">Message: {appointment.message}</p>
+                  )}
+                </div>
+              )}
+
+              {appointmentLocked && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  <p className="font-semibold">Appointment Scheduled</p>
+                  <p className="mt-1">
+                    Officer actions are disabled until:
+                    <span className="ml-1 font-semibold">
+                      {formatAppointmentDateTime(appointment?.appointment_at)}
+                    </span>
+                  </p>
+                  {appointment?.location && <p className="mt-1">Location: {appointment.location}</p>}
+                  {appointment?.message && <p className="mt-1">Message: {appointment.message}</p>}
+                </div>
+              )}
+
               <div>
                 <label className="text-sm font-medium">
                   {back ? "Back Officer Action" : "Front Officer Action"}
@@ -466,6 +644,7 @@ const serviceHasBackOfficer = Boolean(
                 <select
                   className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
                   value={pendingAction?.action || ""}
+                  disabled={appointmentLocked || backDecisionDone || activeActions.length === 0}
                   onChange={(event) => selectAction(event.target.value)}
                 >
                   <option value="">Select action</option>
@@ -535,7 +714,7 @@ const serviceHasBackOfficer = Boolean(
             </div>
           )}
 
-          {pendingAction && (
+          {pendingAction && !appointmentLocked && !backDecisionDone && (
             <div className="space-y-5 rounded-2xl border bg-muted/20 p-4">
               <div>
                 <h3 className="font-semibold">{pendingAction.label}</h3>
@@ -543,6 +722,41 @@ const serviceHasBackOfficer = Boolean(
                   Add note/description and attach files before submitting.
                 </p>
               </div>
+
+              {pendingAction?.action === "appointment" && (
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div>
+                    <label className="text-sm font-medium">Appointment Date</label>
+                    <input
+                      type="date"
+                      className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
+                      value={appointmentDate}
+                      onChange={(event) => setAppointmentDate(event.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Appointment Time</label>
+                    <input
+                      type="time"
+                      className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
+                      value={appointmentTime}
+                      onChange={(event) => setAppointmentTime(event.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium">Appointment Location</label>
+                    <input
+                      type="text"
+                      className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
+                      value={appointmentLocation}
+                      onChange={(event) => setAppointmentLocation(event.target.value)}
+                      placeholder="Office location"
+                    />
+                  </div>
+                </div>
+              )}
 
               <textarea
                 className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -582,17 +796,6 @@ const serviceHasBackOfficer = Boolean(
               </div>
             </div>
           )}
-
-          <Button asChild variant="outline">
-            <a
-              href={applicationWorkflowService.officer.certificateUrl(id)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Certificate
-            </a>
-          </Button>
         </CardContent>
       </Card>
 

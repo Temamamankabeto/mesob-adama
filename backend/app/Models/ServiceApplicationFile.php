@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class ServiceApplicationFile extends Model
 {
@@ -28,6 +29,49 @@ class ServiceApplicationFile extends Model
         'size' => 'integer',
         'verified_at' => 'datetime',
     ];
+
+    protected $appends = [
+        'download_url',
+        'display_status',
+        'display_category',
+    ];
+
+    public function getDownloadUrlAttribute(): ?string
+    {
+        if (! $this->path) {
+            return null;
+        }
+
+        if (str_starts_with($this->path, 'http')) {
+            return $this->path;
+        }
+
+        return Storage::disk('public')->url($this->path);
+    }
+
+    public function getDisplayStatusAttribute(): string
+    {
+        return match ($this->file_category) {
+            'workflow_documents' => 'Workflow Document',
+            'correction_documents' => 'Correction Document',
+            'approval_documents' => 'Approval Document',
+            'final_documents' => 'Final Document',
+            'certificate' => 'Certificate',
+            default => 'Submitted Document',
+        };
+    }
+
+    public function getDisplayCategoryAttribute(): string
+    {
+        return match ($this->file_category) {
+            'workflow_documents' => 'Workflow',
+            'correction_documents' => 'Correction',
+            'approval_documents' => 'Approval',
+            'final_documents' => 'Final',
+            'certificate' => 'Certificate',
+            default => 'Submitted',
+        };
+    }
 
     public function application()
     {

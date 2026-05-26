@@ -133,7 +133,7 @@ class OfficerApplicationService
         $targetId = (int)($payload['back_officer_id'] ?? $payload['officer_id'] ?? 0);
         $target = $targetId ? User::with('roles')->findOrFail($targetId) : $this->firstAssignedOfficer($application, AppRoles::BACK_OFFICER);
         if (!$target || !$target->hasRole(AppRoles::BACK_OFFICER)) {
-            throw ValidationException::withMessages(['back_officer_id' => ['No valid back officer selected/found for this service and window.']]);
+            throw ValidationException::withMessages(['back_officer_id' => ['No active back officer is assigned to this same service, window, level, and scope.']]);
         }
 
         $this->assertSameLevelAndScope($application, $actor, $target, $application->administrative_level);
@@ -238,8 +238,31 @@ class OfficerApplicationService
         return $this->transition($application, $manager, 'manager_forwarded', 'manager_escalated_up', $payload['remark'] ?? null, receiverId: $upper->id, assignedTo: $upper->id, assignedRole: AppRoles::MANAGER, metadata: ['upper_manager_id' => $upper->id]);
     }
 
+    protected function assertAppointmentIsDue(ServiceApplication $application, string $action): void
+    {
+        if ($action === 'appointment_scheduled') {
+            return;
+        }
+
+        $appointmentAt = $application->appointment_at;
+
+        if (
+            $application->status === 'appointment_scheduled' &&
+            $appointmentAt &&
+            now()->lt($appointmentAt)
+        ) {
+            throw ValidationException::withMessages([
+                'appointment_at' => [
+                    'This application is locked until the appointment date and time: ' . $appointmentAt->format('Y-m-d H:i')
+                ],
+            ]);
+        }
+    }
+
     protected function transition(ServiceApplication $app, User $actor, string $status, string $action, ?string $remark, ?int $receiverId = null, ?int $toWindowId = null, ?int $assignedTo = null, ?string $assignedRole = null, array $metadata = [], array $extra = [])
     {
+        $this->assertAppointmentIsDue($app, $action);
+
         return DB::transaction(function () use ($app, $actor, $status, $action, $remark, $receiverId, $toWindowId, $assignedTo, $assignedRole, $metadata, $extra) {
             $old = $app->status;
             $fromWindowId = $app->current_window_id;
@@ -298,17 +321,82 @@ class OfficerApplicationService
 
     protected function firstAssignedOfficer(ServiceApplication $app, string $role): ?User
     {
-        return User::query()
+        $level = $app->administrative_level ?: AppRoles::LEVEL_CITY;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Back/Front officer lookup for workflow routing
+        |--------------------------------------------------------------------------
+        | Accept & Forward must find an active Back Officer assigned to:
+        | - same service
+        | - same administrative level
+        | - same administrative scope
+        |
+        | If the project also has officer_window_assignments, the officer must be
+        | assigned to the current application window OR the service assignment row
+        | itself must already contain the same window_id.
+        |
+        | Supports both legacy officer_type values:
+        | - back / back_officer
+        | - front / front_officer
+        */
+        $officerTypes = match ($role) {
+            AppRoles::BACK_OFFICER => [AppRoles::BACK_OFFICER, 'back'],
+            AppRoles::FRONT_OFFICER => [AppRoles::FRONT_OFFICER, 'front'],
+            default => [$role],
+        };
+
+        $query = User::query()
             ->where('is_active', true)
             ->whereHas('roles', fn ($q) => $q->where('name', $role))
-            ->whereHas('assignedServices', function ($q) use ($app, $role) {
-                $q->where('services.id', $app->service_id)
-                  ->where('user_service_assignments.assignment_level', $app->administrative_level)
-                  ->where('user_service_assignments.window_id', $app->current_window_id)
-                  ->where('user_service_assignments.officer_type', $role)
-                  ->where('user_service_assignments.is_active', true);
+            ->whereExists(function ($query) use ($app, $level, $officerTypes) {
+                $query->selectRaw('1')
+                    ->from('user_service_assignments')
+                    ->whereColumn('user_service_assignments.user_id', 'users.id')
+                    ->where('user_service_assignments.service_id', $app->service_id)
+                    ->where('user_service_assignments.assignment_level', $level)
+                    ->whereIn('user_service_assignments.officer_type', $officerTypes)
+                    ->where('user_service_assignments.is_active', true)
+                    ->where(function ($windowQuery) use ($app) {
+                        /*
+                        |--------------------------------------------------------------------------
+                        | Accept either:
+                        | 1) direct user_service_assignments.window_id match
+                        | 2) null/legacy window_id plus matching officer_window_assignments row
+                        |--------------------------------------------------------------------------
+                        */
+                        $windowQuery
+                            ->where('user_service_assignments.window_id', $app->current_window_id)
+                            ->orWhereNull('user_service_assignments.window_id')
+                            ->orWhereExists(function ($q) use ($app) {
+                                $q->selectRaw('1')
+                                    ->from('officer_window_assignments')
+                                    ->whereColumn('officer_window_assignments.officer_id', 'users.id')
+                                    ->where('officer_window_assignments.window_id', $app->current_window_id)
+                                    ->where('officer_window_assignments.assignment_level', $app->administrative_level)
+                                    ->where('officer_window_assignments.is_active', true);
+                            });
+                    });
+            });
+
+        $query
+            ->when($level === AppRoles::LEVEL_CITY, function ($q) use ($app) {
+                $q->where('city_id', $app->city_id)
+                    ->whereNull('subcity_id')
+                    ->whereNull('woreda_id');
             })
-            ->first();
+            ->when($level === AppRoles::LEVEL_SUBCITY, function ($q) use ($app) {
+                $q->where('city_id', $app->city_id)
+                    ->where('subcity_id', $app->subcity_id)
+                    ->whereNull('woreda_id');
+            })
+            ->when($level === AppRoles::LEVEL_WOREDA, function ($q) use ($app) {
+                $q->where('city_id', $app->city_id)
+                    ->where('subcity_id', $app->subcity_id)
+                    ->where('woreda_id', $app->woreda_id);
+            });
+
+        return $query->orderBy('id')->first();
     }
 
     protected function firstManagerForApplication(ServiceApplication $app): ?User

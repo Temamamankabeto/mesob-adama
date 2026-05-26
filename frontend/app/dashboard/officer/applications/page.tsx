@@ -17,37 +17,20 @@ const queueFilters = [
   { value: "accepted", label: "Accepted Applications" },
   { value: "approved", label: "Approved Applications" },
   { value: "escalated", label: "Escalated Applications" },
+  { value: "appointment", label: "Appointment Queue" },
   { value: "returned", label: "Returned Applications" },
   { value: "rejected", label: "Rejected Applications" },
   { value: "completed", label: "Completed Applications" },
 ];
 
-const statusFilters = [
-  { value: "", label: "All Statuses" },
-  { value: "submitted", label: "Submitted" },
-  { value: "accepted", label: "Accepted" },
-  { value: "front_officer_review", label: "Front Officer Review" },
-  { value: "shared", label: "Shared" },
-  { value: "forwarded_to_back_officer", label: "Forwarded to Back Officer" },
-  { value: "back_officer_review", label: "Back Officer Review" },
-  { value: "back_officer_approved", label: "Back Officer Approved" },
-  { value: "approved", label: "Approved" },
-  { value: "returned", label: "Returned" },
-  { value: "returned_to_customer", label: "Returned to Customer" },
-  { value: "returned_to_front_officer", label: "Returned to Front Officer" },
-  { value: "rejected", label: "Rejected" },
-  { value: "escalated", label: "Escalated" },
-  { value: "manager_review", label: "Manager Review" },
-  { value: "completed", label: "Completed" },
-];
-
 const queueStatusMap: Record<string, string[]> = {
-  new: ["submitted", "pending"],
-  shared: ["shared"],
-  accepted: ["accepted", "front_officer_review"],
+  new: ["submitted", "pending", "resubmitted"],
+  shared: ["shared", "shared_to_front_officer", "shared_to_back_officer"],
+  accepted: ["accepted", "front_officer_review", "under_review", "back_officer_review", "under_back_review"],
   approved: ["approved", "back_officer_approved"],
   escalated: ["escalated", "manager_review"],
-  returned: ["returned", "returned_to_customer", "returned_to_front_officer"],
+  appointment: ["appointment_scheduled"],
+  returned: ["returned", "returned_to_customer", "returned_to_front_officer", "back_officer_rejected"],
   rejected: ["rejected"],
   completed: ["completed"],
 };
@@ -91,7 +74,6 @@ function applicationMatchesSearch(application: any, search: string) {
 
 export default function OfficerApplicationsPage() {
   const [bucket, setBucket] = useState("");
-  const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
 
   /*
@@ -104,7 +86,6 @@ export default function OfficerApplicationsPage() {
   */
   const { data = [], isLoading } = useOfficerApplicationQueue({
     bucket: bucket || undefined,
-    status: status || undefined,
     search: search || undefined,
   });
 
@@ -112,15 +93,13 @@ export default function OfficerApplicationsPage() {
     return data.filter((application: any) => {
       return (
         applicationMatchesQueue(application, bucket) &&
-        applicationMatchesStatus(application, status) &&
         applicationMatchesSearch(application, search)
       );
     });
-  }, [data, bucket, status, search]);
+  }, [data, bucket, search]);
 
   function clearFilters() {
     setBucket("");
-    setStatus("");
     setSearch("");
   }
 
@@ -134,7 +113,6 @@ export default function OfficerApplicationsPage() {
     | If the user chooses a queue, we reset the direct status filter.
     | They can still choose status after queue if they need extra narrowing.
     */
-    setStatus("");
   }
 
   return (
@@ -170,6 +148,7 @@ export default function OfficerApplicationsPage() {
             </select>
           </div>
 
+<<<<<<< HEAD
           <div>
             <label className="text-sm font-medium">Status</label>
             <select
@@ -186,6 +165,9 @@ export default function OfficerApplicationsPage() {
           </div>
 
           <div className="md:col-span-2">
+=======
+          <div className="md:col-span-3">
+>>>>>>> a70d7379f653b971c5d56277ba4866695c88fe59
             <label className="text-sm font-medium">Search</label>
             <div className="relative mt-2">
               <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />

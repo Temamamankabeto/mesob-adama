@@ -11,13 +11,26 @@ class ApplicationTrackingService
         return ServiceApplication::with([
             'service',
             'customer',
+            'city',
+            'subcity',
+            'woreda',
             'currentWindow',
             'currentOfficer',
+            'assignee',
             'data',
-            'files',
+            'files.uploader',
+            'appointments.scheduler',
             'workflow.window',
             'workflow.officer',
             'histories.actor',
+            'histories.sender',
+            'histories.receiver',
+            'histories.fromWindow',
+            'histories.toWindow',
+            'shares.sharedFromOfficer',
+            'shares.sharedToOfficer',
+            'shares.fromWindow',
+            'shares.toWindow',
         ])
             ->where('tracking_number', $trackingNumber)
             ->first();

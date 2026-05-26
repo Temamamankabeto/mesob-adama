@@ -14,12 +14,26 @@ export function middleware(request: NextRequest) {
    * PUBLIC ROUTES
    * =========================
    */
-  const publicRoutes = ["/", "/login", "/register", "/about", "/services"];
+  const publicRoutes = [
+    "/",
+    "/login",
+    "/register",
+    "/about",
+    "/services",
+    "/training/application-workflow",
+  ];
 
   const isServiceDetail = /^\/services\/\d+$/.test(pathname);
   const isApplyPage = /^\/services\/\d+\/apply$/.test(pathname);
 
-  const isPublicRoute = publicRoutes.includes(pathname) || isServiceDetail;
+  const isTrainingAsset = pathname.startsWith("/presentations/application-workflow/");
+  const isTrainingPage = pathname.startsWith("/training/application-workflow");
+
+  const isPublicRoute =
+    publicRoutes.includes(pathname) ||
+    isServiceDetail ||
+    isTrainingAsset ||
+    isTrainingPage;
 
   /**
    * =========================
