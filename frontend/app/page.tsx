@@ -80,9 +80,8 @@ const services = [
   { title: "City Services", text: "Services provided at city administration", icon: Building2 },
   { title: "Sub City Services", text: "Services provided at sub city level", icon: Users },
   { title: "Woreda Services", text: "Services provided at woreda level", icon: FileText },
-  { title: "Certificates", text: "Apply and verify different certificates", icon: FileBadge },
-  { title: "Reports", text: "View and download official reports", icon: ClipboardList },
-  { title: "Payments & Fines", text: "Pay your fees and check fines", icon: CreditCard },
+   
+   
 ];
 
 export default function HomePage() {
@@ -115,21 +114,21 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f8fc] text-[#08214a]">
-      <header className="sticky top-0 z-50 bg-white/95 shadow-sm backdrop-blur">
-        <div className="mx-auto flex h-[86px] max-w-7xl items-center justify-between px-4 md:px-8">
+    <main className="min-h-screen bg-white text-slate-900">
+      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
           <Link href="/" className="flex items-center gap-3">
-            <Image src={mesob} alt="Adama MESOB" width={70} height={70} className="h-16 w-16 rounded-full object-cover" />
+            <Image src={mesob} alt="Adama MESOB" width={70} height={70} className="h-10 w-10 rounded-full object-cover" />
             <div className="leading-tight">
-              <h1 className="text-2xl font-black text-[#08346f]">Adama MESOB</h1>
-              <p className="text-2xl font-black text-emerald-600">eService</p>
+              <h1 className="text-2xl font-black tracking-tight text-slate-950">Adama<span className="text-sky-500">.</span></h1>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">MESOB eService</p>
             </div>
           </Link>
 
           <div className="hidden items-center gap-5 lg:flex">
             <div className="group relative">
-              <Button variant="outline" className="h-11 min-w-48 justify-between rounded-xl bg-white px-5 font-semibold">
-                <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" />{language}</span>
+              <Button variant="outline" className="h-9 min-w-28 justify-between border-0 bg-white px-3 text-xs font-bold shadow-none hover:bg-slate-50">
+                <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" />EN</span>
                 <ChevronDown className="h-4 w-4 transition group-hover:rotate-180" />
               </Button>
               <div className="invisible absolute right-0 top-full z-50 w-48 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
@@ -149,8 +148,8 @@ export default function HomePage() {
             </div>
 
             <div className="group relative">
-              <Button className="h-11 rounded-xl bg-[#063d91] px-8 font-bold shadow-lg">
-                <LockKeyhole className="mr-2 h-4 w-4" />Sign In
+              <Button className="h-10 rounded-full bg-sky-500 px-7 text-xs font-black uppercase tracking-wide shadow-lg shadow-sky-100 hover:bg-sky-600">
+                Sign In <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               <div className="invisible absolute right-0 top-full z-50 w-52 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
                 <div className="rounded-xl border bg-white p-3 text-[#08214a] shadow-xl">
@@ -163,7 +162,7 @@ export default function HomePage() {
           <Button variant="ghost" size="icon" className="lg:hidden"><Menu /></Button>
         </div>
 
-        <nav className="mx-auto hidden max-w-7xl items-center rounded-t-2xl border bg-white px-4 shadow-sm lg:flex">
+        <nav className="mx-auto hidden h-14 max-w-7xl items-center bg-white px-4 md:px-6 lg:flex">
           {navGroups.map((group) => {
             const GroupIcon = group.icon;
 
@@ -172,7 +171,7 @@ export default function HomePage() {
                 <Link
                   key={group.label}
                   href={group.href}
-                  className="flex h-16 min-w-36 items-center justify-center gap-2 border-b-4 border-transparent px-5 text-sm font-bold hover:border-[#0a49aa] hover:text-[#0a49aa]"
+                  className="flex h-14 min-w-32 items-center justify-center gap-2 border-b-2 border-transparent px-4 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-600"
                 >
                   {GroupIcon && <GroupIcon className="h-5 w-5" />}
                   {group.label}
@@ -184,7 +183,7 @@ export default function HomePage() {
               <div key={group.label} className="group relative">
                 <Link
                   href={group.href}
-                  className="flex h-16 min-w-44 items-center justify-center gap-2 border-b-4 border-transparent px-5 text-sm font-bold hover:border-[#0a49aa] hover:text-[#0a49aa]"
+                  className="flex h-14 min-w-36 items-center justify-center gap-2 border-b-2 border-transparent px-4 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-600"
                 >
                   {GroupIcon && <GroupIcon className="h-5 w-5" />}
                   {group.label}
@@ -210,20 +209,49 @@ export default function HomePage() {
         </nav>
       </header>
 
-      <section className="relative overflow-hidden bg-gradient-to-b from-sky-50 via-white to-sky-50">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(14,165,233,0.14),transparent_34%),radial-gradient(circle_at_12%_30%,rgba(16,185,129,0.11),transparent_28%)]" />
-        <div className="relative mx-auto max-w-7xl px-4 pb-8 pt-28 text-center md:px-8 md:pt-36">
-          <h2 className="mx-auto max-w-3xl text-4xl font-black leading-tight text-[#07347c] md:text-5xl">eService for ensuring<br />good governance</h2>
-          <div className="mx-auto mt-4 h-1 w-16 bg-emerald-500" />
-          <p className="mx-auto mt-5 max-w-3xl text-3xl font-black leading-tight text-emerald-700">Tajaajila elektiroonikaalaa<br />bulchiinsa gaarii mirkaneessuuf</p>
+      <section className="px-4 pb-8 pt-6 md:px-6">
+        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-slate-50 px-5 py-20 text-center md:px-10 md:py-32">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_55%,rgba(250,204,21,0.18),transparent_18%),radial-gradient(circle_at_40%_62%,rgba(14,165,233,0.18),transparent_30%),radial-gradient(circle_at_62%_48%,rgba(56,189,248,0.16),transparent_26%)]" />
+          <div className="relative mx-auto max-w-5xl">
+            <h2 className="mx-auto max-w-4xl text-3xl font-black leading-tight tracking-tight text-slate-950 md:text-5xl">
+              eService for ensuring good governance
+               
+            </h2>
 
-          <div className="mx-auto mt-10 flex max-w-4xl rounded-2xl bg-white p-2 shadow-2xl">
-            <div className="relative flex-1"><Search className="absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-[#08214a]" /><Input value={applicationNumber} onChange={(e) => setApplicationNumber(e.target.value)} placeholder="Search services, information..." className="h-16 border-0 pl-14 text-base shadow-none focus-visible:ring-0" /></div>
-            <Button onClick={handleTrack} disabled={trackMutation.isPending} className="h-16 rounded-xl bg-[#063d91] px-12 text-lg font-bold">Search</Button>
-          </div>
-
-          <div className="mx-auto mt-10 grid max-w-6xl gap-0 overflow-hidden rounded-2xl bg-white/95 p-4 shadow-xl md:grid-cols-5">
-            {categories.map((item) => <Link href="/services" key={item.title} className="flex items-center gap-4 border-b p-4 text-left last:border-0 md:border-b-0 md:border-r"><span className="rounded-xl bg-emerald-100 p-3 text-emerald-700"><item.icon className="h-6 w-6" /></span><span className="font-bold leading-tight">{item.title}</span></Link>)}
+            <div className="mx-auto mt-14 max-w-5xl">
+              <div className="relative rounded-full border border-slate-200 bg-white shadow-sm">
+                <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={applicationNumber}
+                  onChange={(e) => setApplicationNumber(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleTrack();
+                  }}
+                  placeholder="Search"
+                  className="h-14 rounded-full border-0 bg-transparent pl-12 pr-28 text-sm shadow-none focus-visible:ring-0"
+                />
+                <Button
+                  onClick={handleTrack}
+                  disabled={trackMutation.isPending}
+                  className="absolute right-2 top-1/2 h-10 -translate-y-1/2 rounded-full bg-sky-500 px-6 text-sm font-bold hover:bg-sky-600"
+                >
+                  Search
+                </Button>
+              </div>
+{/* 
+              <div className="mt-5 flex flex-wrap items-center gap-3 text-left">
+                <span className="text-sm font-bold text-slate-400">#Top searches:</span>
+                {categories.map((category) => (
+                  <Link
+                    key={category.title}
+                    href="/services"
+                    className="rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:text-sky-600"
+                  >
+                    {category.title}
+                  </Link>
+                ))}
+              </div> */}
+            </div>
           </div>
         </div>
       </section>
