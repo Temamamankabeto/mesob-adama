@@ -50,13 +50,10 @@ export default function LoginPage() {
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-emerald-950 p-4">
       <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-8 lg:grid-cols-2">
         <section className="hidden text-white lg:block">
-          <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm backdrop-blur">
-            <ShieldCheck className="h-4 w-4 text-emerald-300" />
-            Secure Municipal Digital Service Portal
-          </div>
+         
 
           <h1 className="max-w-xl text-5xl font-bold leading-tight">
-            Adama City Masob eService Platform
+            Adama MESOB eService 
           </h1>
 
           <p className="mt-5 max-w-lg text-lg text-white/75">
@@ -64,18 +61,7 @@ export default function LoginPage() {
             and serve citizens through one trusted digital office.
           </p>
 
-          <div className="mt-8 grid max-w-lg grid-cols-2 gap-4">
-            {["Fast Service", "Secure Login", "Application Tracking", "Role Based Access"].map(
-              (item) => (
-                <div
-                  key={item}
-                  className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur"
-                >
-                  <p className="font-semibold">{item}</p>
-                </div>
-              )
-            )}
-          </div>
+        
         </section>
 
         <section className="mx-auto w-full max-w-md">

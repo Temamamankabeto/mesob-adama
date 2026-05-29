@@ -9,6 +9,8 @@ import {
   CreditCard,
   LogOut,
   Menu,
+  Settings,
+  UserCircle,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -212,20 +214,61 @@ export default function DashboardHeader({ sidebarCollapsed = false, onToggleSide
           </DropdownMenu>
         )}
 
-        <Avatar className="h-10 w-10 border">
-          <AvatarImage src={user?.profile_image_url ?? undefined} alt={user?.name ?? "User"} />
-          <AvatarFallback>{initials(user?.name ?? user?.email)}</AvatarFallback>
-        </Avatar>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-auto gap-3 rounded-full px-2 py-1.5 hover:bg-muted"
+            >
+              <Avatar className="h-10 w-10 border">
+                <AvatarImage src={user?.profile_image_url ?? undefined} alt={user?.name ?? "User"} />
+                <AvatarFallback>{initials(user?.name ?? user?.email)}</AvatarFallback>
+              </Avatar>
 
-        <div className="hidden text-right sm:block">
-          <p className="text-sm font-semibold">{user?.name ?? "User"}</p>
-          <p className="max-w-[180px] truncate text-xs text-muted-foreground">{user?.email ?? dashboard.roleName}</p>
-        </div>
+              <div className="hidden text-left sm:block">
+                <p className="max-w-[150px] truncate text-sm font-semibold">{user?.name ?? "User"}</p>
+                <p className="max-w-[180px] truncate text-xs text-muted-foreground">
+                  {user?.email ?? dashboard.roleName}
+                </p>
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
 
-        <Button variant="outline" onClick={logout} className="hidden sm:inline-flex">
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div className="space-y-1">
+                <p className="truncate text-sm font-semibold">{user?.name ?? "User"}</p>
+                <p className="truncate text-xs font-normal text-muted-foreground">
+                  {user?.email ?? dashboard.roleName}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => router.push("/dashboard/profile")}
+            >
+              <UserCircle className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => router.push("/dashboard/settings")}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Setting
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-red-600 focus:text-red-600"
+              onClick={logout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

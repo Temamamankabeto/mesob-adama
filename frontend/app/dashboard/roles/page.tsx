@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { MoreVertical, Search, Shield } from "lucide-react";
+
 import { useRoles } from "@/hooks/roles/useRoles";
 import AssignPermissionModal from "@/components/roles/AssignPermissionModal";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -20,208 +24,161 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { Button } from "@/components/ui/button";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-import { MoreVertical } from "lucide-react";
-
 export default function RolesPage() {
-  const {
-    roles,
-    loading,
-    error,
-    addRole,
-    editRole,
-    removeRole,
-  } = useRoles();
+  const { roles, loading, error } = useRoles();
 
-  const [open, setOpen] = useState(false);
-  const [selectedRoleId, setSelectedRoleId] =
-    useState<number | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [dropdownOpenId, setDropdownOpenId] = useState<number | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
 
-  const [newRoleName, setNewRoleName] = useState("");
-
-  const handleOpen = (roleId: number) => {
-    setSelectedRoleId(roleId);
-    setOpen(true);
+  const resetBody = () => {
+    document.body.style.pointerEvents = "";
+    document.body.style.overflow = "";
   };
 
-  const handleCreateRole = async () => {
-    if (!newRoleName.trim()) return;
+  useEffect(() => {
+    if (!modalOpen && dropdownOpenId === null) resetBody();
 
-    await addRole(newRoleName);
+    return () => resetBody();
+  }, [modalOpen, dropdownOpenId]);
 
-    setNewRoleName("");
+  const safeRoles = (roles ?? []).filter((role: any) =>
+    role.name?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleAssignPermissions = (roleId: number) => {
+    setDropdownOpenId(null);
+
+    requestAnimationFrame(() => {
+      resetBody();
+      setSelectedRoleId(roleId);
+      setModalOpen(true);
+    });
   };
 
-  const handleEditRole = async (
-    id: number,
-    currentName: string
-  ) => {
-    const newName = prompt(
-      "Enter new role name",
-      currentName
-    );
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedRoleId(null);
 
-    if (!newName) return;
-
-    await editRole(id, newName);
-  };
-
-  const handleDeleteRole = async (
-    id: number,
-    name: string
-  ) => {
-    const confirmed = confirm(
-      `Delete role "${name}"?`
-    );
-
-    if (!confirmed) return;
-
-    await removeRole(id);
+    requestAnimationFrame(resetBody);
   };
 
   if (loading) {
-    return <p className="p-6">Loading...</p>;
+    return <div className="p-6 text-sm text-muted-foreground">Loading roles...</div>;
   }
 
   if (error) {
-    return (
-      <p className="p-6 text-red-500">
-        {error}
-      </p>
-    );
+    return <div className="p-6 text-sm text-red-600">{error}</div>;
   }
 
-  const safeRoles = roles ?? [];
-
   return (
-    <div className="p-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Roles Management</CardTitle>
+    <div className="space-y-6 p-4 md:p-6">
+      <Card className="rounded-2xl">
+        <CardContent className="flex items-center gap-4 p-6">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+            <Shield className="h-7 w-7 text-primary" />
+          </div>
 
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="New role name"
-              value={newRoleName}
-              onChange={(e) =>
-                setNewRoleName(e.target.value)
-              }
-              className="border rounded-md px-3 py-2 text-sm"
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Roles Management</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage system roles and assign permissions.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-2xl">
+        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <CardTitle className="text-lg">System Roles</CardTitle>
+
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search roles..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
             />
-
-            {/* <Button onClick={handleCreateRole}>
-              Create Role
-            </Button> */}
           </div>
         </CardHeader>
 
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
+          <div className="overflow-hidden rounded-xl border">
+            <Table>
+              <TableHeader className="bg-muted/40">
+                <TableRow>
+                  <TableHead className="w-20">#</TableHead>
+                  <TableHead>Role Name</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
 
-                <TableHead>Name</TableHead>
+              <TableBody>
+                {safeRoles.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-28 text-center text-muted-foreground">
+                      No roles found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  safeRoles.map((role: any, index: number) => (
+                    <TableRow key={role.id} className="hover:bg-muted/30">
+                      <TableCell className="font-medium">{index + 1}</TableCell>
 
-                <TableHead>Guard</TableHead>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                            <Shield className="h-4 w-4 text-primary" />
+                          </div>
 
-                <TableHead className="text-right">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+                          <div>
+                            <p className="font-semibold">{role.name}</p>
+                            <p className="text-xs text-muted-foreground">System Role</p>
+                          </div>
+                        </div>
+                      </TableCell>
 
-            <TableBody>
-  {safeRoles.length === 0 ? (
-    <TableRow>
-      <TableCell
-        colSpan={4}
-        className="text-center py-6"
-      >
-        No roles found
-      </TableCell>
-    </TableRow>
-  ) : (
-    safeRoles.map((role: any, index: number) => (
-      <TableRow key={role.id}>
-        <TableCell>
-          {index + 1}
-        </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu
+                          open={dropdownOpenId === role.id}
+                          onOpenChange={(open) => {
+                            setDropdownOpenId(open ? role.id : null);
+                            if (!open) requestAnimationFrame(resetBody);
+                          }}
+                          modal={false}
+                        >
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-5 w-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
 
-        <TableCell>
-          {role.name}
-        </TableCell>
-
-        <TableCell>
-          {role.guard_name}
-        </TableCell>
-
-        <TableCell className="text-right">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-              >
-                <MoreVertical className="w-5 h-5" />
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() =>
-                  handleOpen(role.id)
-                }
-              >
-                Assign Permissions
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                onClick={() =>
-                  handleEditRole(
-                    role.id,
-                    role.name
-                  )
-                }
-              >
-                Edit Role
-              </DropdownMenuItem>
-
-              <DropdownMenuItem
-                className="text-red-600"
-                onClick={() =>
-                  handleDeleteRole(
-                    role.id,
-                    role.name
-                  )
-                }
-              >
-                Delete Role
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
-      </TableRow>
-    ))
-  )}
-</TableBody>
-          </Table>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={(event) => {
+                                event.preventDefault();
+                                handleAssignPermissions(role.id);
+                              }}
+                            >
+                              Assign Permissions
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
-      {/* ASSIGN PERMISSION MODAL */}
       <AssignPermissionModal
-        open={open}
-        onClose={() => setOpen(false)}
+        open={modalOpen}
+        onClose={handleCloseModal}
         roleId={selectedRoleId}
       />
     </div>

@@ -220,7 +220,7 @@ export default function DashboardPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-900/80 to-blue-950/10" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm text-white/75">Adama City Masob eService</p>
+            <p className="text-sm text-white/75">Adama MESOB eService</p>
             <h1 className="mt-2 text-2xl font-bold md:text-3xl">
               Welcome back, {data.profile.name}! 👋
             </h1>
