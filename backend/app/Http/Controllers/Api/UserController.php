@@ -48,10 +48,19 @@ class UserController extends Controller
 
     public function profile(Request $request): JsonResponse
     {
+        $user = $request->user()->load(['roles', 'city', 'subcity', 'woreda']);
+
         return response()->json([
             'success' => true,
             'message' => 'Profile retrieved successfully',
-            'data' => $request->user()->load(['roles', 'city', 'subcity', 'woreda']),
+            'data' => [
+                ...$user->toArray(),
+                'role' => $user->getRoleNames()->first(),
+                'roles' => $user->getRoleNames()->values()->all(),
+                'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
+                'profile_image_url' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
+                'photo_url' => $user->profile_image ? asset('storage/' . $user->profile_image) : null,
+            ],
         ]);
     }
 
@@ -160,10 +169,8 @@ class UserController extends Controller
 
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
-        $user = $request->user();
-
         $updatedUser = $this->userService->updateProfile(
-            $user,
+            $request->user(),
             $request->validated(),
             $request->file('profile') ?: $request->file('profile_image')
         );
@@ -171,7 +178,14 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Profile updated successfully',
-            'data' => $updatedUser,
+            'data' => [
+                ...$updatedUser->toArray(),
+                'role' => $updatedUser->getRoleNames()->first(),
+                'roles' => $updatedUser->getRoleNames()->values()->all(),
+                'permissions' => $updatedUser->getAllPermissions()->pluck('name')->values()->all(),
+                'profile_image_url' => $updatedUser->profile_image ? asset('storage/' . $updatedUser->profile_image) : null,
+                'photo_url' => $updatedUser->profile_image ? asset('storage/' . $updatedUser->profile_image) : null,
+            ],
         ]);
     }
 
