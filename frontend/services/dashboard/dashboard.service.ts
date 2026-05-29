@@ -52,6 +52,15 @@ export type DashboardResponse = {
   quick_links: Array<{ label: string; href: string; permission: string }>;
   recent_applications?: DashboardRecentApplication[];
   recent_users?: DashboardRecentUser[];
+  role_dashboard?: {
+    title: string;
+    description: string;
+    primary_action?: { label: string; href: string };
+    sections: Array<{
+      title: string;
+      items: Array<{ label: string; value: number | string }>;
+    }>;
+  };
 };
 
 export const dashboardService = {
