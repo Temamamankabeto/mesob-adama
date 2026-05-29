@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             LocationSeeder::class,
             WindowSeeder::class,
             ServiceSeeder::class,
+            ServiceProviderSeeder::class,
             
 
           
