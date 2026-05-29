@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Bell, Eye, Filter, Search } from "lucide-react";
+import { Eye, Filter, Search } from "lucide-react";
 
 import ApplicationStatusBadge from "@/components/application/ApplicationStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -72,25 +72,6 @@ function applicationMatchesSearch(application: any, search: string) {
   );
 }
 
-
-function countForBucket(applications: any[], bucket: string) {
-  if (!bucket) return applications.length;
-
-  return applications.filter((application) =>
-    applicationMatchesQueue(application, bucket)
-  ).length;
-}
-
-function windowLabel(application: any) {
-  return (
-    application.current_window?.display_name ||
-    application.current_window?.name ||
-    application.current_window_id ||
-    "-"
-  );
-}
-
-
 export default function OfficerApplicationsPage() {
   const [bucket, setBucket] = useState("");
   const [search, setSearch] = useState("");
@@ -116,26 +97,6 @@ export default function OfficerApplicationsPage() {
       );
     });
   }, [data, bucket, search]);
-
-  const queueCounts = useMemo(() => {
-    return Object.fromEntries(
-      queueFilters.map((filter) => [
-        filter.value || "all",
-        countForBucket(data, filter.value),
-      ])
-    );
-  }, [data]);
-
-  const urgentCount = useMemo(() => {
-    return data.filter((application: any) =>
-      ["submitted", "shared", "returned_to_front_officer", "back_officer_approved", "back_officer_rejected"].includes(
-        normalize(application.status)
-      ) ||
-      ["submitted", "shared", "returned_to_front_officer", "back_officer_approved", "back_officer_rejected"].includes(
-        normalize(application.current_stage)
-      )
-    ).length;
-  }, [data]);
 
   function clearFilters() {
     setBucket("");
@@ -163,15 +124,6 @@ export default function OfficerApplicationsPage() {
         </p>
       </div>
 
-      {urgentCount > 0 && (
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm">
-          <div className="flex items-center gap-2 font-medium">
-            <Bell className="h-4 w-4 text-primary" />
-            You have {urgentCount} application(s) waiting for your action.
-          </div>
-        </div>
-      )}
-
       <Card className="rounded-3xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -190,7 +142,7 @@ export default function OfficerApplicationsPage() {
             >
               {queueFilters.map((filter) => (
                 <option key={filter.value || "all"} value={filter.value}>
-                  {filter.label} ({queueCounts[filter.value || "all"] || 0})
+                  {filter.label}
                 </option>
               ))}
             </select>
@@ -242,7 +194,7 @@ export default function OfficerApplicationsPage() {
 
                       <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
                         <span>Level: {application.administrative_level || "-"}</span>
-                        <span>Window: {windowLabel(application)}</span>
+                        <span>Window: {application.current_window?.name || application.current_window_id || "-"}</span>
                         <span>Stage: {application.current_stage || "-"}</span>
                         <span>
                           Submitted:{" "}

@@ -67,39 +67,6 @@ function queryFromSelection(selection: {
   return params.toString();
 }
 
-
-function windowDisplayName(window: any, level?: Level | null) {
-  if (window?.display_name) return window.display_name;
-
-  const title =
-    level === "city"
-      ? window?.city_title || window?.title
-      : level === "subcity"
-        ? window?.subcity_title || window?.title
-        : level === "woreda"
-          ? window?.woreda_title || window?.title
-          : window?.title;
-
-  return `${window?.name || "Window"}${title ? ` - ${title}` : ""}`;
-}
-
-function serviceWindowDisplayName(service: any, level?: Level | null) {
-  if (service?.window_display_name) return service.window_display_name;
-
-  const window = (service?.windows || []).find((item: any) => {
-    const levels = Array.isArray(item?.availability)
-      ? item.availability
-      : item?.availability?.levels || [];
-
-    return level ? levels.includes(level) : true;
-  }) || service?.windows?.[0];
-
-  if (window) return windowDisplayName(window, level);
-
-  return service?.window_name || "Service window";
-}
-
-
 function normalizeWindows(data: any) {
   const value = data?.data;
 
@@ -524,8 +491,8 @@ export default function PublicServicesPage() {
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="truncate font-semibold">{windowDisplayName(window, level)}</p>
-                              <p className="mt-1 text-xs opacity-70">{window.title || "Service window"}</p>
+                              <p className="truncate font-semibold">{window.name}</p>
+                              <p className="mt-1 text-xs opacity-70">Service window</p>
                             </div>
 
                             <Badge variant={selectedWindow === window.id ? "secondary" : "outline"}>
@@ -590,7 +557,7 @@ export default function PublicServicesPage() {
 
                           {!selectedWindow && service.window_name && (
                             <p className="mt-1 text-[11px] text-muted-foreground">
-                              {service.window_display_name || service.window_name}
+                              {service.window_name}
                             </p>
                           )}
                         </div>

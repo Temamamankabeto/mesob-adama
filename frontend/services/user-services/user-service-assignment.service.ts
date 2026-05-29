@@ -9,20 +9,6 @@ export type UserServiceBoardParams = {
   woreda_id?: number | string;
 };
 
-export type UserServiceBoardWindow = {
-  id: number;
-  name: string;
-  title?: string | null;
-  city_title?: string | null;
-  subcity_title?: string | null;
-  woreda_title?: string | null;
-  display_name?: string | null;
-  administrative_level?: AssignmentLevel | null;
-  availability?: any;
-  services?: any[];
-  officers?: any[];
-};
-
 export const userServiceAssignmentBoardService = {
   async board(params: UserServiceBoardParams) {
     const response = await api.get("/user-services/board", { params });

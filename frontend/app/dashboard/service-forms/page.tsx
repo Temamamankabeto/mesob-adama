@@ -54,11 +54,21 @@ export default function ServiceFormsPage() {
   const update = useUpdateServiceForm();
   const remove = useDeleteServiceForm();
 
-  const services = Array.isArray(servicesData)
-    ? servicesData
-    : servicesData?.data?.data || servicesData?.data || [];
+const services: any[] = Array.isArray(servicesData)
+  ? servicesData
+  : Array.isArray((servicesData as any)?.data?.data)
+    ? (servicesData as any).data.data
+    : Array.isArray((servicesData as any)?.data)
+      ? (servicesData as any).data
+      : [];
 
-  const forms = Array.isArray(data) ? data : data?.data || [];
+  const forms: any[] = Array.isArray(data)
+  ? data
+  : Array.isArray((data as any)?.data?.data)
+    ? (data as any).data.data
+    : Array.isArray((data as any)?.data)
+      ? (data as any).data
+      : [];
 
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -209,7 +219,7 @@ export default function ServiceFormsPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
                       No service forms found.
                     </TableCell>
                   </TableRow>
