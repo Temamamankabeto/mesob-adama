@@ -49,6 +49,12 @@ class OfficerWindowAssignmentService
             ->map(fn (Window $window) => [
                 'id' => $window->id,
                 'name' => $window->name,
+                'title' => $this->windowTitleForLevel($window, $level),
+                'city_title' => $window->city_title,
+                'subcity_title' => $window->subcity_title,
+                'woreda_title' => $window->woreda_title,
+                'display_name' => $this->windowDisplayName($window, $level),
+                'administrative_level' => $level,
                 'availability' => $window->availability,
                 'officers' => $window->assignedOfficers
                     ->map(fn (User $officer) => $this->officerPayload($officer))

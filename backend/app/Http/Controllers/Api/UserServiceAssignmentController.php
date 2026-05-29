@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AssignUserServiceRequest;
 use App\Models\User;
+use App\Models\Window;
 use App\Services\UserServiceAssignmentService;
 use Illuminate\Http\Request;
 
@@ -200,13 +201,22 @@ class UserServiceAssignmentController extends Controller
                     'subcity' => $officer->subcity,
                     'woreda' => $officer->woreda,
                     'assigned_services' => $officer->assignedServices->map(function ($service) {
+                        $window = $service->pivot?->window_id
+                            ? Window::find($service->pivot->window_id)
+                            : null;
+
+                        $level = $service->pivot?->assignment_level ?: 'city';
+
                         return [
                             'id' => $service->id,
                             'name' => $service->name,
                             'has_back_officer' => (bool) $service->has_back_officer,
                             'officer_type' => $service->pivot?->officer_type,
                             'window_id' => $service->pivot?->window_id,
-                            'assignment_level' => $service->pivot?->assignment_level,
+                            'window_name' => $window?->name,
+                            'window_title' => $window ? $this->windowTitleForLevel($window, $level) : null,
+                            'window_display_name' => $window ? $this->windowDisplayName($window, $level) : null,
+                            'assignment_level' => $level,
                             'city_id' => $service->pivot?->city_id,
                             'subcity_id' => $service->pivot?->subcity_id,
                             'woreda_id' => $service->pivot?->woreda_id,
@@ -224,4 +234,22 @@ class UserServiceAssignmentController extends Controller
             ],
         ]);
     }
+
+    protected function windowTitleForLevel(Window $window, string $level): ?string
+    {
+        return match ($level) {
+            'city' => $window->city_title ?? $window->title ?? null,
+            'subcity' => $window->subcity_title ?? $window->title ?? null,
+            'woreda' => $window->woreda_title ?? $window->title ?? null,
+            default => $window->title ?? null,
+        };
+    }
+
+    protected function windowDisplayName(Window $window, string $level): string
+    {
+        $title = $this->windowTitleForLevel($window, $level);
+
+        return trim($window->name . ($title ? " - {$title}" : ""));
+    }
+
 }

@@ -37,6 +37,9 @@ import { Label } from "@/components/ui/label";
 type FormState = {
   name: string;
   availability: WindowAvailability[];
+  city_title: string;
+  subcity_title: string;
+  woreda_title: string;
 };
 
 const LEVELS: WindowAvailability[] = ["city", "subcity", "woreda"];
@@ -44,6 +47,9 @@ const LEVELS: WindowAvailability[] = ["city", "subcity", "woreda"];
 const emptyForm: FormState = {
   name: "",
   availability: [],
+  city_title: "",
+  subcity_title: "",
+  woreda_title: "",
 };
 
 function normalizeAvailability(value: unknown): WindowAvailability[] {
@@ -82,6 +88,12 @@ function normalizeAvailability(value: unknown): WindowAvailability[] {
   return [];
 }
 
+function titleForLevel(item: AppWindow, level: WindowAvailability) {
+  if (level === "city") return item.city_title || item.title || item.name;
+  if (level === "subcity") return item.subcity_title || item.title || item.name;
+  return item.woreda_title || item.title || item.name;
+}
+
 function WindowForm({
   formData,
   setFormData,
@@ -111,11 +123,11 @@ function WindowForm({
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="window-name">Name</Label>
+        <Label htmlFor="window-name">Window Name</Label>
         <Input
           id="window-name"
           autoComplete="off"
-          placeholder="Enter window name"
+          placeholder="Example: Window 1"
           value={formData.name}
           onChange={(event) =>
             setFormData((current) => ({
@@ -127,7 +139,7 @@ function WindowForm({
       </div>
 
       <div className="space-y-3">
-        <Label>Availability</Label>
+        <Label>Administrative Level</Label>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {LEVELS.map((level) => (
@@ -147,11 +159,61 @@ function WindowForm({
             </label>
           ))}
         </div>
-
-        <p className="text-xs text-muted-foreground">
-          Select the administrative levels where this window is available.
-        </p>
       </div>
+
+      {formData.availability.includes("city") && (
+        <div className="space-y-2">
+          <Label htmlFor="city-title">City Window Title</Label>
+          <Input
+            id="city-title"
+            autoComplete="off"
+            placeholder="Example: Land Services"
+            value={formData.city_title}
+            onChange={(event) =>
+              setFormData((current) => ({
+                ...current,
+                city_title: event.target.value,
+              }))
+            }
+          />
+        </div>
+      )}
+
+      {formData.availability.includes("subcity") && (
+        <div className="space-y-2">
+          <Label htmlFor="subcity-title">Subcity Window Title</Label>
+          <Input
+            id="subcity-title"
+            autoComplete="off"
+            placeholder="Example: Business Registration Services"
+            value={formData.subcity_title}
+            onChange={(event) =>
+              setFormData((current) => ({
+                ...current,
+                subcity_title: event.target.value,
+              }))
+            }
+          />
+        </div>
+      )}
+
+      {formData.availability.includes("woreda") && (
+        <div className="space-y-2">
+          <Label htmlFor="woreda-title">Woreda Window Title</Label>
+          <Input
+            id="woreda-title"
+            autoComplete="off"
+            placeholder="Example: Resident Identification Services"
+            value={formData.woreda_title}
+            onChange={(event) =>
+              setFormData((current) => ({
+                ...current,
+                woreda_title: event.target.value,
+              }))
+            }
+          />
+        </div>
+      )}
 
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>
@@ -163,7 +225,13 @@ function WindowForm({
           disabled={
             loading ||
             !formData.name.trim() ||
-            formData.availability.length === 0
+            formData.availability.length === 0 ||
+            (formData.availability.includes("city") &&
+              !formData.city_title.trim()) ||
+            (formData.availability.includes("subcity") &&
+              !formData.subcity_title.trim()) ||
+            (formData.availability.includes("woreda") &&
+              !formData.woreda_title.trim())
           }
           onClick={onSubmit}
         >
@@ -214,17 +282,31 @@ export default function WindowPage() {
     await createMutation.mutateAsync({
       name: formData.name.trim(),
       availability: formData.availability,
+      city_title: formData.availability.includes("city")
+        ? formData.city_title.trim()
+        : null,
+      subcity_title: formData.availability.includes("subcity")
+        ? formData.subcity_title.trim()
+        : null,
+      woreda_title: formData.availability.includes("woreda")
+        ? formData.woreda_title.trim()
+        : null,
     });
 
     closeCreateDialog();
   }
 
   function openEditDialog(item: AppWindow) {
+    const availability = normalizeAvailability(item.availability);
+
     setSelectedWindow(item);
 
     setFormData({
       name: item.name || "",
-      availability: normalizeAvailability(item.availability),
+      availability,
+      city_title: item.city_title || "",
+      subcity_title: item.subcity_title || "",
+      woreda_title: item.woreda_title || "",
     });
 
     setEditOpen(true);
@@ -238,6 +320,15 @@ export default function WindowPage() {
       payload: {
         name: formData.name.trim(),
         availability: formData.availability,
+        city_title: formData.availability.includes("city")
+          ? formData.city_title.trim()
+          : null,
+        subcity_title: formData.availability.includes("subcity")
+          ? formData.subcity_title.trim()
+          : null,
+        woreda_title: formData.availability.includes("woreda")
+          ? formData.woreda_title.trim()
+          : null,
       },
     });
 
@@ -255,7 +346,8 @@ export default function WindowPage() {
         <div>
           <h1 className="text-2xl font-bold">Windows</h1>
           <p className="text-sm text-muted-foreground">
-            Manage service windows and administrative availability.
+            Manage shared window names and dynamic titles by administrative
+            level.
           </p>
         </div>
 
@@ -271,7 +363,7 @@ export default function WindowPage() {
           </DialogTrigger>
 
           <DialogContent
-            className="z-[80] max-h-[90vh] overflow-y-auto sm:max-w-lg"
+            className="z-[80] max-h-[90vh] overflow-y-auto sm:max-w-2xl"
             onOpenAutoFocus={(event) => event.preventDefault()}
           >
             <DialogHeader>
@@ -293,12 +385,15 @@ export default function WindowPage() {
 
       <div className="overflow-hidden rounded-3xl border bg-background shadow-sm">
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[720px]">
+          <table className="w-full min-w-[1100px]">
             <thead className="bg-muted/50">
               <tr>
-                <th className="w-24 p-4 text-left">#</th>
-                <th className="p-4 text-left">Name</th>
-                <th className="p-4 text-left">Availability</th>
+                <th className="w-20 p-4 text-left">#</th>
+                <th className="p-4 text-left">Window Name</th>
+                <th className="p-4 text-left">Administrative Level</th>
+                <th className="p-4 text-left">City Window Title</th>
+                <th className="p-4 text-left">Subcity Window Title</th>
+                <th className="p-4 text-left">Woreda Window Title</th>
                 <th className="p-4 text-right">Action</th>
               </tr>
             </thead>
@@ -307,22 +402,20 @@ export default function WindowPage() {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={7}
                     className="p-8 text-center text-muted-foreground"
                   >
                     Loading windows...
                   </td>
                 </tr>
               ) : windows.length > 0 ? (
-                windows.map((item: AppWindow) => {
-                  const availability = normalizeAvailability(
-                    item.availability
-                  );
+                windows.map((item: AppWindow, index: number) => {
+                  const availability = normalizeAvailability(item.availability);
 
                   return (
                     <tr key={item.id} className="border-t">
-                      <td className="p-4">Window {item.id}</td>
-                      <td className="p-4 font-medium">{item.name}</td>
+                      <td className="p-4">{index + 1}</td>
+                      <td className="p-4 font-semibold">{item.name}</td>
 
                       <td className="p-4">
                         <div className="flex flex-wrap gap-2">
@@ -341,6 +434,22 @@ export default function WindowPage() {
                             </span>
                           )}
                         </div>
+                      </td>
+
+                      <td className="p-4">
+                        {availability.includes("city")
+                          ? titleForLevel(item, "city")
+                          : "-"}
+                      </td>
+                      <td className="p-4">
+                        {availability.includes("subcity")
+                          ? titleForLevel(item, "subcity")
+                          : "-"}
+                      </td>
+                      <td className="p-4">
+                        {availability.includes("woreda")
+                          ? titleForLevel(item, "woreda")
+                          : "-"}
                       </td>
 
                       <td className="p-4">
@@ -390,7 +499,7 @@ export default function WindowPage() {
               ) : (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={7}
                     className="p-8 text-center text-muted-foreground"
                   >
                     No windows found.
@@ -410,7 +519,7 @@ export default function WindowPage() {
         }}
       >
         <DialogContent
-          className="z-[80] max-h-[90vh] overflow-y-auto sm:max-w-lg"
+          className="z-[80] max-h-[90vh] overflow-y-auto sm:max-w-2xl"
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader>

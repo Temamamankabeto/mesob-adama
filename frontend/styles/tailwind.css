@@ -17,8 +17,8 @@
   --popover-foreground: oklch(0.24 0.02 255);
 
   /* Government Blue */
-  --primary: oklch(60.845% 0.20104 255.921);
-  --primary-foreground: oklch(0.99 0.002 240);
+--primary: oklch(90.5% 0.04 250);
+--primary-foreground: oklch(45% 0.24 262);
 
   /* Secondary */
   --secondary: oklch(0.96 0.01 245);

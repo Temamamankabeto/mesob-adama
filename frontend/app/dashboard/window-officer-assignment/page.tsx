@@ -39,6 +39,23 @@ const cards: Array<{
   },
 ];
 
+
+function windowTitleForLevel(window: any, level: string) {
+  if (!window) return "Window";
+  if (window.display_name) return window.display_name;
+
+  const title =
+    level === "city"
+      ? window.city_title || window.title
+      : level === "subcity"
+        ? window.subcity_title || window.title
+        : level === "woreda"
+          ? window.woreda_title || window.title
+          : window.title;
+
+  return `${window.name || "Window"}${title ? ` - ${title}` : ""}`;
+}
+
 export default function WindowOfficerAssignmentPage() {
   const [level, setLevel] = useState<OfficerWindowLevel>("city");
   const [search, setSearch] = useState("");
@@ -218,7 +235,7 @@ export default function WindowOfficerAssignmentPage() {
                 <Card key={window.id} className="rounded-3xl">
                   <CardContent className="space-y-4 p-4 sm:p-5">
                     <div>
-                      <h3 className="font-bold">{window.name}</h3>
+                      <h3 className="font-bold">{windowTitleForLevel(window, level)}</h3>
                       <p className="text-sm text-muted-foreground">
                         {(window.officers || []).length} assigned officer(s)
                       </p>

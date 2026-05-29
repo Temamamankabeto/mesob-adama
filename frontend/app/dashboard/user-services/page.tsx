@@ -45,6 +45,24 @@ const cards: Array<{
   },
 ];
 
+
+function windowTitleForLevel(window: any, level: string) {
+  if (!window) return "";
+  if (window.display_name) return window.display_name;
+
+  const title =
+    level === "city"
+      ? window.city_title || window.title
+      : level === "subcity"
+        ? window.subcity_title || window.title
+        : level === "woreda"
+          ? window.woreda_title || window.title
+          : window.title;
+
+  return `${window.name || "Window"}${title ? ` - ${title}` : ""}`;
+}
+
+
 function listFrom(value: any) {
   if (Array.isArray(value)) return value;
   if (Array.isArray(value?.data)) return value.data;
@@ -95,7 +113,7 @@ export default function UserServicePage() {
       (window.officers || []).map((officer: any) => ({
         ...officer,
         window_id: window.id,
-        window_name: window.name,
+        window_name: windowTitleForLevel(window, level),
       }))
     );
   }, [windows]);
@@ -393,7 +411,7 @@ export default function UserServicePage() {
                 <Card key={window.id} className="rounded-3xl">
                   <CardContent className="space-y-4 p-4 sm:p-5">
                     <div>
-                      <h3 className="font-bold">{window.name}</h3>
+                      <h3 className="font-bold">{windowTitleForLevel(window, level)}</h3>
                       <p className="text-sm text-muted-foreground">
                         {(window.services || []).length} service(s), {(window.officers || []).length} officer(s)
                       </p>
