@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import {
   ArrowRight,
   BadgeCheck,
@@ -21,8 +22,16 @@ import {
 } from "lucide-react";
 
 import ApplicationStatusBadge from "@/components/application/ApplicationStatusBadge";
+
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 import {
   Table,
   TableBody,
@@ -31,16 +40,47 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
 import { getDashboardForRole } from "@/config/dashboard.config";
+
 import { useCustomerApplications } from "@/hooks/customer/use-customer-applications";
+
 import { useDashboardOverview } from "@/hooks/dashboard/use-dashboard";
+
+type ServiceApplication = {
+  id: number | string;
+  tracking_number?: string | null;
+  service_id?: number | string | null;
+  status?: string | null;
+  submitted_at?: string | null;
+  updated_at?: string | null;
+
+  service?: {
+    id?: number | string;
+    name?: string | null;
+  } | null;
+};
 
 function numberValue(value: unknown) {
   return Number(value || 0);
 }
 
+function getCount(
+  source: Record<string, unknown>,
+  keys: string[]
+) {
+  for (const key of keys) {
+    if (source[key] !== undefined && source[key] !== null) {
+      return numberValue(source[key]);
+    }
+  }
+
+  return 0;
+}
+
 function formatDate(value?: string | null) {
   if (!value) return "-";
+
   return new Date(value).toLocaleDateString();
 }
 
@@ -81,8 +121,16 @@ const statusCards = [
 ];
 
 export default function DashboardPage() {
-  const { data, isLoading, error } = useDashboardOverview();
-  const { data: recentData, isLoading: recentLoading } = useCustomerApplications({
+  const {
+    data,
+    isLoading,
+    error,
+  } = useDashboardOverview();
+
+  const {
+    data: recentData,
+    isLoading: recentLoading,
+  } = useCustomerApplications({
     page: 1,
   });
 
@@ -103,10 +151,17 @@ export default function DashboardPage() {
   }
 
   const dashboard = getDashboardForRole(data.profile.role);
+
   const Icon = dashboard.icon;
+
   const status = data.status_counts || {};
-  const modules = data.module_counts || {};
-  const isCustomer = String(data.profile.role).toLowerCase().includes("customer");
+
+  const overview =
+    data as unknown as Record<string, unknown>;
+
+  const isCustomer = String(data.profile.role)
+    .toLowerCase()
+    .includes("customer");
 
   if (!isCustomer) {
     const recentApplications = data.recent_applications || [];
@@ -125,21 +180,20 @@ export default function DashboardPage() {
 
     return (
       <div className="space-y-6">
-        <section className="rounded-3xl border bg-card p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-                <Icon className="h-7 w-7" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">{dashboard.title}</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {dashboard.subtitle}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Scope: {data.profile.scope_label || "System"} · Role: {data.profile.role_label}
-                </p>
-              </div>
+        <div className="rounded-3xl border bg-card p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+              <Icon className="h-7 w-7" />
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-bold">
+                {dashboard.title}
+              </h1>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                {dashboard.subtitle}
+              </p>
             </div>
 
             <Button asChild variant="outline" className="rounded-2xl">
@@ -153,12 +207,19 @@ export default function DashboardPage() {
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {data.cards.map((card) => (
-            <Card key={card.key} className="rounded-3xl">
+            <Card
+              key={card.key}
+              className="rounded-3xl"
+            >
               <CardHeader>
                 <CardTitle className="text-sm text-muted-foreground">{card.label}</CardTitle>
               </CardHeader>
+
               <CardContent>
-                <p className="text-3xl font-bold">{card.value}</p>
+                <p className="text-3xl font-bold">
+                  {card.value}
+                </p>
+
                 <p className="mt-2 text-sm text-muted-foreground">
                   {card.description}
                 </p>
@@ -379,7 +440,11 @@ export default function DashboardPage() {
     },
   ];
 
-  const recentApplications = (recentData?.data || []).slice(0, 5);
+  const recentApplications: ServiceApplication[] =
+    ((recentData?.data || []) as ServiceApplication[]).slice(
+      0,
+      5
+    );
 
   const quickAccessItems = [
     {
@@ -392,25 +457,39 @@ export default function DashboardPage() {
       label: "Appointments",
       href: "/dashboard/appointments",
       icon: CalendarCheck2,
-      count: data.appointment_counts?.upcoming ?? 0,
+      count: getCount(overview, [
+        "appointments",
+        "appointment_count",
+        "appointments_count",
+      ]),
     },
     {
       label: "Pending Payments",
       href: "/dashboard/payments?status=pending",
       icon: CreditCard,
-      count: data.payment_counts?.pending ?? 0,
+      count: getCount(overview, [
+        "pending_payments",
+        "pending_payment_count",
+      ]),
     },
     {
       label: "Paid Payments",
       href: "/dashboard/payments?status=paid",
       icon: CheckCircle2,
-      count: data.payment_counts?.paid ?? 0,
+      count: getCount(overview, [
+        "paid_payments",
+        "paid_payment_count",
+      ]),
     },
     {
       label: "Complaints & Feedback",
       href: "/dashboard/complaints-feedback",
       icon: MessageSquareText,
-      count: data.complaint_counts?.open ?? 0,
+      count: getCount(overview, [
+        "complaints",
+        "complaints_count",
+        "feedback_count",
+      ]),
     },
     {
       label: "Help & Support",
@@ -424,27 +503,41 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <section
         className="relative overflow-hidden rounded-[2rem] border bg-cover bg-center p-6 text-white shadow-sm md:p-8"
-        style={{ backgroundImage: "url('/images/adama-clear-city-night.jpg')" }}
+        style={{
+          backgroundImage:
+            "url('/images/adama-clear-city-night.jpg')",
+        }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-900/80 to-blue-950/10" />
+
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm text-white/75">Adama MESOB eService</p>
+            <p className="text-sm text-white/75">
+              Adama City Masob eService
+            </p>
+
             <h1 className="mt-2 text-2xl font-bold md:text-3xl">
               Welcome back, {data.profile.name}! 👋
             </h1>
+
             <p className="mt-2 max-w-2xl text-sm text-white/85">
-              Track your applications, follow office decisions, and access your
-              municipal services from one secure dashboard.
+              Track your applications, follow office
+              decisions, and access your municipal services
+              from one secure dashboard.
             </p>
+
             <div className="mt-5 inline-flex rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium backdrop-blur">
               All Systems Operational
             </div>
           </div>
 
-          <Button asChild className="rounded-2xl bg-white text-blue-950 hover:bg-white/90">
+          <Button
+            asChild
+            className="rounded-2xl bg-white text-blue-950 hover:bg-white/90"
+          >
             <Link href="/services">
               New Application
+
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -456,16 +549,26 @@ export default function DashboardPage() {
           const CardIcon = card.icon;
 
           return (
-            <Link key={card.label} href={card.href} className="block">
+            <Link
+              key={card.label}
+              href={card.href}
+              className="block"
+            >
               <Card className="rounded-2xl transition hover:-translate-y-0.5 hover:shadow-md">
                 <CardContent className="p-4">
-                  <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl ${card.className}`}>
+                  <div
+                    className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl ${card.className}`}
+                  >
                     <CardIcon className="h-4 w-4" />
                   </div>
+
                   <p className="text-xs font-medium text-muted-foreground">
                     {card.label}
                   </p>
-                  <p className="mt-1 text-2xl font-bold">{card.value}</p>
+
+                  <p className="mt-1 text-2xl font-bold">
+                    {card.value}
+                  </p>
                 </CardContent>
               </Card>
             </Link>
@@ -477,15 +580,24 @@ export default function DashboardPage() {
         <Card className="rounded-[2rem] shadow-sm">
           <CardHeader className="flex flex-col gap-3 border-b md:flex-row md:items-center md:justify-between">
             <div>
-              <CardTitle>Recent Applications</CardTitle>
+              <CardTitle>
+                Recent Applications
+              </CardTitle>
+
               <p className="text-sm text-muted-foreground">
-                Latest submitted applications and tracking status.
+                Latest submitted applications and tracking
+                status.
               </p>
             </div>
 
-            <Button asChild variant="outline" className="rounded-2xl">
+            <Button
+              asChild
+              variant="outline"
+              className="rounded-2xl"
+            >
               <Link href="/dashboard/my-applications">
                 View All
+
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -496,49 +608,102 @@ export default function DashboardPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tracking Number</TableHead>
-                    <TableHead>Service Name</TableHead>
+                    <TableHead>
+                      Tracking Number
+                    </TableHead>
+
+                    <TableHead>
+                      Service Name
+                    </TableHead>
+
                     <TableHead>Status</TableHead>
-                    <TableHead>Submitted Date</TableHead>
-                    <TableHead>Last Updated</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+
+                    <TableHead>
+                      Submitted Date
+                    </TableHead>
+
+                    <TableHead>
+                      Last Updated
+                    </TableHead>
+
+                    <TableHead className="text-right">
+                      Action
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
                   {recentLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-10 text-center">
+                      <TableCell
+                        colSpan={6}
+                        className="py-10 text-center"
+                      >
                         Loading recent applications...
                       </TableCell>
                     </TableRow>
                   ) : recentApplications.length ? (
-                    recentApplications.map((application) => (
-                      <TableRow key={application.id}>
-                        <TableCell className="font-medium">
-                          {application.tracking_number || "-"}
-                        </TableCell>
-                        <TableCell>
-                          {application.service?.name || application.service_id || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <ApplicationStatusBadge status={application.status} />
-                        </TableCell>
-                        <TableCell>{formatDate(application.submitted_at)}</TableCell>
-                        <TableCell>{formatDate(application.updated_at)}</TableCell>
-                        <TableCell className="text-right">
-                          <Button asChild variant="outline" size="sm" className="rounded-xl">
-                            <Link href={`/dashboard/my-applications/${application.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View
-                            </Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    recentApplications.map(
+                      (application) => (
+                        <TableRow
+                          key={application.id}
+                        >
+                          <TableCell className="font-medium">
+                            {application.tracking_number ||
+                              "-"}
+                          </TableCell>
+
+                          <TableCell>
+                            {application.service?.name ||
+                              application.service_id ||
+                              "-"}
+                          </TableCell>
+
+                          <TableCell>
+                            <ApplicationStatusBadge
+                              status={
+                                application.status
+                              }
+                            />
+                          </TableCell>
+
+                          <TableCell>
+                            {formatDate(
+                              application.submitted_at
+                            )}
+                          </TableCell>
+
+                          <TableCell>
+                            {formatDate(
+                              application.updated_at
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-right">
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              className="rounded-xl"
+                            >
+                              <Link
+                                href={`/dashboard/my-applications/${application.id}`}
+                              >
+                                <Eye className="mr-2 h-4 w-4" />
+
+                                View
+                              </Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    )
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                      <TableCell
+                        colSpan={6}
+                        className="py-10 text-center text-muted-foreground"
+                      >
                         No recent applications found.
                       </TableCell>
                     </TableRow>
@@ -552,6 +717,7 @@ export default function DashboardPage() {
         <Card className="rounded-[2rem] shadow-sm">
           <CardHeader className="border-b">
             <CardTitle>Quick Access</CardTitle>
+
             <p className="text-sm text-muted-foreground">
               Frequently used customer actions.
             </p>
@@ -571,14 +737,17 @@ export default function DashboardPage() {
                   <Link href={item.href}>
                     <span className="flex items-center gap-3">
                       <ItemIcon className="h-4 w-4" />
+
                       <span>{item.label}</span>
                     </span>
+
                     <span className="flex items-center gap-2">
                       {item.count !== null ? (
                         <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
                           {item.count}
                         </span>
                       ) : null}
+
                       <ArrowRight className="h-4 w-4" />
                     </span>
                   </Link>
