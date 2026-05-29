@@ -1,6 +1,11 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+
 import {
   getSubcities,
   createSubcity,
@@ -8,50 +13,62 @@ import {
   deleteSubcity,
 } from "@/services/locations/service";
 
-export const useSubcities = () => {
+type SubcityPayload = {
+  name: string;
+  city_id: number;
+};
+
+type UpdateSubcityPayload = {
+  id: number;
+  data: SubcityPayload;
+};
+
+export const useSubcities = (page = 1) => {
   return useQuery({
-    queryKey: ["subcities"],
-
+    queryKey: ["subcities", page],
     queryFn: async () => {
-      const res = await getSubcities();
+      const res = await getSubcities(page);
 
-      console.log("Subcities Response:", res);
-
-      return res?.data?.data || res?.data || [];
+      return {
+        data: res?.data?.data || res?.data || [],
+        meta: res?.data?.meta || null,
+      };
     },
-
     staleTime: 1000 * 60 * 5,
   });
 };
-// CREATE
+
 export const useCreateSubcity = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: createSubcity,
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["subcities"] }),
+    mutationFn: (data: SubcityPayload) =>
+      createSubcity(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["subcities"] });
+    },
   });
 };
 
-// UPDATE
 export const useUpdateSubcity = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: any) => updateSubcity(id, data),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["subcities"] }),
+    mutationFn: ({ id, data }: UpdateSubcityPayload) =>
+      updateSubcity(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["subcities"] });
+    },
   });
 };
 
-// DELETE
 export const useDeleteSubcity = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteSubcity,
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["subcities"] }),
+    mutationFn: (id: number) => deleteSubcity(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["subcities"] });
+    },
   });
 };

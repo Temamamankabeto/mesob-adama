@@ -11,7 +11,7 @@ import {
 
 import { homeService } from "@/services/home/home";
 
-import { TrackApplicationPayload } from "@/types/home/home";
+import { ContactPayload, TrackApplicationPayload } from "@/types/home/home";
 
 /**
  * Homepage
@@ -41,5 +41,14 @@ export function useTrackApplication() {
       homeService.trackApplication(
         payload
       ),
+  });
+}
+
+/**
+ * Contact message
+ */
+export function useSendContact() {
+  return useMutation({
+    mutationFn: (payload: ContactPayload) => homeService.sendContact(payload),
   });
 }

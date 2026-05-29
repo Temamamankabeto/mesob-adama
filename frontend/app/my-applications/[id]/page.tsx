@@ -29,8 +29,9 @@ export default function MyApplicationDetailPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{data.application_number}</h1>
-          <p className="text-sm text-muted-foreground">{data.service?.name}</p>
+<h1 className="text-2xl font-bold">
+  {data.tracking_number}
+</h1>          <p className="text-sm text-muted-foreground">{data.service?.name}</p>
         </div>
 
         <ApplicationStatusBadge status={data.status} />
@@ -64,7 +65,9 @@ export default function MyApplicationDetailPage() {
 
           <div className="rounded-2xl border p-4 md:col-span-2">
             <p className="text-sm text-muted-foreground">Remarks</p>
-            <p className="font-medium">{data.remarks || "-"}</p>
+            <p className="font-medium">
+  {data.rejection_reason || "-"}
+</p>
           </div>
         </CardContent>
       </Card>

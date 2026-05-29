@@ -1,16 +1,20 @@
+"use client";
+
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 
-import { serviceFormService } from "@/services/service-form.service";
-import { serviceService } from "@/services/service.service";
+import {
+  serviceFormService,
+  serviceService,
+} from "@/services/service/service";
 
 export function useServiceForms() {
   return useQuery({
     queryKey: ["service-forms"],
-    queryFn: () => serviceFormService.getAll(),
+queryFn: () => serviceFormService.getAll(1),
   });
 }
 
@@ -25,7 +29,11 @@ export function useCreateServiceForm() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: any) => serviceFormService.create(data),
+    mutationFn: (data: any) =>
+      serviceFormService.create(
+        data.serviceId ?? data.service_id,
+        data.payload ?? data
+      ),
 
     onSuccess: () => {
       queryClient.invalidateQueries({

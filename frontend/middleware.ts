@@ -19,6 +19,10 @@ export function middleware(request: NextRequest) {
     "/login",
     "/register",
     "/about",
+    "/service-provider",
+    "/service-providers",
+    "/resources",
+    "/resources/reports",
     "/services",
     "/training/application-workflow",
   ];
@@ -30,7 +34,7 @@ export function middleware(request: NextRequest) {
   const isTrainingPage = pathname.startsWith("/training/application-workflow");
 
   const isPublicRoute =
-    publicRoutes.includes(pathname) ||
+    publicRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`)) ||
     isServiceDetail ||
     isTrainingAsset ||
     isTrainingPage;

@@ -36,39 +36,6 @@ function selectionQuery(searchParams: URLSearchParams) {
   return params.toString();
 }
 
-
-function windowDisplayName(window: any, level?: any | null) {
-  if (window?.display_name) return window.display_name;
-
-  const title =
-    level === "city"
-      ? window?.city_title || window?.title
-      : level === "subcity"
-        ? window?.subcity_title || window?.title
-        : level === "woreda"
-          ? window?.woreda_title || window?.title
-          : window?.title;
-
-  return `${window?.name || "Window"}${title ? ` - ${title}` : ""}`;
-}
-
-function serviceWindowDisplayName(service: any, level?: any | null) {
-  if (service?.window_display_name) return service.window_display_name;
-
-  const window = (service?.windows || []).find((item: any) => {
-    const levels = Array.isArray(item?.availability)
-      ? item.availability
-      : item?.availability?.levels || [];
-
-    return level ? levels.includes(level) : true;
-  }) || service?.windows?.[0];
-
-  if (window) return windowDisplayName(window, level);
-
-  return service?.window_name || "Service window";
-}
-
-
 function formatAvailability(availability: any) {
   if (!availability) return "This service has no public availability configured.";
 

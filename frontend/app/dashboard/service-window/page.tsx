@@ -16,18 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
-function windowDisplayName(window: {
-  name?: string | null;
-  title?: string | null;
-  display_name?: string | null;
-}) {
-  const name = window.name || "Window";
-  const title = window.title || "";
-
-  return window.display_name || (title ? `${name} - ${title}` : name);
-}
-
 import {
   ServiceWindowBoardService,
   ServiceWindowLevel,
@@ -263,9 +251,9 @@ export default function ServiceWindowPage() {
                         className="flex w-full items-center justify-between text-left"
                       >
                         <div>
-                          <h3 className="font-bold">{windowDisplayName(window)}</h3>
+                          <h3 className="font-bold">{window.name}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {window.title || "No title"} · {(window.services || []).length} assigned service(s)
+                            {(window.services || []).length} assigned service(s)
                           </p>
                         </div>
                         {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
