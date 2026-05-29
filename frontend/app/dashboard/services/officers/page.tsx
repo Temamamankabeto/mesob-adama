@@ -45,6 +45,18 @@ function listFrom(value: any) {
   return [];
 }
 
+
+function serviceWindowDisplayName(service: any) {
+  return (
+    service.window_display_name ||
+    service.window_name ||
+    service.window?.display_name ||
+    service.window?.name ||
+    (service.window_id ? `Window ID: ${service.window_id}` : "-")
+  );
+}
+
+
 function roleLabel(role?: string) {
   if (!role) return "-";
   return role.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
@@ -263,7 +275,7 @@ export default function ServiceOfficersPage() {
 
                               <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
                                 <span>Level: {service.assignment_level || "-"}</span>
-                                <span>Window ID: {service.window_id || "-"}</span>
+                                <span>Window: {serviceWindowDisplayName(service)}</span>
                                 <span>Status: {service.is_active ? "Active" : "Inactive"}</span>
                               </div>
                             </div>
