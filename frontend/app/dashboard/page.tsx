@@ -132,9 +132,9 @@ export default function DashboardPage() {
                 <Icon className="h-7 w-7" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">{dashboard.title}</h1>
+                <h1 className="text-2xl font-bold">{data.role_dashboard?.title || dashboard.title}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {dashboard.subtitle}
+                  {data.role_dashboard?.description || dashboard.subtitle}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
                   Scope: {data.profile.scope_label || "System"} · Role: {data.profile.role_label}
@@ -142,67 +142,33 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <Button asChild variant="outline" className="rounded-2xl">
-              <Link href="/dashboard/service-applications">
-                View Applications
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+            {data.role_dashboard?.primary_action ? (
+              <Button asChild variant="outline" className="rounded-2xl">
+                <Link href={data.role_dashboard.primary_action.href}>
+                  {data.role_dashboard.primary_action.label}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            ) : null}
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {data.cards.map((card) => (
-            <Card key={card.key} className="rounded-3xl">
-              <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">{card.label}</CardTitle>
+        <section className="grid gap-6 xl:grid-cols-2">
+          {(data.role_dashboard?.sections || []).map((section) => (
+            <Card key={section.title} className="rounded-[2rem] shadow-sm">
+              <CardHeader className="border-b">
+                <CardTitle>{section.title}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{card.value}</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {card.description}
-                </p>
+              <CardContent className="grid gap-4 p-5 sm:grid-cols-2">
+                {section.items.map((item) => (
+                  <div key={item.label} className="rounded-2xl border bg-muted/20 p-4">
+                    <p className="text-sm text-muted-foreground">{item.label}</p>
+                    <p className="mt-2 text-3xl font-bold">{item.value}</p>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           ))}
-        </section>
-
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-          {statusCards.map((card) => {
-            const CardIcon = card.icon;
-
-            return (
-              <Card key={card.key} className="rounded-2xl">
-                <CardContent className="p-4">
-                  <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl ${getStatusColor(card.key)}`}>
-                    <CardIcon className="h-4 w-4" />
-                  </div>
-                  <p className="text-xs font-medium text-muted-foreground">{card.label}</p>
-                  <p className="mt-1 text-2xl font-bold">{numberValue(status[card.key])}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {moduleCards.map((item) => {
-            const ItemIcon = item.icon;
-
-            return (
-              <Card key={item.label} className="rounded-2xl">
-                <CardContent className="flex items-center gap-4 p-5">
-                  <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-                    <ItemIcon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{item.label}</p>
-                    <p className="text-2xl font-bold">{numberValue(item.value)}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1fr_360px]">

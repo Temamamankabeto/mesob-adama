@@ -37,6 +37,7 @@ class DashboardService
         $this->scope->applyUserScope($users, $user);
 
         $statusCounts = $this->statusCounts(clone $serviceApplications, $user);
+        $moduleCounts = $this->moduleCounts($user, clone $serviceApplications, clone $users);
 
         return [
             'profile' => [
@@ -54,172 +55,218 @@ class DashboardService
                 'woreda' => $user->woreda?->name,
             ],
             'permissions' => $permissions,
-            'cards' => $this->cardsFor($user, clone $serviceApplications, clone $applications, clone $users, $statusCounts),
+            'cards' => $this->cardsFor($user, clone $serviceApplications, clone $applications, clone $users, $statusCounts, $moduleCounts),
             'status_counts' => $statusCounts,
-            'module_counts' => $this->moduleCounts($user, clone $serviceApplications, clone $users),
+            'module_counts' => $moduleCounts,
             'payment_counts' => $this->paymentCounts($user),
             'appointment_counts' => $this->appointmentCounts($user, clone $serviceApplications),
             'complaint_counts' => $this->complaintCounts($user),
             'quick_links' => $this->quickLinksFor($role, $permissions),
             'recent_applications' => $this->recentApplications(clone $serviceApplications),
             'recent_users' => $this->recentUsers(clone $users),
+            'role_dashboard' => $this->roleDashboard($user, clone $serviceApplications, clone $users, $statusCounts, $moduleCounts),
         ];
     }
 
-    protected function cardsFor(User $user, $serviceApplications, $applications, $users, array $status): array
+    protected function roleDashboard(User $user, $serviceApplications, $users, array $status, array $modules): array
     {
         if ($user->hasRole(AppRoles::CUSTOMER)) {
             return [
-                [
-                    'key' => 'total_application',
-                    'label' => 'Total Application',
-                    'value' => $status['total'],
-                    'description' => 'All submitted service applications.',
-                ],
-                [
-                    'key' => 'pending',
-                    'label' => 'Pending',
-                    'value' => $status['pending'],
-                    'description' => 'Applications waiting for processing.',
-                ],
-                [
-                    'key' => 'approved',
-                    'label' => 'Approved',
-                    'value' => $status['approved'],
-                    'description' => 'Approved applications.',
-                ],
-                [
-                    'key' => 'rejected',
-                    'label' => 'Rejected',
-                    'value' => $status['rejected'],
-                    'description' => 'Rejected applications.',
+                'title' => 'Customer Service Dashboard',
+                'description' => 'Submit applications, track progress, appointments, payments, and documents.',
+                'primary_action' => ['label' => 'New Application', 'href' => '/services'],
+                'sections' => [
+                    [
+                        'title' => 'My Application Status',
+                        'items' => [
+                            ['label' => 'Total Applications', 'value' => $status['total']],
+                            ['label' => 'Pending', 'value' => $status['pending']],
+                            ['label' => 'Appointments', 'value' => $status['appointed']],
+                            ['label' => 'Completed', 'value' => $status['completed']],
+                        ],
+                    ],
                 ],
             ];
         }
 
-        if ($user->hasAnyRole([AppRoles::FRONT_OFFICER, AppRoles::BACK_OFFICER])) {
+        if ($user->hasRole(AppRoles::SUPER_ADMIN)) {
             return [
-                [
-                    'key' => 'queue',
-                    'label' => 'Queue',
-                    'value' => (clone $serviceApplications)->whereIn('status', [
-                        'submitted',
-                        'resubmitted',
-                        'shared_to_front_officer',
-                        'shared_to_back_officer',
-                        'front_officer_review',
-                        'forwarded_to_back_officer',
-                        'back_officer_review',
-                        'under_back_review',
-                        'returned_to_front_officer',
-                        'returned_to_back_officer',
-                        'appointment_scheduled',
-                    ])->count(),
-                    'description' => 'Applications requiring officer action.',
+                'title' => 'Super Admin System Dashboard',
+                'description' => 'System-wide users, services, forms, windows, applications, and platform control.',
+                'primary_action' => ['label' => 'Manage Users', 'href' => '/dashboard/users'],
+                'sections' => [
+                    [
+                        'title' => 'System Configuration',
+                        'items' => [
+                            ['label' => 'Users', 'value' => $modules['users']],
+                            ['label' => 'Services', 'value' => $modules['services']],
+                            ['label' => 'Windows', 'value' => $modules['windows']],
+                            ['label' => 'Forms', 'value' => $modules['forms']],
+                        ],
+                    ],
+                    [
+                        'title' => 'Workflow Overview',
+                        'items' => [
+                            ['label' => 'Applications', 'value' => $status['total']],
+                            ['label' => 'Pending', 'value' => $status['pending']],
+                            ['label' => 'Under Review', 'value' => $status['under_review']],
+                            ['label' => 'Completed', 'value' => $status['completed']],
+                        ],
+                    ],
                 ],
-                [
-                    'key' => 'under_review',
-                    'label' => 'Under Review',
-                    'value' => $status['under_review'],
-                    'description' => 'Applications in review.',
+            ];
+        }
+
+        if ($user->hasRole(AppRoles::ADMIN)) {
+            return [
+                'title' => 'Admin Operations Dashboard',
+                'description' => 'Location-scoped users, services, windows, assignments, and activation operations.',
+                'primary_action' => ['label' => 'Create User', 'href' => '/dashboard/users/add'],
+                'sections' => [
+                    [
+                        'title' => 'User Administration',
+                        'items' => [
+                            ['label' => 'Users in Scope', 'value' => $modules['users']],
+                            ['label' => 'Active Users', 'value' => $modules['active_users']],
+                            ['label' => 'Disabled Users', 'value' => $modules['inactive_users']],
+                            ['label' => 'Activation Requests', 'value' => $modules['activation_requests']],
+                        ],
+                    ],
+                    [
+                        'title' => 'Service Setup',
+                        'items' => [
+                            ['label' => 'Services', 'value' => $modules['services']],
+                            ['label' => 'Windows', 'value' => $modules['windows']],
+                            ['label' => 'Forms', 'value' => $modules['forms']],
+                            ['label' => 'Form Fields', 'value' => $modules['form_fields']],
+                        ],
+                    ],
                 ],
-                [
-                    'key' => 'appointed',
-                    'label' => 'Appointed',
-                    'value' => $status['appointed'],
-                    'description' => 'Scheduled customer appointments.',
+            ];
+        }
+
+        if ($user->hasRole(AppRoles::MANAGER)) {
+            return [
+                'title' => 'Manager Workflow Dashboard',
+                'description' => 'Monitor escalations, officer workload, service performance, and application decisions.',
+                'primary_action' => ['label' => 'Manager Queue', 'href' => '/dashboard/manager/applications'],
+                'sections' => [
+                    [
+                        'title' => 'Manager Queue',
+                        'items' => [
+                            ['label' => 'Escalated', 'value' => $status['escalated']],
+                            ['label' => 'Under Review', 'value' => $status['under_review']],
+                            ['label' => 'Returned', 'value' => $status['returned']],
+                            ['label' => 'Completed', 'value' => $status['completed']],
+                        ],
+                    ],
+                    [
+                        'title' => 'Scope Performance',
+                        'items' => [
+                            ['label' => 'Applications', 'value' => $status['total']],
+                            ['label' => 'Approved', 'value' => $status['approved']],
+                            ['label' => 'Rejected', 'value' => $status['rejected']],
+                            ['label' => 'Appointments', 'value' => $status['appointed']],
+                        ],
+                    ],
                 ],
-                [
-                    'key' => 'completed',
-                    'label' => 'Completed',
-                    'value' => $status['completed'],
-                    'description' => 'Processed applications.',
+            ];
+        }
+
+        if ($user->hasRole(AppRoles::FRONT_OFFICER)) {
+            return [
+                'title' => 'Front Officer Queue Dashboard',
+                'description' => 'Receive submitted applications, appointments, sharing, forwarding, and customer corrections.',
+                'primary_action' => ['label' => 'Open Queue', 'href' => '/dashboard/officer/applications'],
+                'sections' => [
+                    [
+                        'title' => 'Front Officer Queue',
+                        'items' => [
+                            ['label' => 'New Applications', 'value' => $status['submitted']],
+                            ['label' => 'Appointments', 'value' => $status['appointed']],
+                            ['label' => 'Returned', 'value' => $status['returned']],
+                            ['label' => 'Shared To Me', 'value' => (clone $serviceApplications)->where('status', 'shared_to_front_officer')->count()],
+                        ],
+                    ],
+                    [
+                        'title' => 'Processing',
+                        'items' => [
+                            ['label' => 'Under Review', 'value' => $status['under_review']],
+                            ['label' => 'Forwarded', 'value' => (clone $serviceApplications)->where('status', 'forwarded_to_back_officer')->count()],
+                            ['label' => 'Completed', 'value' => $status['completed']],
+                            ['label' => 'Rejected', 'value' => $status['rejected']],
+                        ],
+                    ],
+                ],
+            ];
+        }
+
+        if ($user->hasRole(AppRoles::BACK_OFFICER)) {
+            return [
+                'title' => 'Back Officer Review Dashboard',
+                'description' => 'Review forwarded/shared applications, approve, reject, share, or escalate.',
+                'primary_action' => ['label' => 'Open Review Queue', 'href' => '/dashboard/officer/applications'],
+                'sections' => [
+                    [
+                        'title' => 'Back Officer Queue',
+                        'items' => [
+                            ['label' => 'Forwarded To Me', 'value' => (clone $serviceApplications)->where('status', 'forwarded_to_back_officer')->count()],
+                            ['label' => 'Shared To Me', 'value' => (clone $serviceApplications)->where('status', 'shared_to_back_officer')->count()],
+                            ['label' => 'Under Back Review', 'value' => (clone $serviceApplications)->whereIn('status', ['back_officer_review', 'under_back_review'])->count()],
+                            ['label' => 'Escalated', 'value' => $status['escalated']],
+                        ],
+                    ],
+                    [
+                        'title' => 'Decisions',
+                        'items' => [
+                            ['label' => 'Approved', 'value' => (clone $serviceApplications)->where('status', 'back_officer_approved')->count()],
+                            ['label' => 'Rejected', 'value' => (clone $serviceApplications)->where('status', 'back_officer_rejected')->count()],
+                            ['label' => 'Returned', 'value' => $status['returned']],
+                            ['label' => 'Completed', 'value' => $status['completed']],
+                        ],
+                    ],
                 ],
             ];
         }
 
         return [
-            [
-                'key' => 'users',
-                'label' => 'Users',
-                'value' => (clone $users)->count(),
-                'description' => 'Users inside your access scope.',
-            ],
-            [
-                'key' => 'services',
-                'label' => 'Services',
-                'value' => Service::count(),
-                'description' => 'Configured services.',
-            ],
-            [
-                'key' => 'active_services',
-                'label' => 'Active Services',
-                'value' => Schema::hasColumn('services', 'status') ? Service::where('status', 'active')->count() : Service::count(),
-                'description' => 'Services currently available.',
-            ],
-            [
-                'key' => 'forms',
-                'label' => 'Forms',
-                'value' => ServiceForm::count(),
-                'description' => 'Dynamic service forms.',
-            ],
-            [
-                'key' => 'windows',
-                'label' => 'Windows',
-                'value' => class_exists(Window::class) ? Window::count() : 0,
-                'description' => 'Configured service windows.',
-            ],
-            [
-                'key' => 'applications',
-                'label' => 'Applications',
-                'value' => $status['total'],
-                'description' => 'Service applications inside your scope.',
-            ],
-            [
-                'key' => 'submitted',
-                'label' => 'Submitted',
-                'value' => $status['submitted'],
-                'description' => 'Newly submitted applications.',
-            ],
-            [
-                'key' => 'under_review',
-                'label' => 'Under Review',
-                'value' => $status['under_review'],
-                'description' => 'Applications currently being processed.',
-            ],
-            [
-                'key' => 'appointed',
-                'label' => 'Appointed',
-                'value' => $status['appointed'],
-                'description' => 'Applications with appointments.',
-            ],
-            [
-                'key' => 'completed',
-                'label' => 'Completed',
-                'value' => $status['completed'],
-                'description' => 'Completed and closed applications.',
-            ],
-            [
-                'key' => 'rejected',
-                'label' => 'Rejected',
-                'value' => $status['rejected'],
-                'description' => 'Rejected or cancelled applications.',
-            ],
-            [
-                'key' => 'pending',
-                'label' => 'Pending',
-                'value' => $status['pending'],
-                'description' => 'Waiting or active workflow items.',
-            ],
+            'title' => 'Dashboard',
+            'description' => 'Role-based dashboard overview.',
+            'primary_action' => ['label' => 'Open Dashboard', 'href' => '/dashboard'],
+            'sections' => [],
         ];
+    }
+
+    protected function cardsFor(User $user, $serviceApplications, $applications, $users, array $status, array $modules): array
+    {
+        $roleDashboard = $this->roleDashboard($user, clone $serviceApplications, clone $users, $status, $modules);
+        $cards = [];
+
+        foreach ($roleDashboard['sections'] as $section) {
+            foreach ($section['items'] as $item) {
+                $cards[] = [
+                    'key' => str($item['label'])->slug('_')->toString(),
+                    'label' => $item['label'],
+                    'value' => $item['value'],
+                    'description' => $section['title'],
+                ];
+            }
+        }
+
+        return $cards;
     }
 
     protected function moduleCounts(User $user, $serviceApplications, $users): array
     {
+        $activationRequests = Schema::hasColumn('users', 'status')
+            ? (clone $users)->whereIn('status', ['pending_city_approval', 'pending_subcity_verification', 'pending_activation'])->count()
+            : 0;
+
         return [
             'users' => (clone $users)->count(),
             'active_users' => Schema::hasColumn('users', 'is_active') ? (clone $users)->where('is_active', true)->count() : 0,
             'inactive_users' => Schema::hasColumn('users', 'is_active') ? (clone $users)->where('is_active', false)->count() : 0,
+            'activation_requests' => $activationRequests,
             'services' => Service::count(),
             'active_services' => Schema::hasColumn('services', 'status') ? Service::where('status', 'active')->count() : Service::count(),
             'inactive_services' => Schema::hasColumn('services', 'status') ? Service::where('status', 'inactive')->count() : 0,
@@ -297,7 +344,7 @@ class DashboardService
             'appointed' => (clone $query)->whereIn('status', ['appointment_scheduled'])->count(),
             'completed' => (clone $query)->whereIn('status', ['completed', 'closed'])->count(),
             'shared' => (clone $query)->whereIn('status', ['shared', 'shared_to_front_officer', 'shared_to_back_officer'])->count(),
-            'returned' => (clone $query)->whereIn('status', ['returned', 'returned_to_customer', 'returned_to_front_officer', 'returned_to_back_officer'])->count(),
+            'returned' => (clone $query)->whereIn('status', ['returned', 'returned_to_customer', 'returned_to_front_officer', 'returned_to_back_officer', 'back_officer_rejected'])->count(),
             'escalated' => (clone $query)->whereIn('status', ['escalated', 'escalated_to_manager', 'manager_review', 'manager_forwarded'])->count(),
         ];
     }
