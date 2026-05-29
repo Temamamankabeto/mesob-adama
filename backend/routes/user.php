@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\OfficeController;
+use App\Http\Controllers\Api\ServiceProviderController;
 use App\Http\Controllers\Api\CityController;
 use App\Http\Controllers\Api\SubcityController;
 use App\Http\Controllers\Api\WoredaController;
@@ -47,6 +48,14 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/offices/{office}', [OfficeController::class, 'show']);
     Route::put('/offices/{office}', [OfficeController::class, 'update']);
     Route::delete('/offices/{office}', [OfficeController::class, 'destroy']);
+
+
+
+    Route::get('/service-providers', [ServiceProviderController::class, 'index']);
+    Route::post('/service-providers', [ServiceProviderController::class, 'store']);
+    Route::get('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'show']);
+    Route::put('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'update']);
+    Route::delete('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'destroy']);
 
     Route::apiResource('cities', CityController::class);
     Route::apiResource('subcities', SubcityController::class);

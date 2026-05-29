@@ -59,6 +59,11 @@ class RolesPermissionsSeeder extends Seeder
             'services.update',
             'services.delete',
 
+            'service_providers.read',
+            'service_providers.create',
+            'service_providers.update',
+            'service_providers.delete',
+
             'windows.read',
             'windows.create',
             'windows.update',

@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\Public\HomeController;
 use App\Http\Controllers\Api\Public\PublicLocationController;
 use App\Http\Controllers\Api\Public\PublicServiceController;
 use App\Http\Controllers\Api\Public\ApplicationTrackingController;
+use App\Http\Controllers\Api\Public\ContactController;
+use App\Http\Controllers\Api\Public\PublicReportController;
 
 Route::prefix('public')->group(function () {
     Route::get('/homepage', [
@@ -42,4 +44,15 @@ Route::prefix('public')->group(function () {
         ApplicationTrackingController::class,
         'track',
     ]);
+
+    Route::post('/contact', [
+        ContactController::class,
+        'store',
+    ]);
+
+    Route::get('/reports/dashboard', [
+        PublicReportController::class,
+        'dashboard',
+    ]);
+
 });

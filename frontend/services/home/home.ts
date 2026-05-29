@@ -8,6 +8,8 @@ import {
   HomepageResponse,
   TrackApplicationPayload,
   TrackApplicationResponse,
+  ContactPayload,
+  ContactResponse,
 } from "@/types/home/home";
 
 export const homeService = {
@@ -23,5 +25,11 @@ export const homeService = {
     });
 
     return unwrap<TrackApplicationResponse>(response);
+  },
+
+  async sendContact(payload: ContactPayload): Promise<ContactResponse> {
+    const response = await api.post("/public/contact", payload);
+
+    return unwrap<ContactResponse>(response);
   },
 };
