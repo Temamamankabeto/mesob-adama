@@ -21,6 +21,19 @@ type LoginResponse = {
   data?: LoginResponse;
 };
 
+
+function normalizeUserResponse(response: any): AuthUser {
+  const body = response?.data ?? response;
+
+  return (
+    body?.data ??
+    body?.user ??
+    body?.data?.user ??
+    body
+  ) as AuthUser;
+}
+
+
 function normalizeLoginResponse(response: unknown): LoginResponse {
   const value = response as { data?: LoginResponse } | LoginResponse;
   return "data" in value && value.data ? value.data : (value as LoginResponse);

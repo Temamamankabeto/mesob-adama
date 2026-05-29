@@ -280,27 +280,17 @@ class UserService
     public function updateProfile(User $user, array $data, ?UploadedFile $profileFile = null): User
     {
         $user->name = $data['name'];
-        $user->email = $data['email'];
-        $user->phone = $data['phone'];
 
         if (array_key_exists('gender', $data)) {
             $user->gender = $data['gender'];
         }
 
-        if (!empty($data['new_password'])) {
-            if (empty($data['old_password'])) {
-                throw ValidationException::withMessages([
-                    'old_password' => ['Old password is required when setting a new password.'],
-                ]);
-            }
+        if (array_key_exists('date_of_birth', $data)) {
+            $user->date_of_birth = $data['date_of_birth'];
+        }
 
-            if (!Hash::check($data['old_password'], $user->password)) {
-                throw ValidationException::withMessages([
-                    'old_password' => ['The provided old password is incorrect.'],
-                ]);
-            }
-
-            $user->password = Hash::make($data['new_password']);
+        if (array_key_exists('address', $data)) {
+            $user->address = $data['address'];
         }
 
         if ($profileFile) {
@@ -314,7 +304,7 @@ class UserService
 
         $user->save();
 
-        return $user->load(['roles']);
+        return $user->fresh()->load(['roles', 'city', 'subcity', 'woreda']);
     }
 
     public function deleteUser(User $user, ?int $authId = null): void
