@@ -14,6 +14,7 @@ class ServiceFormFieldCondition extends Model
         'depends_on_field_id',
         'operator',
         'expected_value',
+        'action',
     ];
 
     protected $casts = [
