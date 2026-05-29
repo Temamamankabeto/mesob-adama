@@ -3,13 +3,20 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\Public\HomeController;
+use App\Http\Controllers\Api\Public\PublicLocationController;
 use App\Http\Controllers\Api\Public\PublicServiceController;
 use App\Http\Controllers\Api\Public\ApplicationTrackingController;
+use App\Http\Controllers\Api\Public\ContactController;
+use App\Http\Controllers\Api\Public\PublicReportController;
 
 Route::prefix('public')->group(function () {
-
     Route::get('/homepage', [
         HomeController::class,
+        'index',
+    ]);
+
+    Route::get('/locations', [
+        PublicLocationController::class,
         'index',
     ]);
 
@@ -22,10 +29,11 @@ Route::prefix('public')->group(function () {
         PublicServiceController::class,
         'featured',
     ]);
+
     Route::get('/window-services', [
-    PublicServiceController::class,
-    'windowServices',
-]);
+        PublicServiceController::class,
+        'windowServices',
+    ]);
 
     Route::get('/services/{service}', [
         PublicServiceController::class,
@@ -37,5 +45,14 @@ Route::prefix('public')->group(function () {
         'track',
     ]);
 
-    
+    Route::post('/contact', [
+        ContactController::class,
+        'store',
+    ]);
+
+    Route::get('/reports/dashboard', [
+        PublicReportController::class,
+        'dashboard',
+    ]);
+
 });

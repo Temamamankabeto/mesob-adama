@@ -1,720 +1,333 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-
+import { FormEvent, useState } from "react";
 import {
   ArrowRight,
-  Bell,
+  BriefcaseBusiness,
   Building2,
   Check,
-  ChevronRight,
-  FileSearch,
-  Languages,
+  ChevronDown,
+  ClipboardList,
+  CreditCard,
+  Facebook,
+  FileBadge,
+  FileText,
+  Globe2,
+  Home,
+  Linkedin,
+  LockKeyhole,
+  Mail,
+  MapPin,
   Menu,
-  MessageCircle,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Users2,
+  MessageSquare,
+  Phone,
+  Search,
+  Send,
+  UserPlus,
+  Users,
+  Youtube,
 } from "lucide-react";
 
-import {
-  useHomepage,
-  useTrackApplication,
-} from "@/hooks/home/use-home";
-
+import { useSendContact, useTrackApplication } from "@/hooks/home/use-home";
 import { Button } from "@/components/ui/button";
-
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
-
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import mesob from "@/app/mesob.jpg";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+const navGroups = [
+  {
+    label: "Home Page",
+    href: "/",
+    icon: Home,
+    items: [
+      { label: "About Us", href: "/about", icon: Users },
+      { label: "Service Provider", href: "/service-providers", icon: Building2 },
+    ],
+  },
+  {
+    label: "Services",
+    href: "/services",
+    items: [
+      { label: "City", href: "/services?level=city", icon: Building2 },
+      { label: "Sub City", href: "/services?level=subcity", icon: Building2 },
+      { label: "Woreda", href: "/services?level=woreda", icon: Building2 },
+    ],
+  },
+  {
+    label: "Resource",
+    href: "/resources",
+    items: [
+      { label: "Reports", href: "/resources/reports", icon: FileText },
+      { label: "Guidelines", href: "/resources/guidelines", icon: ClipboardList },
+      { label: "Policies", href: "/resources/policies", icon: FileText },
+    ],
+  },
+  { label: "News", href: "/news" },
+  { label: "Contacts", href: "/contact" },
+];
+
+const categories = [
+  { title: "Employment Services", icon: BriefcaseBusiness },
+  { title: "Personal Documents", icon: Users },
+  { title: "Certificates", icon: FileBadge },
+  { title: "Business Services", icon: Building2 },
+  { title: "Payments & Fines", icon: CreditCard },
+];
+
+const services = [
+  { title: "City Services", text: "Services provided at city administration", icon: Building2 },
+  { title: "Sub City Services", text: "Services provided at sub city level", icon: Users },
+  { title: "Woreda Services", text: "Services provided at woreda level", icon: FileText },
+   
+   
+];
 
 export default function HomePage() {
+  const [applicationNumber, setApplicationNumber] = useState("");
+  const [language, setLanguage] = useState("Afaan Oromoo");
+  const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
+  const trackMutation = useTrackApplication();
+  const contactMutation = useSendContact();
 
-  const [
-    applicationNumber,
-    setApplicationNumber,
-  ] = useState("");
+  async function handleTrack() {
+    if (!applicationNumber.trim()) return;
+    try {
+      const res = await trackMutation.mutateAsync({ application_number: applicationNumber });
+      alert(`Status: ${res.data.status}`);
+    } catch {
+      alert("Application not found");
+    }
+  }
 
-  const [language, setLanguage] =
-    useState("en");
+  async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-  const { data, isLoading } =
-    useHomepage();
-
-  const trackMutation =
-    useTrackApplication();
-
-  const handleTrack =
-    async () => {
-
-      if (!applicationNumber) {
-
-        alert(
-          "Enter application number"
-        );
-
-        return;
-      }
-
-      try {
-
-        const response =
-          await trackMutation.mutateAsync({
-            application_number:
-              applicationNumber,
-          });
-
-        alert(
-          `Status: ${response.data.status}`
-        );
-
-      } catch (error) {
-
-        console.error(error);
-      }
-    };
-
-  const languages = [
-    {
-      code: "en",
-      name: "English",
-      flag: "🇬🇧",
-    },
-    {
-      code: "am",
-      name: "አማርኛ",
-      flag: "🇪🇹",
-    },
-    {
-      code: "om",
-      name: "Afaan Oromoo",
-      flag: "🇪🇹",
-    },
-  ];
-
-  if (isLoading) {
-
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-        Loading...
-      </div>
-    );
+    try {
+      await contactMutation.mutateAsync(contactForm);
+      setContactForm({ name: "", email: "", message: "" });
+      alert("Your message has been sent successfully.");
+    } catch {
+      alert("Unable to send your message right now.");
+    }
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-background text-foreground">
-
-      {/* BACKGROUND */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-
-        <div className="absolute left-[-100px] top-[100px] h-[500px] w-[500px] rounded-full bg-primary/10 blur-3xl" />
-
-        <div className="absolute right-[-150px] top-[150px] h-[600px] w-[600px] rounded-full bg-primary/5 blur-3xl" />
-      </div>
-
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl">
-
-        <div className="container mx-auto flex h-20 items-center justify-between px-6">
-
-          {/* LOGO */}
-          <Link
-            href="/"
-            className="flex items-center gap-3"
-          >
-
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-
-              <Building2 className="h-5 w-5" />
-            </div>
-
-            <div>
-
-              <h1 className="text-lg font-bold tracking-tight">
-                MESOB Adama
-              </h1>
-
-              <p className="text-xs text-muted-foreground">
-                Digital Government
-              </p>
+    <main className="min-h-screen bg-white text-slate-900">
+      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
+          <Link href="/" className="flex items-center gap-3">
+            <Image src={mesob} alt="Adama MESOB" width={70} height={70} className="h-10 w-10 rounded-full object-cover" />
+            <div className="leading-tight">
+              <h1 className="text-2xl font-black tracking-tight text-slate-950">Adama<span className="text-sky-500">.</span></h1>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">MESOB eService</p>
             </div>
           </Link>
 
-          {/* NAV */}
-          <nav className="hidden items-center gap-8 lg:flex">
-
-            <Link
-              href="/"
-              className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
-            >
-              Home
-            </Link>
-
-            <Link
-              href="/services"
-              className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
-            >
-              Services
-            </Link>
-             <Link
-              href="/service"
-              className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
-            >
-              Contact
-            </Link>
-                <Link
-              href="/services"
-              className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
-            >
-              News
-            </Link>
-          </nav>
-
-          {/* ACTIONS */}
-          <div className="hidden items-center gap-3 lg:flex">
-
-            {/* LANGUAGE */}
-            <DropdownMenu>
-
-              <DropdownMenuTrigger asChild>
-
-                <Button
-                  variant="ghost"
-                  className="gap-2 rounded-xl"
-                >
-                  <Languages className="h-4 w-4" />
-
-                  <span>
-                    {
-                      languages.find(
-                        (l) =>
-                          l.code ===
-                          language
-                      )?.flag
-                    }
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent
-                align="end"
-              >
-
-                {languages.map(
-                  (lang) => (
-
-                    <DropdownMenuItem
-                      key={lang.code}
-                      onClick={() =>
-                        setLanguage(
-                          lang.code
-                        )
-                      }
-                      className="flex items-center justify-between"
+          <div className="hidden items-center gap-5 lg:flex">
+            <div className="group relative">
+              <Button variant="outline" className="h-9 min-w-28 justify-between border-0 bg-white px-3 text-xs font-bold shadow-none hover:bg-slate-50">
+                <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" />EN</span>
+                <ChevronDown className="h-4 w-4 transition group-hover:rotate-180" />
+              </Button>
+              <div className="invisible absolute right-0 top-full z-50 w-48 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
+                <div className="rounded-xl border bg-white p-2 shadow-xl">
+                  {["Afaan Oromoo", "English", "አማርኛ"].map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setLanguage(item)}
+                      className="flex w-full items-center rounded-lg px-3 py-3 text-left text-sm font-semibold hover:bg-slate-100"
                     >
+                      {item}{language === item && <Check className="ml-auto h-4 w-4" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-                      <span className="flex items-center gap-2">
-
-                        <span>
-                          {
-                            lang.flag
-                          }
-                        </span>
-
-                        <span>
-                          {
-                            lang.name
-                          }
-                        </span>
-                      </span>
-
-                      {language ===
-                        lang.code && (
-                        <Check className="h-4 w-4" />
-                      )}
-                    </DropdownMenuItem>
-                  )
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Link href="/login">
-
-              <Button
-                variant="ghost"
-                className="rounded-xl"
-              >
-                Login
+            <div className="group relative">
+              <Button className="h-10 rounded-full bg-sky-500 px-7 text-xs font-black uppercase tracking-wide shadow-lg shadow-sky-100 hover:bg-sky-600">
+                Sign In <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-            </Link>
-
-            <Link href="/register">
-
-              <Button className="rounded-xl">
-                Register
-              </Button>
-            </Link>
+              <div className="invisible absolute right-0 top-full z-50 w-52 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
+                <div className="rounded-xl border bg-white p-3 text-[#08214a] shadow-xl">
+                  <Link href="/login" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100"><LockKeyhole className="h-4 w-4" />Sign In</Link>
+                  <Link href="/register" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100"><UserPlus className="h-4 w-4" />Create Account</Link>
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* MOBILE */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-xl lg:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          <Button variant="ghost" size="icon" className="lg:hidden"><Menu /></Button>
         </div>
+
+        <nav className="mx-auto hidden h-14 max-w-7xl items-center bg-white px-4 md:px-6 lg:flex">
+          {navGroups.map((group) => {
+            const GroupIcon = group.icon;
+
+            if (!group.items) {
+              return (
+                <Link
+                  key={group.label}
+                  href={group.href}
+                  className="flex h-14 min-w-32 items-center justify-center gap-2 border-b-2 border-transparent px-4 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-600"
+                >
+                  {GroupIcon && <GroupIcon className="h-5 w-5" />}
+                  {group.label}
+                </Link>
+              );
+            }
+
+            return (
+              <div key={group.label} className="group relative">
+                <Link
+                  href={group.href}
+                  className="flex h-14 min-w-36 items-center justify-center gap-2 border-b-2 border-transparent px-4 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-600"
+                >
+                  {GroupIcon && <GroupIcon className="h-5 w-5" />}
+                  {group.label}
+                  <ChevronDown className="h-4 w-4 transition group-hover:rotate-180" />
+                </Link>
+                <div className="invisible absolute left-0 top-full z-50 w-56 pt-2 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
+                  <div className="rounded-xl border bg-white p-3 shadow-xl">
+                    {group.items.map((item) => {
+                      const ItemIcon = item.icon;
+
+                      return (
+                        <Link key={item.label} href={item.href} className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100">
+                          <ItemIcon className="h-4 w-4" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </nav>
       </header>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden border-b border-border">
+      <section className="px-4 pb-8 pt-6 md:px-6">
+        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-slate-50 px-5 py-20 text-center md:px-10 md:py-32">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_55%,rgba(250,204,21,0.18),transparent_18%),radial-gradient(circle_at_40%_62%,rgba(14,165,233,0.18),transparent_30%),radial-gradient(circle_at_62%_48%,rgba(56,189,248,0.16),transparent_26%)]" />
+          <div className="relative mx-auto max-w-5xl">
+            <h2 className="mx-auto max-w-4xl text-3xl font-black leading-tight tracking-tight text-slate-950 md:text-5xl">
+              eService for ensuring good governance
+               
+            </h2>
 
-        <div className="container mx-auto px-6 py-24 lg:py-32">
-
-          <div className="mx-auto max-w-5xl text-center">
-
-            {/* BADGE */}
-            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 shadow-sm">
-
-              <Sparkles className="h-4 w-4 text-primary" />
-
-              <span className="text-sm font-medium text-muted-foreground">
-                Official Government Platform
-              </span>
-            </div>
-
-            {/* TITLE */}
-            <h1 className="text-5xl font-black tracking-tight text-foreground sm:text-4xl lg:text-3xl">
-
-              Smart Digital Government Services
-            </h1>
-
-            {/* DESCRIPTION */}
-            <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-muted-foreground">
-
-              Access integrated city services, track applications, and manage your information securely from a single digital platform.
-            </p>
-
-            {/* SEARCH */}
-            <div className="mx-auto mt-12 max-w-2xl">
-
-              <div className="flex flex-col gap-3 rounded-3xl border border-border bg-card p-3 shadow-xl sm:flex-row">
-
-                <div className="relative flex-1">
-
-                  <FileSearch className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-
-                  <Input
-                    placeholder="Enter application number"
-
-                    className="h-12 border-0 bg-transparent pl-11 shadow-none focus-visible:ring-0"
-
-                    value={
-                      applicationNumber
-                    }
-
-                    onChange={(e) =>
-                      setApplicationNumber(
-                        e.target.value
-                      )
-                    }
-                  />
-                </div>
-
+            <div className="mx-auto mt-14 max-w-5xl">
+              <div className="relative rounded-full border border-slate-200 bg-white shadow-sm">
+                <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={applicationNumber}
+                  onChange={(e) => setApplicationNumber(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleTrack();
+                  }}
+                  placeholder="Search"
+                  className="h-14 rounded-full border-0 bg-transparent pl-12 pr-28 text-sm shadow-none focus-visible:ring-0"
+                />
                 <Button
-                  onClick={
-                    handleTrack
-                  }
-
-                  disabled={
-                    trackMutation.isPending
-                  }
-
-                  className="h-12 rounded-2xl px-8"
+                  onClick={handleTrack}
+                  disabled={trackMutation.isPending}
+                  className="absolute right-2 top-1/2 h-10 -translate-y-1/2 rounded-full bg-sky-500 px-6 text-sm font-bold hover:bg-sky-600"
                 >
-                  Track Status
+                  Search
                 </Button>
               </div>
-            </div>
-
-            {/* STATS */}
-            <div className="mt-20 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-
-              {/* SERVICES */}
-              <Card className="border-border bg-card/80 shadow-sm backdrop-blur">
-
-                <CardContent className="flex items-center gap-4 p-5">
-
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-
-                    <Building2 className="h-6 w-6" />
-                  </div>
-
-                  <div className="text-left">
-
-                    <p className="text-2xl font-bold">
-                      {
-                        data?.data
-                          ?.statistics
-                          ?.total_services || 0
-                      }
-                    </p>
-
-                    <p className="text-xs text-muted-foreground">
-                      Services
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* USERS */}
-              <Card className="border-border bg-card/80 shadow-sm backdrop-blur">
-
-                <CardContent className="flex items-center gap-4 p-5">
-
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-
-                    <Users2 className="h-6 w-6" />
-                  </div>
-
-                  <div className="text-left">
-
-                    <p className="text-2xl font-bold">
-                      {
-                        data?.data
-                          ?.statistics
-                          ?.total_officers || 0
-                      }
-                    </p>
-
-                    <p className="text-xs text-muted-foreground">
-                      Officers
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* APPLICATIONS */}
-              <Card className="border-border bg-card/80 shadow-sm backdrop-blur">
-
-                <CardContent className="flex items-center gap-4 p-5">
-
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-
-                    <FileSearch className="h-6 w-6" />
-                  </div>
-
-                  <div className="text-left">
-
-                    <p className="text-2xl font-bold">
-                      {
-                        data?.data
-                          ?.statistics
-                          ?.processed_applications || 0
-                      }
-                    </p>
-
-                    <p className="text-xs text-muted-foreground">
-                      Applications
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* SATISFACTION */}
-              <Card className="border-border bg-card/80 shadow-sm backdrop-blur">
-
-                <CardContent className="flex items-center gap-4 p-5">
-
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-
-                    <Star className="h-6 w-6 fill-primary stroke-primary" />
-                  </div>
-
-                  <div className="text-left">
-
-                    <p className="text-2xl font-bold">
-                      94%
-                    </p>
-
-                    <p className="text-xs text-muted-foreground">
-                      Satisfaction
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SERVICES */}
-      <section className="py-24">
-
-        <div className="container mx-auto px-6">
-
-          <div className="mb-14 text-center">
-
-            <h2 className="text-4xl font-bold tracking-tight">
-              Popular Digital Services
-            </h2>
-
-            <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-
-              Access integrated government services digitally anytime and anywhere.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-
-            {data?.data?.featured_services?.map(
-              (service) => (
-
-                <Card
-                  key={service.id}
-                  className="group border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                >
-
-                  <CardContent className="p-6">
-
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-
-                      <ShieldCheck className="h-7 w-7" />
-                    </div>
-
-                    <h3 className="mt-6 text-xl font-semibold">
-
-                      {service.name}
-                    </h3>
-
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
-
-                      {
-                        service.description
-                      }
-                    </p>
-
-                    <div className="mt-8 flex items-center justify-between border-t border-border pt-5">
-
-                      <div>
-
-                        <p className="text-xs text-muted-foreground">
-                          Service Fee
-                        </p>
-
-                        <p className="text-lg font-bold text-primary">
-
-                          ETB {service.service_fee}
-                        </p>
-                      </div>
-
-                      <Link
-                        href={`/service/${service.id}`}
-                      >
-
-                        <Button
-                          size="sm"
-                          className="rounded-xl"
-                        >
-                          Apply
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            )}
-          </div>
-
-          {/* VIEW ALL */}
-          <div className="mt-10 text-center">
-
-            <Link href="/services">
-
-              <Button
-                variant="outline"
-                className="rounded-xl"
-              >
-                View All Services
-
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* FEEDBACK */}
-      <section className="border-t border-border bg-muted/30 py-20">
-
-        <div className="container mx-auto px-6 text-center">
-
-          <div className="mx-auto max-w-2xl">
-
-            <div className="mb-5 flex justify-center">
-
-              <div className="rounded-2xl bg-primary/10 p-4 text-primary">
-
-                <MessageCircle className="h-6 w-6" />
-              </div>
-            </div>
-
-            <h2 className="text-3xl font-bold">
-              Leave Your Feedback
-            </h2>
-
-            <p className="mt-4 text-muted-foreground">
-
-              Help us improve our services by sharing your feedback or reporting issues.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
-
-              <Button className="rounded-xl">
-                Give Feedback
-
-                <Star className="ml-2 h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="outline"
-                className="rounded-xl"
-              >
-                Report Issue
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="border-t border-border bg-background">
-
-        <div className="container mx-auto px-6 py-12">
-
-          <div className="grid gap-10 md:grid-cols-4">
-
-            {/* BRAND */}
-            <div className="col-span-2">
-
-              <Link
-                href="/"
-                className="flex items-center gap-3"
-              >
-
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-
-                  <Building2 className="h-5 w-5" />
-                </div>
-
-                <span className="font-bold">
-                  MESOB Adama
-                </span>
-              </Link>
-
-              <p className="mt-4 text-sm text-muted-foreground">
-
-                Official Digital Government Platform of Adama City.
-              </p>
-            </div>
-
-            {/* LINKS */}
-            <div>
-
-              <h4 className="font-semibold">
-                Quick Links
-              </h4>
-
-              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-
-                <li>
+{/* 
+              <div className="mt-5 flex flex-wrap items-center gap-3 text-left">
+                <span className="text-sm font-bold text-slate-400">#Top searches:</span>
+                {categories.map((category) => (
                   <Link
-                    href="/about"
-                    className="hover:text-foreground"
-                  >
-                    About
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
+                    key={category.title}
                     href="/services"
-                    className="hover:text-foreground"
+                    className="rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:text-sky-600"
                   >
-                    Services
+                    {category.title}
                   </Link>
-                </li>
-
-                <li>
-                  <Link
-                    href="/contact"
-                    className="hover:text-foreground"
-                  >
-                    Contact
-                  </Link>
-                </li>
-              </ul>
+                ))}
+              </div> */}
             </div>
-
-            {/* LEGAL */}
-            <div>
-
-              <h4 className="font-semibold">
-                Legal
-              </h4>
-
-              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-
-                <li>
-                  <Link
-                    href="/privacy"
-                    className="hover:text-foreground"
-                  >
-                    Privacy
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    href="/terms"
-                    className="hover:text-foreground"
-                  >
-                    Terms
-                  </Link>
-                </li>
-
-                <li>
-                  <Link
-                    href="/security"
-                    className="hover:text-foreground"
-                  >
-                    Security
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* COPYRIGHT */}
-          <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-
-            © 2025 MESOB Adama Digital Government Platform
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 md:grid-cols-[1fr_440px] md:px-8">
+        <div className="rounded-2xl bg-white p-7 shadow-lg">
+          <div className="mb-6 flex items-center justify-between"><h3 className="text-3xl font-black">Our Services</h3><Link href="/services" className="flex items-center gap-2 font-bold text-[#063d91]">View All <ArrowRight className="h-4 w-4" /></Link></div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {services.map((service, index) => <Link href="/services" key={service.title} className="rounded-xl border bg-white p-7 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg"><div className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full ${index % 3 === 0 ? "bg-emerald-100 text-emerald-700" : index % 3 === 1 ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}><service.icon className="h-8 w-8" /></div><h4 className="font-black">{service.title}</h4><p className="mt-2 text-sm leading-6 text-slate-700">{service.text}</p></Link>)}
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white p-7 shadow-lg">
+          <h3 className="mb-6 text-3xl font-black">Contact Us</h3>
+          <form onSubmit={handleContactSubmit} className="space-y-4">
+            <div className="relative"><Users className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" /><Input value={contactForm.name} onChange={(e) => setContactForm((prev) => ({ ...prev, name: e.target.value }))} className="h-14 rounded-xl pl-12" placeholder="Name" required /></div>
+            <div className="relative"><Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" /><Input type="email" value={contactForm.email} onChange={(e) => setContactForm((prev) => ({ ...prev, email: e.target.value }))} className="h-14 rounded-xl pl-12" placeholder="Email" required /></div>
+            <div className="relative"><MessageSquare className="absolute left-4 top-5 h-5 w-5 text-slate-400" /><Textarea value={contactForm.message} onChange={(e) => setContactForm((prev) => ({ ...prev, message: e.target.value }))} className="min-h-40 rounded-xl pl-12 pt-4" placeholder="Message" required /></div>
+            <Button disabled={contactMutation.isPending} className="h-14 w-full rounded-xl bg-[#063d91] text-base font-bold"><Send className="mr-2 h-5 w-5" />{contactMutation.isPending ? "Sending..." : "Send Message"}</Button>
+          </form>
+        </div>
+      </section>
+
+      <footer className="bg-gradient-to-r from-[#06295a] to-[#04507f] text-white">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-5 md:px-8">
+          <div><div className="flex items-center gap-3"><Image src={mesob} alt="Adama MESOB" width={58} height={58} className="rounded-full" /><div className="text-xl font-black">Adama MESOB<br /><span className="text-emerald-400">eService</span></div></div><p className="mt-5 text-sm leading-7 text-white/85">Tajaajila elektiroonikaalaa bulchiinsa gaarii mirkaneessuuf hojjanna.</p></div>
+          <FooterLinks
+            title="About Us"
+            items={[
+              { label: "About Us", href: "/about" },
+              { label: "Service Provider", href: "/service-providers" },
+              { label: "Vision & Mission", href: "/about" },
+              { label: "Our Team", href: "/about" },
+            ]}
+          />
+          <FooterLinks
+            title="Services"
+            items={[
+              { label: "City Services", href: "/services?level=city" },
+              { label: "Sub City Services", href: "/services?level=subcity" },
+              { label: "Woreda Services", href: "/services?level=woreda" },
+              { label: "All Services", href: "/services" },
+            ]}
+          />
+          <FooterLinks
+            title="Resources"
+            items={[
+              { label: "Reports", href: "/resources/reports" },
+              { label: "Guidelines", href: "/resources/guidelines" },
+              { label: "Policies", href: "/resources/policies" },
+              { label: "Latest News", href: "/news" },
+            ]}
+          />
+          <div><h4 className="mb-4 font-black">Contact</h4><p className="flex gap-3 text-sm"><MapPin className="h-5 w-5" />Adama, Oromia, Ethiopia</p><p className="mt-4 flex gap-3 text-sm"><Phone className="h-5 w-5" />+251 9141</p></div>
+        </div>
+        <div className="border-t border-white/20"><div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm md:flex-row md:px-8"><p>© 2026 Adama MESOB eService. All Rights Reserved.</p><div className="flex items-center gap-4"><span>Follow Us</span><Facebook /><Send /><Youtube /><Linkedin /></div></div></div>
       </footer>
+    </main>
+  );
+}
+
+type FooterLinkItem = { label: string; href: string };
+
+function FooterLinks({ title, items }: { title: string; items: FooterLinkItem[] }) {
+  return (
+    <div>
+      <h4 className="mb-4 font-black">{title}</h4>
+      <ul className="space-y-3 text-sm text-white/85">
+        {items.map((item) => (
+          <li key={item.label}>
+            <Link href={item.href} className="hover:text-white">
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

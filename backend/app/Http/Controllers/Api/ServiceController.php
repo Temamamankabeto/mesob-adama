@@ -4,435 +4,163 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Service;
 use App\Models\ServiceForm;
-
 use App\Http\Controllers\Controller;
-
 use App\Http\Requests\StoreServiceRequest;
-
 use App\Http\Requests\UpdateServiceRequest;
-use Illuminate\Http\Request;
-  
-
-
-
-
 use App\Services\ServiceService;
+use Illuminate\Http\Request;
 
-class ServiceController
-    extends Controller
+class ServiceController extends Controller
 {
-    protected ServiceService
-        $serviceService;
-
     public function __construct(
-        ServiceService $serviceService
-    ) {
+        protected ServiceService $serviceService
+    ) {}
 
-        $this->serviceService =
-            $serviceService;
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | LIST SERVICES
-    |--------------------------------------------------------------------------
-    */
-
-    public function index()
+    public function index(Request $request)
     {
-        $this->authorize(
-            'viewAny',
-            Service::class
-        );
+        $this->authorize('viewAny', Service::class);
 
-        /*
-        |--------------------------------------------------------------------------
-        | GET SERVICES
-        |--------------------------------------------------------------------------
-        */
-
-        $services =
-            $this->serviceService
-                ->getAll();
-
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE
-        |--------------------------------------------------------------------------
-        */
+        $services = $this->serviceService->getAll($request->user());
 
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Services retrieved successfully',
-
+            'message' => 'Services retrieved successfully',
             'data' => $services,
         ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | SHOW SERVICE
-    |--------------------------------------------------------------------------
-    */
-
-    public function show(
-        Service $service
-    ) {
-
-        $this->authorize(
-            'view',
-            $service
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | LOAD RELATIONSHIPS
-        |--------------------------------------------------------------------------
-        */
+    public function show(Service $service)
+    {
+        $this->authorize('view', $service);
 
         $service->load([
-
             'assignedUsers:id,name,email',
-
-            'windows:id,name',
+            'windows:id,name,title,city_title,subcity_title,woreda_title,administrative_level,availability',
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE
-        |--------------------------------------------------------------------------
-        */
-
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Service retrieved successfully',
-
+            'message' => 'Service retrieved successfully',
             'data' => $service,
         ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | STORE SERVICE
-    |--------------------------------------------------------------------------
-    */
+    public function store(StoreServiceRequest $request)
+    {
+        $this->authorize('create', Service::class);
 
-    public function store(
-        StoreServiceRequest $request
-    ) {
-
-        $this->authorize(
-            'create',
-            Service::class
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | CREATE
-        |--------------------------------------------------------------------------
-        */
-
-        $service =
-            $this->serviceService
-                ->create(
-                    $request->validated()
-                );
-
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE
-        |--------------------------------------------------------------------------
-        */
+        $service = $this->serviceService->create($request->validated());
 
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Service created successfully',
-
+            'message' => 'Service created successfully',
             'data' => $service,
-
         ], 201);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | UPDATE SERVICE
-    |--------------------------------------------------------------------------
-    */
+    public function update(UpdateServiceRequest $request, Service $service)
+    {
+        $this->authorize('update', $service);
 
-    public function update(
-        UpdateServiceRequest $request,
-        Service $service
-    ) {
-
-        $this->authorize(
-            'update',
-            $service
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | UPDATE
-        |--------------------------------------------------------------------------
-        */
-
-        $updatedService =
-            $this->serviceService
-                ->update(
-                    $service,
-                    $request->validated()
-                );
-
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE
-        |--------------------------------------------------------------------------
-        */
+        $updatedService = $this->serviceService->update($service, $request->validated());
 
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Service updated successfully',
-
+            'message' => 'Service updated successfully',
             'data' => $updatedService,
         ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | DELETE SERVICE
-    |--------------------------------------------------------------------------
-    */
+    public function destroy(Service $service)
+    {
+        $this->authorize('delete', $service);
 
-    public function destroy(
-        Service $service
-    ) {
-
-        $this->authorize(
-            'delete',
-            $service
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | DELETE
-        |--------------------------------------------------------------------------
-        */
-
-        $this->serviceService
-            ->delete(
-                $service
-            );
-
-        /*
-        |--------------------------------------------------------------------------
-        | RESPONSE
-        |--------------------------------------------------------------------------
-        */
+        $this->serviceService->delete($service);
 
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Service deleted successfully',
+            'message' => 'Service deleted successfully',
         ]);
     }
 
+    public function forms(Service $service)
+    {
+        $forms = $service->forms()->latest()->paginate(10);
 
+        return response()->json([
+            'success' => true,
+            'message' => 'Forms retrieved successfully',
+            'data' => $forms->items(),
+            'meta' => [
+                'current_page' => $forms->currentPage(),
+                'last_page' => $forms->lastPage(),
+                'per_page' => $forms->perPage(),
+                'total' => $forms->total(),
+            ],
+        ]);
+    }
 
-
-    /*
-|--------------------------------------------------------------------------
-| LIST SERVICE FORMS
-|--------------------------------------------------------------------------
-*/
-
-public function forms(
-    Service $service
-) {
-
-    $forms =
-        $service->forms()
-            ->latest()
-            ->paginate(10);
-
-    return response()->json([
-
-        'success' => true,
-
-        'message' =>
-            'Forms retrieved successfully',
-
-        'data' =>
-            $forms->items(),
-
-        'meta' => [
-
-            'current_page' =>
-                $forms->currentPage(),
-
-            'last_page' =>
-                $forms->lastPage(),
-
-            'per_page' =>
-                $forms->perPage(),
-
-            'total' =>
-                $forms->total(),
-        ],
-    ]);
-}
-
-/*
-|--------------------------------------------------------------------------
-| STORE SERVICE FORM
-|--------------------------------------------------------------------------
-*/
-
-public function storeForm(
-    Request $request,
-    Service $service
-) {
-
-    $validated =
-        $request->validate([
-
-            'title' =>
-                ['required', 'string'],
-
-            'description' =>
-                ['nullable', 'string'],
+    public function storeForm(Request $request, Service $service)
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string'],
+            'description' => ['nullable', 'string'],
         ]);
 
-    $form =
-        $service->forms()
-            ->create($validated);
+        $form = $service->forms()->create($validated);
 
-    return response()->json([
+        return response()->json([
+            'success' => true,
+            'message' => 'Form created successfully',
+            'data' => $form,
+        ], 201);
+    }
 
-        'success' => true,
+    public function showForm(ServiceForm $serviceForm)
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Form retrieved successfully',
+            'data' => $serviceForm,
+        ]);
+    }
 
-        'message' =>
-            'Form created successfully',
-
-        'data' => $form,
-
-    ], 201);
-}
-
-/*
-|--------------------------------------------------------------------------
-| SHOW SERVICE FORM
-|--------------------------------------------------------------------------
-*/
-
-public function showForm(
-    ServiceForm $serviceForm
-) {
-
-    return response()->json([
-
-        'success' => true,
-
-        'message' =>
-            'Form retrieved successfully',
-
-        'data' => $serviceForm,
-    ]);
-}
-
-/*
-|--------------------------------------------------------------------------
-| UPDATE SERVICE FORM
-|--------------------------------------------------------------------------
-*/
-
-public function updateForm(
-    Request $request,
-    ServiceForm $serviceForm
-) {
-
-    $validated =
-        $request->validate([
-
-            'title' =>
-                ['required', 'string'],
-
-            'description' =>
-                ['nullable', 'string'],
+    public function updateForm(Request $request, ServiceForm $serviceForm)
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string'],
+            'description' => ['nullable', 'string'],
         ]);
 
-    $serviceForm->update(
-        $validated
-    );
+        $serviceForm->update($validated);
 
-    return response()->json([
+        return response()->json([
+            'success' => true,
+            'message' => 'Form updated successfully',
+            'data' => $serviceForm,
+        ]);
+    }
 
-        'success' => true,
+    public function destroyForm(ServiceForm $serviceForm)
+    {
+        $serviceForm->delete();
 
-        'message' =>
-            'Form updated successfully',
+        return response()->json([
+            'success' => true,
+            'message' => 'Form deleted successfully',
+        ]);
+    }
 
-        'data' => $serviceForm,
-    ]);
-}
+    public function toggleForm(ServiceForm $serviceForm)
+    {
+        $serviceForm->update([
+            'is_active' => !$serviceForm->is_active,
+        ]);
 
-/*
-|--------------------------------------------------------------------------
-| DELETE SERVICE FORM
-|--------------------------------------------------------------------------
-*/
-
-public function destroyForm(
-    ServiceForm $serviceForm
-) {
-
-    $serviceForm->delete();
-
-    return response()->json([
-
-        'success' => true,
-
-        'message' =>
-            'Form deleted successfully',
-    ]);
-}
-
-/*
-|--------------------------------------------------------------------------
-| TOGGLE FORM STATUS
-|--------------------------------------------------------------------------
-*/
-
-public function toggleForm(
-    ServiceForm $serviceForm
-) {
-
-    $serviceForm->update([
-
-        'is_active' =>
-            !$serviceForm->is_active,
-    ]);
-
-    return response()->json([
-
-        'success' => true,
-
-        'message' =>
-            'Form status updated successfully',
-
-        'data' => $serviceForm,
-    ]);
-}
+        return response()->json([
+            'success' => true,
+            'message' => 'Form status updated successfully',
+            'data' => $serviceForm,
+        ]);
+    }
 }

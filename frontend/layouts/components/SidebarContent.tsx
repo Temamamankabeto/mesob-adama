@@ -5,15 +5,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { authService } from "@/services/auth/auth.service";
-import { filterSidebarByPermissions, getSidebarForRole } from "@/config/sidebar.config";
+import {
+  filterSidebarByPermissions,
+  getSidebarForRole,
+} from "@/config/sidebar.config";
 import { normalizeRole } from "@/config/dashboard.config";
+import { locationLevelLabel, roleLabel } from "@/config/roles.config";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+import mesob from "@/app/mesob.jpg";
 
 type SidebarContentProps = {
   collapsed?: boolean;
 };
 
-export default function SidebarContent({ collapsed = false }: SidebarContentProps) {
+export default function SidebarContent({
+  collapsed = false,
+}: SidebarContentProps) {
   const pathname = usePathname();
   const user = authService.getStoredUser();
   const roles = authService.getStoredRoles();
@@ -21,11 +29,21 @@ export default function SidebarContent({ collapsed = false }: SidebarContentProp
   const roleKey = normalizeRole(role);
   const permissions = authService.getStoredPermissions();
 
-  const roleSidebar = useMemo(() => getSidebarForRole(roleKey || role), [roleKey, role]);
+  const roleSidebar = useMemo(
+    () => getSidebarForRole(roleKey || role),
+    [roleKey, role],
+  );
   const sections = filterSidebarByPermissions(roleSidebar, permissions);
 
   const RoleIcon = roleSidebar.icon;
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+
+  const locationScope = (user as any)?.location_level
+    ? locationLevelLabel((user as any).location_level)
+    : (user as any)?.woreda?.name ||
+      (user as any)?.subcity?.name ||
+      (user as any)?.city?.name ||
+      "";
 
   function toggleMenu(label: string) {
     setOpenMenus((current) => ({ ...current, [label]: !current[label] }));
@@ -41,18 +59,36 @@ export default function SidebarContent({ collapsed = false }: SidebarContentProp
           )}
         >
           <div className="rounded-xl bg-sidebar-primary p-2 text-sidebar-primary-foreground">
-            <RoleIcon className="h-5 w-5" />
+            <div>
+              <Image
+                src={mesob}
+                alt="Logo"
+                width={150}
+                height={150}
+                className="h-5 w-5"
+              />
+            </div>
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold">eService</h1>
-              <p className="truncate text-xs text-sidebar-foreground/70">{roleSidebar.title}</p>
+              <h1 className="truncate text-sm font-bold">
+                ADAMA MESOB eService
+              </h1>
+              <p className="truncate text-xs text-sidebar-foreground/70">
+                {roleLabel(role)}
+                {locationScope ? ` · ${locationScope}` : ""}
+              </p>
             </div>
           )}
         </div>
       </div>
 
-      <nav className={cn("flex-1 space-y-5 overflow-y-auto", collapsed ? "p-2" : "p-4")}>
+      <nav
+        className={cn(
+          "flex-1 space-y-5 overflow-y-auto",
+          collapsed ? "p-2" : "p-4",
+        )}
+      >
         {sections.map((section) => (
           <div key={section.title} className="space-y-2">
             {!collapsed && (
@@ -66,7 +102,9 @@ export default function SidebarContent({ collapsed = false }: SidebarContentProp
                 const Icon = item.icon;
                 const active = item.href ? pathname === item.href : false;
                 const hasChildren = Boolean(item.children?.length);
-                const childIsActive = Boolean(item.children?.some((child) => pathname === child.href));
+                const childIsActive = Boolean(
+                  item.children?.some((child) => pathname === child.href),
+                );
                 const isOpen = openMenus[item.label] ?? childIsActive;
 
                 if (hasChildren) {
@@ -78,13 +116,17 @@ export default function SidebarContent({ collapsed = false }: SidebarContentProp
                         onClick={() => toggleMenu(item.label)}
                         className={cn(
                           "flex w-full items-center rounded-xl text-sm font-medium text-sidebar-foreground/80 transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                          collapsed ? "justify-center px-2 py-2" : "gap-2 px-3 py-2",
+                          collapsed
+                            ? "justify-center px-2 py-2"
+                            : "gap-2 px-3 py-2",
                         )}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
                         {!collapsed && (
                           <>
-                            <span className="flex-1 text-left">{item.label}</span>
+                            <span className="flex-1 text-left">
+                              {item.label}
+                            </span>
                             <ChevronRight
                               className={cn(
                                 "h-3 w-3 shrink-0 transition-transform duration-200",
@@ -126,7 +168,9 @@ export default function SidebarContent({ collapsed = false }: SidebarContentProp
                     title={collapsed ? item.label : undefined}
                     className={cn(
                       "flex items-center rounded-xl text-sm font-medium transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                      collapsed ? "justify-center px-2 py-2" : "gap-2 px-3 py-2",
+                      collapsed
+                        ? "justify-center px-2 py-2"
+                        : "gap-2 px-3 py-2",
                       active &&
                         "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:text-sidebar-primary-foreground",
                     )}

@@ -9,90 +9,43 @@ use App\Services\PublicServiceService;
 
 class PublicServiceController extends Controller
 {
-    protected PublicServiceService
-        $publicServiceService;
-
     public function __construct(
-        PublicServiceService
-            $publicServiceService
-    ) {
-        $this->publicServiceService =
-            $publicServiceService;
-    }
+        protected PublicServiceService $publicServiceService
+    ) {}
 
-    /**
-     * List public services.
-     */
     public function index(Request $request)
     {
-        $services =
-            $this->publicServiceService
-                ->getAll($request);
-
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Services retrieved successfully',
-
-            'data' => $services,
+            'message' => 'Services retrieved successfully',
+            'data' => $this->publicServiceService->getAll($request),
         ]);
     }
 
-    /**
-     * Featured services.
-     */
     public function featured()
     {
-        $services =
-            $this->publicServiceService
-                ->featured();
-
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Featured services retrieved successfully',
-
-            'data' => $services,
+            'message' => 'Featured services retrieved successfully',
+            'data' => $this->publicServiceService->featured(),
         ]);
     }
 
-    /**
-     * Show service.
-     */
     public function show(Service $service)
     {
         return response()->json([
-
             'success' => true,
-
-            'message' =>
-                'Service retrieved successfully',
-
-            'data' => $service->load('windows'),
+            'message' => 'Service retrieved successfully',
+            'data' => $service->load(['windows:id,name,title,city_title,subcity_title,woreda_title,administrative_level,availability']),
         ]);
     }
 
-    /**
- * Group services by windows
- */
-public function windowServices()
-{
-    $windows =
-        $this->publicServiceService
-            ->groupByWindow();
-
-    return response()->json([
-
-        'success' => true,
-
-        'message' =>
-            'Window services retrieved successfully',
-
-        'data' => $windows,
-    ]);
-}
+    public function windowServices(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Window services retrieved successfully',
+            'data' => $this->publicServiceService->groupByWindow($request),
+        ]);
+    }
 }

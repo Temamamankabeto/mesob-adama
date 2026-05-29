@@ -93,3 +93,16 @@ export interface TrackApplicationResponse {
     };
   };
 }
+
+export interface ContactPayload {
+  name: string;
+  email: string;
+  message: string;
+}
+
+export interface ContactResponse {
+  success: boolean;
+  message: string;
+  data: null;
+  meta?: null;
+}

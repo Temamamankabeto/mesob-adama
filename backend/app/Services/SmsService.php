@@ -12,37 +12,67 @@ class SmsService
 
     public function __construct()
     {
-        $this->baseUrl = env('SMS_API_BASE_URL');
-        $this->token = env('SMS_API_TOKEN');
-        $this->senderId = env('SMS_SENDER_ID');
+        $this->baseUrl = env('DAGU_SMS_BASE_URL', '');
+        $this->token = env('DAGU_SMS_TOKEN', '');
+        $this->senderId = env('DAGU_SMS_SENDER_ID', '9141');
+
+        if (!$this->baseUrl || !$this->token) {
+            throw new \Exception("SMS configuration missing in .env");
+        }
     }
 
-    public function sendToPhone(string $phone, string $message): bool
+    public function sendByPhone(string $phone, string $message)
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->token,
-            'Content-Type' => 'application/json',
-        ])->post($this->baseUrl . '/by-phone', [
-            'senderID' => $this->senderId,
-            'message' => $message,
-            'phone' => $phone,
-            'flash' => false,
-        ]);
-
-        return $response->successful();
+        return $this->sendSms($phone, $message);
     }
 
-    public function sendOtp(string $phone, string $message): bool
+    public function sendOtp(string $phone)
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->token,
-        ])->post($this->baseUrl . '/send-otp', [
-            'senderID' => $this->senderId,
-            'message' => $message,
-            'phone' => $phone,
-            'flash' => false,
-        ]);
+        $otp = rand(100000, 999999);
 
-        return $response->successful();
+        $message = "Your OTP code is: {$otp}";
+
+        return [
+            'phone' => $phone,
+            'otp' => $otp,
+            'response' => $this->sendSms($phone, $message),
+        ];
     }
+
+    public function sendBulk(array $phones, string $message)
+    {
+        $results = [];
+
+        foreach ($phones as $phone) {
+            $results[] = $this->sendSms($phone, $message);
+        }
+
+        return $results;
+    }
+
+    private function sendSms(string $phone, string $message)
+{
+    try {
+        $response = Http::timeout(30)->post(
+            'http://196.190.213.33/api/sms/send-phone',
+            [
+                'phone' => $phone,
+                'message' => $message,
+            ]
+        );
+
+        return [
+            'status' => 'success',
+            'http_status' => $response->status(),
+            'body' => $response->body(), // ⭐ IMPORTANT FIX
+            'json' => $response->json(), // may be null but safe
+        ];
+
+    } catch (\Exception $e) {
+        return [
+            'status' => 'failed',
+            'error' => $e->getMessage(),
+        ];
+    }
+}
 }

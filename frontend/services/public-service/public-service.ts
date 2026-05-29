@@ -1,35 +1,89 @@
 import api, { unwrap } from "@/lib/api";
 
-import {
-  FeaturedServiceResponse,
-  PublicServiceResponse,
-  SinglePublicServiceResponse,
-} from "@/types/public-service/public-service";
+type PublicService = Record<string, any>;
 
-import {
-  WindowGroupResponse,
-} from "@/types/public-service/window-group";
+type PublicServiceResponse = {
+  success: boolean;
+  message?: string;
+  data: PublicService[];
+  meta?: Record<string, any>;
+};
+
+type FeaturedServiceResponse = {
+  success: boolean;
+  message?: string;
+  data: PublicService[];
+};
+
+type SinglePublicServiceResponse = {
+  success: boolean;
+  message?: string;
+  data: PublicService;
+};
+
+type WindowGroupResponse = {
+  success: boolean;
+  message?: string;
+  data: any[];
+};
+
+export type AdministrativeLevel =
+  | "city"
+  | "subcity"
+  | "woreda";
+
+export type LocationSelection = {
+  administrative_level?: AdministrativeLevel;
+  city_id?: number | string;
+  subcity_id?: number | string;
+  woreda_id?: number | string;
+};
 
 export const publicServiceService = {
+  async locations() {
+    const response = await api.get(
+      "/public/locations"
+    );
 
-  /*
-  |--------------------------------------------------------------------------
-  | ALL SERVICES
-  |--------------------------------------------------------------------------
-  */
+    return unwrap<{
+      success: boolean;
+      message: string;
+      data: {
+        cities: Array<{
+          id: number;
+          name: string;
+          code?: string;
+        }>;
+
+        subcities: Array<{
+          id: number;
+          city_id: number;
+          name: string;
+        }>;
+
+        woredas: Array<{
+          id: number;
+          city_id?: number;
+          subcity_id: number;
+          name: string;
+        }>;
+      };
+    }>(response);
+  },
 
   async getAll(
     page = 1,
-    search = ""
+    search = "",
+    selection: LocationSelection = {}
   ): Promise<PublicServiceResponse> {
-
     const response = await api.get(
       "/public/services",
       {
         params: {
           page,
           search,
-          per_page: 12,
+          per_page: 9,
+          ...selection,
         },
       }
     );
@@ -39,14 +93,7 @@ export const publicServiceService = {
     );
   },
 
-  /*
-  |--------------------------------------------------------------------------
-  | FEATURED SERVICES
-  |--------------------------------------------------------------------------
-  */
-
   async featured(): Promise<FeaturedServiceResponse> {
-
     const response = await api.get(
       "/public/services/featured"
     );
@@ -56,16 +103,9 @@ export const publicServiceService = {
     );
   },
 
-  /*
-  |--------------------------------------------------------------------------
-  | SINGLE SERVICE
-  |--------------------------------------------------------------------------
-  */
-
   async show(
     id: number
   ): Promise<SinglePublicServiceResponse> {
-
     const response = await api.get(
       `/public/services/${id}`
     );
@@ -75,16 +115,14 @@ export const publicServiceService = {
     );
   },
 
-  /*
-  |--------------------------------------------------------------------------
-  | GROUP SERVICES BY WINDOW
-  |--------------------------------------------------------------------------
-  */
-
-  async windowServices(): Promise<WindowGroupResponse> {
-
+  async windowServices(
+    selection: LocationSelection = {}
+  ): Promise<WindowGroupResponse> {
     const response = await api.get(
-      "/public/window-services"
+      "/public/window-services",
+      {
+        params: selection,
+      }
     );
 
     return unwrap<WindowGroupResponse>(

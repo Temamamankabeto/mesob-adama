@@ -1,342 +1,326 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
-import {
-  Plus,
+  Building2,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  MapPin,
+  MousePointerClick,
   Search,
-  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
-import { useServices } from "@/hooks/services/use-service";
-
-import { useWindows } from "@/hooks/windows/use-window";
-
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
-  useAssignServiceWindows,
-  useServiceWindows,
+  ServiceWindowBoardService,
+  ServiceWindowLevel,
+  useMoveServiceToWindow,
+  useServiceWindowBoard,
+  useUnassignServiceWindow,
 } from "@/hooks/service-window/use-service-window";
 
-import { Button } from "@/components/ui/button";
-
-import { Checkbox } from "@/components/ui/checkbox";
-
-import { Input } from "@/components/ui/input";
-
-import { Label } from "@/components/ui/label";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+const cards: Array<{
+  level: ServiceWindowLevel;
+  title: string;
+  description: string;
+}> = [
+  {
+    level: "city",
+    title: "City Service Window Assignment",
+    description: "Assign city-level services to city-level windows.",
+  },
+  {
+    level: "subcity",
+    title: "Subcity Service Window Assignment",
+    description: "Assign subcity-level services to subcity-level windows.",
+  },
+  {
+    level: "woreda",
+    title: "Woreda Service Window Assignment",
+    description: "Assign woreda-level services to woreda-level windows.",
+  },
+];
 
 export default function ServiceWindowPage() {
+  const [level, setLevel] = useState<ServiceWindowLevel>("city");
+  const [search, setSearch] = useState("");
+  const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
+  const [selectedService, setSelectedService] = useState<ServiceWindowBoardService | null>(null);
 
-  const [serviceSearch, setServiceSearch] = useState("");
-  const [windowSearch, setWindowSearch] = useState("");
-  const [selectedService, setSelectedService] = useState<number | null>(null);
+  const { data, isLoading } = useServiceWindowBoard({ level });
+  const moveService = useMoveServiceToWindow();
+  const unassignService = useUnassignServiceWindow();
 
-  const [selectedWindows, setSelectedWindows] = useState<
-    {
-      window_id: number;
-      window_name?: string;
-      step_order: number;
-      is_required: boolean;
-    }[]
-  >([]);
-
-  const { data: servicesData } = useServices(1);
-  const { data: windowsData } = useWindows(1);
-
-  const { data: assignedWindowsData } = useServiceWindows(
-    selectedService || undefined
-  );
-
-  const assignMutation = useAssignServiceWindows();
-
-  useEffect(() => {
-    if (assignedWindowsData?.data?.windows) {
-      const formatted = assignedWindowsData.data.windows.map(
-        (window: any) => ({
-          window_id: window.id,
-          window_name: window.name,
-          step_order: window.pivot.step_order,
-          is_required: window.pivot.is_required,
-        })
-      );
-
-      setSelectedWindows(formatted);
-    } else {
-      setSelectedWindows([]);
-    }
-  }, [assignedWindowsData]);
-
-  // ✅ FIX: SAFE SERVICES ACCESS
-  const services = servicesData?.data ?? [];
+  const services = data?.services || data?.unassigned_services || [];
+  const windows = data?.windows || [];
 
   const filteredServices = useMemo(() => {
-    return services.filter((service: any) =>
-      service.name
-        .toLowerCase()
-        .includes(serviceSearch.toLowerCase())
-    );
-  }, [services, serviceSearch]);
+    const key = search.trim().toLowerCase();
+    if (!key) return services;
+    return services.filter((service) => service.name.toLowerCase().includes(key));
+  }, [services, search]);
 
-  const filteredWindows = useMemo(() => {
-    return (
-      windowsData?.data?.data?.filter((window) =>
-        window.name
-          .toLowerCase()
-          .includes(windowSearch.toLowerCase())
-      ) || []
-    );
-  }, [windowsData, windowSearch]);
+  async function assignToWindow(windowId: number, serviceId?: number) {
+    const targetServiceId = serviceId ?? selectedService?.id;
 
-  const handleAddWindow = (window: any) => {
-    const exists = selectedWindows.find(
-      (w) => w.window_id === window.id
-    );
-
-    if (exists) return;
-
-    setSelectedWindows((prev) => [
-      ...prev,
-      {
-        window_id: window.id,
-        window_name: window.name,
-        step_order: prev.length + 1,
-        is_required: true,
-      },
-    ]);
-  };
-
-  const handleRemoveWindow = (windowId: number) => {
-    const filtered = selectedWindows.filter(
-      (window) => window.window_id !== windowId
-    );
-
-    const reordered = filtered.map((window, index) => ({
-      ...window,
-      step_order: index + 1,
-    }));
-
-    setSelectedWindows(reordered);
-  };
-
-  const handleStepChange = (windowId: number, value: number) => {
-    setSelectedWindows((prev) =>
-      prev.map((window) =>
-        window.window_id === windowId
-          ? { ...window, step_order: value }
-          : window
-      )
-    );
-  };
-
-  const handleRequiredChange = (windowId: number, checked: boolean) => {
-    setSelectedWindows((prev) =>
-      prev.map((window) =>
-        window.window_id === windowId
-          ? { ...window, is_required: checked }
-          : window
-      )
-    );
-  };
-
-  const handleAssign = async () => {
-    if (!selectedService) {
-      alert("Please select a service");
+    if (!targetServiceId) {
+      toast.error("Select a service first.");
       return;
     }
 
     try {
-      await assignMutation.mutateAsync({
-        serviceId: selectedService,
-        payload: {
-          windows: selectedWindows.map((window) => ({
-            window_id: window.window_id,
-            step_order: window.step_order,
-            is_required: window.is_required,
-          })),
-        },
+      await moveService.mutateAsync({
+        service_id: targetServiceId,
+        window_id: windowId,
+        level,
+        step_order: 1,
+        is_required: true,
       });
 
-      alert("Workflow saved successfully");
-    } catch (error) {
-      console.error(error);
+      setSelectedService(null);
+      toast.success("Service assigned successfully");
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
+        "Assignment failed";
+      toast.error(String(msg));
     }
-  };
+  }
+
+  async function handleDrop(windowId: number, rawServiceId: string) {
+    const serviceId = Number(rawServiceId);
+    if (!serviceId) return;
+    await assignToWindow(windowId, serviceId);
+  }
+
+  async function unassign(serviceId: number) {
+    try {
+      await unassignService.mutateAsync({ service_id: serviceId, level });
+      toast.success("Service removed from this level only");
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
+        "Remove failed";
+      toast.error(String(msg));
+    }
+  }
+
+  function toggleWindow(id: number) {
+    setCollapsed((current) => ({ ...current, [id]: !current[id] }));
+  }
+
+  function changeLevel(nextLevel: ServiceWindowLevel) {
+    setLevel(nextLevel);
+    setCollapsed({});
+    setSelectedService(null);
+    setSearch("");
+  }
 
   return (
-    <div className="grid gap-6 p-6 lg:grid-cols-12">
+    <div className="mx-auto w-full max-w-7xl space-y-4 p-3 sm:space-y-6 sm:p-6">
+      <div className="rounded-3xl border bg-card p-4 shadow-sm sm:p-6">
+        <h1 className="text-xl font-bold sm:text-2xl">Service Window Assignment</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Select a level, then drag on desktop or tap-select on mobile.
+        </p>
+      </div>
 
-      {/* LEFT PANEL */}
-      <Card className="lg:col-span-4 h-[calc(100vh-120px)]">
-
-        <CardHeader>
-          <CardTitle>Services</CardTitle>
-        </CardHeader>
-
-        <CardContent className="flex h-full flex-col gap-4 overflow-hidden">
-
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search service..."
-              className="pl-9"
-              value={serviceSearch}
-              onChange={(e) => setServiceSearch(e.target.value)}
-            />
-          </div>
-
-          {/* SERVICES FIXED */}
-          <div className="flex-1 space-y-2 overflow-y-auto pr-2">
-
-            {!services?.length && (
-              <div className="text-sm text-muted-foreground text-center py-6">
-                Loading services...
-              </div>
-            )}
-
-            {services?.length === 0 && (
-              <div className="text-sm text-muted-foreground text-center py-6">
-                No services found
-              </div>
-            )}
-
-            {filteredServices.map((service: any) => (
-              <Button
-                key={service.id}
-                type="button"
-                variant={
-                  selectedService === service.id
-                    ? "default"
-                    : "outline"
-                }
-                className="w-full justify-start"
-                onClick={() => setSelectedService(service.id)}
-              >
-                {service.name}
-              </Button>
-            ))}
-          </div>
-
-        </CardContent>
-      </Card>
-
-      {/* RIGHT PANEL (UNCHANGED) */}
-      <div className="space-y-6 lg:col-span-8">
-
-        <Card className="h-[420px]">
-          <CardHeader>
-            <CardTitle>Add Windows</CardTitle>
-          </CardHeader>
-
-          <CardContent className="flex h-full flex-col gap-4 overflow-hidden">
-
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search window..."
-                className="pl-9"
-                value={windowSearch}
-                onChange={(e) => setWindowSearch(e.target.value)}
-              />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.map((card) => (
+          <button
+            key={card.level}
+            type="button"
+            onClick={() => changeLevel(card.level)}
+            className={`rounded-3xl border bg-card p-4 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md sm:p-5 ${
+              level === card.level ? "border-primary ring-2 ring-primary/20" : ""
+            }`}
+          >
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              {card.level === "city" ? <Building2 className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
             </div>
+            <h3 className="text-sm font-bold sm:text-base">{card.title}</h3>
+            <p className="mt-2 text-xs text-muted-foreground sm:text-sm">{card.description}</p>
+          </button>
+        ))}
+      </div>
 
-            <div className="grid flex-1 gap-3 overflow-y-auto pr-2 md:grid-cols-2">
-              {filteredWindows.map((window) => {
-                const exists = selectedWindows.find(
-                  (w) => w.window_id === window.id
-                );
+      {selectedService && (
+        <div className="rounded-2xl border bg-primary/5 p-3 text-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <MousePointerClick className="h-4 w-4 text-primary" />
+              <span>
+                Selected: <strong>{selectedService.name}</strong>. Tap Assign on a window.
+              </span>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setSelectedService(null)}>
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <Card className="rounded-3xl">
+          <CardContent className="p-10 text-center text-muted-foreground">Loading board...</CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+          <Card className="h-fit rounded-3xl">
+            <CardContent className="space-y-4 p-4 sm:p-5">
+              <div>
+                <h2 className="font-bold">Available Services</h2>
+                <p className="text-sm text-muted-foreground">
+                  {filteredServices.length} unassigned {level} service(s)
+                </p>
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search services..."
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1 lg:max-h-[70vh]">
+                {filteredServices.length ? (
+                  filteredServices.map((service) => {
+                    const active = selectedService?.id === service.id;
+
+                    return (
+                      <button
+                        key={service.id}
+                        type="button"
+                        draggable
+                        onClick={() => setSelectedService(service)}
+                        onDragStart={(event) => event.dataTransfer.setData("service_id", String(service.id))}
+                        className={`w-full cursor-pointer rounded-2xl border bg-background p-4 text-left shadow-sm transition ${
+                          active ? "border-primary ring-2 ring-primary/20" : "hover:bg-muted/40"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold">{service.name}</p>
+                            <p className="line-clamp-2 text-sm text-muted-foreground">
+                              {service.description || "No description"}
+                            </p>
+                          </div>
+                          {active && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    No unassigned services
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {windows.length ? (
+              windows.map((window) => {
+                const isCollapsed = collapsed[window.id];
 
                 return (
-                  <div
+                  <Card
                     key={window.id}
-                    className="flex items-center justify-between rounded-lg border p-3"
+                    className="rounded-3xl"
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      handleDrop(window.id, event.dataTransfer.getData("service_id"));
+                    }}
                   >
-                    <div>
-                      <p className="font-medium">{window.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {window.availability.join(", ")}
-                      </p>
-                    </div>
-
-                    <Button
-                      size="icon"
-                      disabled={!!exists}
-                      onClick={() => handleAddWindow(window)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-
-          </CardContent>
-        </Card>
-
-        <Card className="min-h-[400px]">
-          <CardHeader>
-            <CardTitle>Workflow Builder</CardTitle>
-          </CardHeader>
-
-          <CardContent className="space-y-4 overflow-y-auto">
-            {selectedWindows.length === 0 ? (
-              <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
-                No windows selected
-              </div>
-            ) : (
-              selectedWindows
-                .sort((a, b) => a.step_order - b.step_order)
-                .map((window, index) => (
-                  <div
-                    key={window.window_id}
-                    className="rounded-xl border p-4"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold">
-                          Step {window.step_order}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {window.window_name}
-                        </p>
-                      </div>
-
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() =>
-                          handleRemoveWindow(window.window_id)
-                        }
+                    <CardContent className="space-y-4 p-4 sm:p-5">
+                      <button
+                        type="button"
+                        onClick={() => toggleWindow(window.id)}
+                        className="flex w-full items-center justify-between text-left"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                        <div>
+                          <h3 className="font-bold">{window.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {(window.services || []).length} assigned service(s)
+                          </p>
+                        </div>
+                        {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                      </button>
+
+                      {!isCollapsed && (
+                        <div className="min-h-[130px] space-y-2 rounded-2xl border border-dashed p-3">
+                          <Button
+                            type="button"
+                            variant={selectedService ? "default" : "outline"}
+                            className="w-full rounded-xl"
+                            disabled={!selectedService || moveService.isPending}
+                            onClick={() => assignToWindow(window.id)}
+                          >
+                            Assign Selected Here
+                          </Button>
+
+                          {window.services?.length ? (
+                            window.services.map((service) => (
+                              <div
+                                key={service.id}
+                                draggable
+                                onClick={() => setSelectedService(service)}
+                                onDragStart={(event) => event.dataTransfer.setData("service_id", String(service.id))}
+                                className="rounded-xl border bg-background p-3"
+                              >
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                  <div>
+                                    <p className="font-medium">{service.name}</p>
+                                    <p className="line-clamp-1 text-xs text-muted-foreground">
+                                      {service.description || "No description"}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      unassign(service.id);
+                                    }}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="flex h-24 items-center justify-center text-center text-sm text-muted-foreground">
+                              Drop services here or tap Assign Selected Here
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            ) : (
+              <Card className="rounded-3xl md:col-span-2">
+                <CardContent className="p-10 text-center text-muted-foreground">
+                  No {level} windows found.
+                </CardContent>
+              </Card>
             )}
-
-            <div className="flex justify-end">
-              <Button
-                onClick={handleAssign}
-                disabled={assignMutation.isPending}
-              >
-                {assignMutation.isPending ? "Saving..." : "Save Workflow"}
-              </Button>
-            </div>
-
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

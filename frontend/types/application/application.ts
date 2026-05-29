@@ -18,3 +18,10 @@ export interface ApplyPayload {
 export interface TrackPayload {
   tracking_number: string;
 }
+
+
+// officer appli  will be able to see the application details and update the status of the application
+
+export interface OfficerApplicationActionPayload {
+  remark?: string;
+}

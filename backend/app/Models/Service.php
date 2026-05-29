@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\Auditable;
 
 class Service extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'name',
         'description',
@@ -21,19 +24,11 @@ class Service extends Model
         'service_fee' => 'float',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | WINDOWS
-    |--------------------------------------------------------------------------
-    */
-
     public function windows()
     {
-        return $this->belongsToMany(
-            Window::class,
-            'service_window'
-        )
+        return $this->belongsToMany(Window::class, 'service_window')
             ->withPivot([
+                'assignment_level',
                 'step_order',
                 'is_required',
             ])
@@ -41,79 +36,49 @@ class Service extends Model
             ->orderBy('service_window.step_order');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | ASSIGNED USERS
-    |--------------------------------------------------------------------------
-    */
-
     public function assignedUsers()
     {
-        return $this->belongsToMany(
-            User::class,
-            'user_service_assignments'
-        )
+        return $this->belongsToMany(User::class, 'user_service_assignments')
             ->withPivot([
+                'officer_type',
+                'window_id',
+                'assignment_level',
+                'city_id',
+                'subcity_id',
+                'woreda_id',
                 'is_active',
+                'assigned_by',
+                'assigned_at',
             ])
             ->withTimestamps();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | FRONT OFFICERS
-    |--------------------------------------------------------------------------
-    */
-
     public function frontOfficers()
     {
         return $this->assignedUsers()
-            ->role([
-                'city_front_officer',
-                'subcity_front_officer',
-                'woreda_front_officer',
-            ]);
+            ->wherePivot('officer_type', 'front_officer');
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | BACK OFFICERS
-    |--------------------------------------------------------------------------
-    */
 
     public function backOfficers()
     {
         return $this->assignedUsers()
-            ->role([
-                'city_back_officer',
-                'subcity_back_officer',
-                'woreda_back_officer',
-            ]);
+            ->wherePivot('officer_type', 'back_officer');
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | FORMS
-    |--------------------------------------------------------------------------
-    */
 
     public function forms()
     {
-        return $this->hasMany(
-            ServiceForm::class
-        );
+        return $this->hasMany(ServiceForm::class);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | APPLICATIONS
-    |--------------------------------------------------------------------------
-    */
+    public function form()
+    {
+        return $this->hasOne(ServiceForm::class)
+            ->where('is_active', true)
+            ->latestOfMany();
+    }
 
     public function applications()
     {
-        return $this->hasMany(
-            ServiceApplication::class
-        );
+        return $this->hasMany(ServiceApplication::class);
     }
 }

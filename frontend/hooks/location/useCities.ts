@@ -1,6 +1,11 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+
 import {
   getCities,
   createCity,
@@ -9,6 +14,7 @@ import {
 } from "@/services/locations/service";
 
 /* ================= TYPES ================= */
+
 type CityPayload = {
   name: string;
   code?: string;
@@ -19,63 +25,83 @@ type UpdateCityPayload = {
   data: CityPayload;
 };
 
-/* ================= GET CITIES ================= */
-export const useCities = (page: number) => {
+/* ================= GET ALL CITIES ================= */
+
+export const useCities = (page = 1) => {
   return useQuery({
     queryKey: ["cities", page],
+
     queryFn: async () => {
       const res = await getCities(page);
 
-      // ✅ NORMALIZE RESPONSE (VERY IMPORTANT FIX)
+      console.log("Cities Response:", res);
+
       return {
-        data: res?.data ?? [],
-        meta: res?.meta ?? {},
+        data:
+          res?.data?.data ||
+          res?.data ||
+          [],
+
+        meta:
+          res?.data?.meta ||
+          null,
       };
     },
-
-    // React Query v5 replacement for keepPreviousData
-    placeholderData: (prev) => prev,
 
     staleTime: 1000 * 60 * 5,
   });
 };
 
 /* ================= CREATE CITY ================= */
+
 export const useCreateCity = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CityPayload) => createCity(data),
+    mutationFn: (data: CityPayload) =>
+      createCity(data),
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["cities"] });
+      qc.invalidateQueries({
+        queryKey: ["cities"],
+      });
     },
   });
 };
 
 /* ================= UPDATE CITY ================= */
+
 export const useUpdateCity = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: UpdateCityPayload) =>
+    mutationFn: ({
+      id,
+      data,
+    }: UpdateCityPayload) =>
       updateCity(id, data),
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["cities"] });
+      qc.invalidateQueries({
+        queryKey: ["cities"],
+      });
     },
   });
 };
 
 /* ================= DELETE CITY ================= */
+
 export const useDeleteCity = () => {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => deleteCity(id),
+    mutationFn: (id: number) =>
+      deleteCity(id),
 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["cities"] });
+      qc.invalidateQueries({
+        queryKey: ["cities"],
+      });
     },
   });
 };

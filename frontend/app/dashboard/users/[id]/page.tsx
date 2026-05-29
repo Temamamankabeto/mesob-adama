@@ -33,7 +33,9 @@ const validatePassword = (password: string) => {
 export default function UserDetailsPage() {
   const { id } = useParams();
 
-  const { data } = useUsers(1);
+ const { data } = useUsers({
+  page: 1,
+});
   const user = data?.data?.find((u: any) => u.id == id);
 
   const updateUser = useUpdateUser();

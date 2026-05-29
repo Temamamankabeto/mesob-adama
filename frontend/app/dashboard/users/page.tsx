@@ -2,287 +2,405 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { MoreVertical, Search, RefreshCw } from "lucide-react";
 
 import {
   useUsers,
   useDeleteUser,
+  useToggleUserStatus,
 } from "@/hooks/user/useUsers";
 
-import { useToggleUserStatus } from "@/hooks/user/useToggleUserStatus";
+import { useCities } from "@/hooks/location/useCities";
+import { useSubcities } from "@/hooks/location/useSubcities";
+import { useWoredas } from "@/hooks/location/useWoredas";
 
-/* UI */
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  normalizeRoleName,
+  roleLabel,
+  locationLevelLabel,
+} from "@/config/roles.config";
 
+import { authService } from "@/services/auth/auth.service";
 import { Button } from "@/components/ui/button";
-
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-
-/* Dropdown */
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
-import { MoreVertical, Search } from "lucide-react";
+function toList(value: any): any[] {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  if (Array.isArray(value?.data)) return value.data;
+  return [];
+}
+
+function canToggleUsers() {
+  const user = authService.getStoredUser() as any;
+  const roles = authService.getStoredRoles();
+  const role = normalizeRoleName(roles?.[0] || user?.role);
+
+  if (role === "super_admin" || role === "admin") return true;
+
+  if (role !== "front_officer" && role !== "back_officer") return false;
+
+  return (
+    user?.location_level === "city" ||
+    (user?.city_id && !user?.subcity_id && !user?.woreda_id)
+  );
+}
 
 export default function UsersPage() {
   const router = useRouter();
 
-  /* PAGINATION + SEARCH STATE */
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [role, setRole] = useState("");
+  const [cityId, setCityId] = useState("");
+  const [subcityId, setSubcityId] = useState("");
+  const [woredaId, setWoredaId] = useState("");
 
-  /* FETCH USERS */
-  const { data, isLoading } = useUsers(page, search);
+  const { data: citiesData } = useCities(1);
+  const { data: subcitiesData } = useSubcities(1);
+  const { data: woredasData } = useWoredas(1);
+
+  const cities = toList(citiesData);
+
+  const subcities = toList(subcitiesData).filter((subcity) =>
+    cityId ? Number(subcity.city_id) === Number(cityId) : true
+  );
+
+  const woredas = toList(woredasData).filter((woreda) =>
+    subcityId ? Number(woreda.subcity_id) === Number(subcityId) : true
+  );
+
+  const { data, isLoading, refetch } = useUsers({
+    page,
+    search,
+    status,
+    role,
+    city_id: cityId,
+    subcity_id: subcityId,
+    woreda_id: woredaId,
+  });
 
   const users = data?.data || [];
-  const meta = data?.meta;
+  const meta = data?.meta || {};
 
   const deleteUser = useDeleteUser();
   const toggleStatus = useToggleUserStatus();
+  const showToggleAction = canToggleUsers();
 
-  const handleDelete = (id: number) => {
-    if (confirm("Delete user?")) {
+  function handleDelete(id: number) {
+    if (confirm("Are you sure you want to delete this user?")) {
       deleteUser.mutate(id);
     }
-  };
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setStatus("");
+    setRole("");
+    setCityId("");
+    setSubcityId("");
+    setWoredaId("");
+    setPage(1);
+  }
 
   return (
-    <div className="p-6 space-y-6">
-
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Users</h1>
+    <div className="space-y-6 p-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage users by role and location hierarchy.
+          </p>
+        </div>
 
         <Button onClick={() => router.push("/dashboard/users/add")}>
-          + Add User
+          Add User
         </Button>
       </div>
 
-      {/* SEARCH */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+        </CardHeader>
 
-            <Input
-              placeholder="Search users..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-10"
+              />
+            </div>
+
+            <Select value={status || "all"} onValueChange={(value) => {
+              setStatus(value === "all" ? "" : value);
+              setPage(1);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent className="z-[9999]">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="disabled">Disabled</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={role || "all"} onValueChange={(value) => {
+              setRole(value === "all" ? "" : value);
+              setPage(1);
+            }}>
+              <SelectTrigger><SelectValue placeholder="Role" /></SelectTrigger>
+              <SelectContent className="z-[9999]">
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="super_admin">Super Admin</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="back_officer">Back Officer</SelectItem>
+                <SelectItem value="front_officer">Front Officer</SelectItem>
+                <SelectItem value="citizen">Citizen</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={cityId || "all"} onValueChange={(value) => {
+              const selected = value === "all" ? "" : value;
+              setCityId(selected);
+              setSubcityId("");
+              setWoredaId("");
+              setPage(1);
+            }}>
+              <SelectTrigger><SelectValue placeholder="City" /></SelectTrigger>
+              <SelectContent className="z-[9999]">
+                <SelectItem value="all">All Cities</SelectItem>
+                {cities.map((city) => (
+                  <SelectItem key={city.id} value={String(city.id)}>
+                    {city.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={subcityId || "all"}
+              disabled={!cityId}
+              onValueChange={(value) => {
+                const selected = value === "all" ? "" : value;
+                setSubcityId(selected);
+                setWoredaId("");
                 setPage(1);
               }}
-              className="pl-10"
-            />
+            >
+              <SelectTrigger><SelectValue placeholder="Subcity" /></SelectTrigger>
+              <SelectContent className="z-[9999]">
+                <SelectItem value="all">All Subcities</SelectItem>
+                {subcities.map((subcity) => (
+                  <SelectItem key={subcity.id} value={String(subcity.id)}>
+                    {subcity.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={woredaId || "all"}
+              disabled={!subcityId}
+              onValueChange={(value) => {
+                const selected = value === "all" ? "" : value;
+                setWoredaId(selected);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger><SelectValue placeholder="Woreda" /></SelectTrigger>
+              <SelectContent className="z-[9999]">
+                <SelectItem value="all">All Woredas</SelectItem>
+                {woredas.map((woreda) => (
+                  <SelectItem key={woreda.id} value={String(woreda.id)}>
+                    {woreda.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <Button variant="outline" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* TABLE */}
       <Card>
         <CardHeader>
           <CardTitle>User List</CardTitle>
         </CardHeader>
 
         <CardContent>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>City</TableHead>
-                <TableHead>Subcity</TableHead>
-                <TableHead>Woreda</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[80px]">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-
-              {isLoading ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10">
-                    Loading...
-                  </TableCell>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>City</TableHead>
+                  <TableHead>Subcity</TableHead>
+                  <TableHead>Woreda</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
-              ) : users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10">
-                    No users found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                users.map((u: any) => (
-                  <TableRow key={u.id}>
+              </TableHeader>
 
-                    <TableCell>{u.name}</TableCell>
-
-                    <TableCell>{u.email}</TableCell>
-
-                    <TableCell>{u.phone}</TableCell>
-
-               <TableCell>
-  {u.role_names?.length > 0 ? (
-    u.role_names.map((role: string, i: number) => (
-      <span
-        key={i}
-        className="px-2 py-1 mr-1 rounded text-xs bg-blue-100 text-blue-700"
-      >
-        {role}
-      </span>
-    ))
-  ) : (
-    "-"
-  )}
-</TableCell>
-                    <TableCell>{u.city?.name || "Adama"}</TableCell>
-                    <TableCell>{u.subcity?.name || "-"}</TableCell>
-                    <TableCell>{u.woreda?.name || "-"}</TableCell>
-
-                    {/* STATUS */}
-                    <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          Boolean(u.is_active)
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {Boolean(u.is_active)
-                          ? "Active"
-                          : "Disabled"}
-                      </span>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="py-10 text-center">
+                      Loading...
                     </TableCell>
-
-                    {/* ACTION MENU */}
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="w-5 h-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-
-                        <DropdownMenuContent align="end">
-
-                          {/* VIEW */}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(`/dashboard/users/${u.id}`)
-                            }
-                          >
-                            View
-                          </DropdownMenuItem>
-
-                          {/* EDIT */}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(
-                                `/dashboard/users/${u.id}/edit`
-                              )
-                            }
-                          >
-                            Edit
-                          </DropdownMenuItem>
-
-                          {/* CHANGE PASSWORD */}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              router.push(
-                                `/dashboard/users/${u.id}/change-password`
-                              )
-                            }
-                          >
-                            Change Password
-                          </DropdownMenuItem>
-
-                          {/* ENABLE/DISABLE */}
-                          <DropdownMenuItem
-                            onClick={() =>
-                              toggleStatus.mutate(u.id)
-                            }
-                          >
-                            {u.is_active
-                              ? "Disable User"
-                              : "Enable User"}
-                          </DropdownMenuItem>
-
-                          {/* DELETE */}
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDelete(u.id)}
-                          >
-                            Delete
-                          </DropdownMenuItem>
-
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-
                   </TableRow>
-                ))
-              )}
+                ) : users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="py-10 text-center">
+                      No users found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user: any) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.phone || "-"}</TableCell>
 
-            </TableBody>
-          </Table>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {(user.role_names || [user.role])
+                            .filter(Boolean)
+                            .map((item: string) => (
+                              <span
+                                key={item}
+                                className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700"
+                              >
+                                {roleLabel(item)}
+                              </span>
+                            ))}
+                        </div>
+                      </TableCell>
 
-          {/* PAGINATION */}
-          <div className="flex items-center justify-between mt-6">
+                      <TableCell>{locationLevelLabel(user.location_level) || "-"}</TableCell>
+                      <TableCell>{user.city?.name || "-"}</TableCell>
+                      <TableCell>{user.subcity?.name || "-"}</TableCell>
+                      <TableCell>{user.woreda?.name || "-"}</TableCell>
 
+                      <TableCell>
+                        <span
+                          className={`rounded px-2 py-1 text-xs font-medium ${
+                            user.is_active
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {user.is_active ? "Active" : "Disabled"}
+                        </span>
+                      </TableCell>
+
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/dashboard/users/${user.id}`)}
+                            >
+                              View
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/dashboard/users/${user.id}/edit`)}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push(`/dashboard/users/${user.id}/change-password`)
+                              }
+                            >
+                              Change Password
+                            </DropdownMenuItem>
+
+                            {showToggleAction && (
+                              <DropdownMenuItem
+                                onClick={() => toggleStatus.mutate(user.id)}
+                              >
+                                {user.is_active ? "Disable" : "Enable"}
+                              </DropdownMenuItem>
+                            )}
+
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDelete(user.id)}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="text-sm text-muted-foreground">
-              Showing page {meta?.current_page || 1} of{" "}
-              {meta?.last_page || 1}
+              Page {meta?.current_page || 1} of {meta?.last_page || 1}
             </div>
 
             <div className="flex gap-2">
-
-              {/* PREV */}
               <Button
                 variant="outline"
-                disabled={meta?.current_page === 1}
-                onClick={() =>
-                  setPage((prev) => Math.max(prev - 1, 1))
-                }
+                disabled={(meta?.current_page || 1) <= 1}
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
               >
                 Prev
               </Button>
 
-              {/* NEXT */}
               <Button
                 variant="outline"
-                disabled={
-                  meta?.current_page === meta?.last_page
-                }
+                disabled={(meta?.current_page || 1) >= (meta?.last_page || 1)}
                 onClick={() =>
-                  setPage((prev) => prev + 1)
+                  setPage((p) => Math.min(p + 1, meta?.last_page || p))
                 }
               >
                 Next
               </Button>
-
             </div>
           </div>
-
         </CardContent>
       </Card>
     </div>
