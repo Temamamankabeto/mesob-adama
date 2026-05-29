@@ -9,15 +9,27 @@ import {
   Clock3,
   FileText,
   MapPin,
-  UserRound,
 } from "lucide-react";
 
 import ApplicationFilesList from "@/components/application/ApplicationFilesList";
 import ApplicationStatusBadge from "@/components/application/ApplicationStatusBadge";
 import ApplicationWorkflowTimeline from "@/components/application/ApplicationWorkflowTimeline";
+
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 import { useCustomerApplication } from "@/hooks/customer/use-customer-applications";
+
+type NamedRelation = {
+  id?: number | string;
+  name?: string | null;
+  display_name?: string | null;
+};
 
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
@@ -51,7 +63,10 @@ function formatTime(value?: string | null) {
 }
 
 function latestAppointment(application: any) {
-  if (Array.isArray(application?.appointments) && application.appointments.length) {
+  if (
+    Array.isArray(application?.appointments) &&
+    application.appointments.length
+  ) {
     return application.appointments[0];
   }
 
@@ -69,17 +84,46 @@ function latestAppointment(application: any) {
 }
 
 function locationText(data: any) {
-  return data?.woreda?.name || data?.subcity?.name || data?.city?.name || "-";
+  return (
+    data?.woreda?.name ||
+    data?.subcity?.name ||
+    data?.city?.name ||
+    "-"
+  );
+}
+
+function relationName(relation?: NamedRelation | null) {
+  if (!relation) return "-";
+
+  return relation.display_name || relation.name || "-";
 }
 
 export default function DashboardMyApplicationDetailPage() {
   const params = useParams();
+
   const id = Number(params.id);
 
   const { data, isLoading } = useCustomerApplication(id);
 
-  if (isLoading) return <div>Loading application...</div>;
-  if (!data) return <div>Application not found.</div>;
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center">
+        <p className="text-sm text-muted-foreground">
+          Loading application...
+        </p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center">
+        <p className="text-sm text-muted-foreground">
+          Application not found.
+        </p>
+      </div>
+    );
+  }
 
   const appointment = latestAppointment(data);
 
@@ -95,8 +139,14 @@ export default function DashboardMyApplicationDetailPage() {
       <div className="rounded-3xl border bg-card p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Application Number</p>
-            <h1 className="text-3xl font-bold">{data.tracking_number}</h1>
+            <p className="text-sm text-muted-foreground">
+              Application Number
+            </p>
+
+            <h1 className="text-3xl font-bold">
+              {data.tracking_number}
+            </h1>
+
             <p className="mt-2 text-sm text-muted-foreground">
               {data.service?.name || data.service_id}
             </p>
@@ -116,14 +166,35 @@ export default function DashboardMyApplicationDetailPage() {
           </CardHeader>
 
           <CardContent className="grid gap-4 md:grid-cols-4">
-            <Info label="Appointment Date" value={formatDate(appointment.appointment_at)} />
-            <Info label="Appointment Time" value={formatTime(appointment.appointment_at)} />
-            <Info label="Location" value={appointment.location || "-"} />
-            <Info label="Status" value={appointment.status || "scheduled"} />
+            <Info
+              label="Appointment Date"
+              value={formatDate(appointment.appointment_at)}
+            />
+
+            <Info
+              label="Appointment Time"
+              value={formatTime(appointment.appointment_at)}
+            />
+
+            <Info
+              label="Location"
+              value={appointment.location || "-"}
+            />
+
+            <Info
+              label="Status"
+              value={appointment.status || "scheduled"}
+            />
+
             {appointment.message && (
               <div className="rounded-2xl border bg-background p-4 md:col-span-4">
-                <p className="text-sm text-muted-foreground">Officer Message</p>
-                <p className="mt-1 font-medium">{appointment.message}</p>
+                <p className="text-sm text-muted-foreground">
+                  Officer Message
+                </p>
+
+                <p className="mt-1 font-medium">
+                  {appointment.message}
+                </p>
               </div>
             )}
           </CardContent>
@@ -137,12 +208,35 @@ export default function DashboardMyApplicationDetailPage() {
           </CardHeader>
 
           <CardContent className="grid gap-4 md:grid-cols-2">
-            <Info label="Service" value={data.service?.name || data.service_id} />
-            <Info label="Tracking Number" value={data.tracking_number} />
-            <Info label="Administrative Level" value={data.administrative_level || "-"} />
-            <Info label="Location" value={locationText(data)} />
-            <Info label="Submitted Date" value={formatDateTime(data.submitted_at)} />
-            <Info label="Completed Date" value={formatDateTime(data.completed_at)} />
+            <Info
+              label="Service"
+              value={data.service?.name || data.service_id}
+            />
+
+            <Info
+              label="Tracking Number"
+              value={data.tracking_number}
+            />
+
+            <Info
+              label="Administrative Level"
+              value={data.administrative_level || "-"}
+            />
+
+            <Info
+              label="Location"
+              value={locationText(data)}
+            />
+
+            <Info
+              label="Submitted Date"
+              value={formatDateTime(data.submitted_at)}
+            />
+
+            <Info
+              label="Completed Date"
+              value={formatDateTime(data.completed_at)}
+            />
           </CardContent>
         </Card>
 
@@ -156,16 +250,21 @@ export default function DashboardMyApplicationDetailPage() {
 
           <CardContent className="space-y-3">
             <ApplicationStatusBadge status={data.status} />
+
             {data.current_window && (
               <p className="text-sm text-muted-foreground">
-                Current Window: {data.current_window.display_name || data.current_window.name}
+                Current Window:{" "}
+                {relationName(data.current_window)}
               </p>
             )}
+
             {data.current_officer && (
               <p className="text-sm text-muted-foreground">
-                Current Officer: {data.current_officer.name}
+                Current Officer:{" "}
+                {relationName(data.current_officer)}
               </p>
             )}
+
             {data.rejection_reason && (
               <p className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">
                 {data.rejection_reason}
@@ -186,16 +285,24 @@ export default function DashboardMyApplicationDetailPage() {
 
           <CardContent className="space-y-3">
             {data.data?.length ? (
-              data.data.map((item) => (
-                <div key={item.id} className="rounded-2xl border p-4">
-                  <p className="text-sm font-medium">{item.field_name}</p>
+              data.data.map((item: any) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border p-4"
+                >
+                  <p className="text-sm font-medium">
+                    {item.field_name}
+                  </p>
+
                   <p className="mt-1 text-sm text-muted-foreground">
                     {item.field_value || "-"}
                   </p>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground">No submitted data found.</p>
+              <p className="text-sm text-muted-foreground">
+                No submitted data found.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -220,18 +327,32 @@ export default function DashboardMyApplicationDetailPage() {
         </CardHeader>
 
         <CardContent>
-          <ApplicationWorkflowTimeline workflow={data.workflow || data.workflows} histories={data.histories} />
+          <ApplicationWorkflowTimeline
+            workflow={data.workflow || data.workflows}
+            histories={data.histories}
+          />
         </CardContent>
       </Card>
     </div>
   );
 }
 
-function Info({ label, value }: { label: string; value: any }) {
+function Info({
+  label,
+  value,
+}: {
+  label: string;
+  value: any;
+}) {
   return (
     <div className="rounded-2xl border bg-background p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 font-medium capitalize">{value || "-"}</p>
+      <p className="text-sm text-muted-foreground">
+        {label}
+      </p>
+
+      <p className="mt-1 font-medium capitalize">
+        {value || "-"}
+      </p>
     </div>
   );
 }
