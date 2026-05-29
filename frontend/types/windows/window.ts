@@ -7,8 +7,13 @@ export interface Window {
   id: number;
 
   name: string;
+  title?: string | null;
+  city_title?: string | null;
+  subcity_title?: string | null;
+  woreda_title?: string | null;
+  administrative_level?: WindowAvailability | null;
 
-  availability: WindowAvailability[];
+  availability: WindowAvailability[] | { levels?: WindowAvailability[] };
 
   created_at: string;
 
@@ -19,6 +24,10 @@ export interface WindowPayload {
   name: string;
 
   availability: WindowAvailability[];
+
+  city_title?: string | null;
+  subcity_title?: string | null;
+  woreda_title?: string | null;
 }
 
 export interface PaginatedWindowResponse {
