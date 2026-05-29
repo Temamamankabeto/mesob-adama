@@ -14,8 +14,10 @@ import {
   Headphones,
   Loader2,
   MessageSquareText,
+  PanelsTopLeft,
   PlusCircle,
   SearchCheck,
+  Users,
   XCircle,
 } from "lucide-react";
 
@@ -82,6 +84,42 @@ function formatDate(value?: string | null) {
   return new Date(value).toLocaleDateString();
 }
 
+function titleCase(value?: string | null) {
+  return String(value || "-").replaceAll("_", " ");
+}
+
+function getStatusColor(key: string) {
+  const colors: Record<string, string> = {
+    total: "bg-blue-50 text-blue-700",
+    pending: "bg-amber-50 text-amber-700",
+    submitted: "bg-sky-50 text-sky-700",
+    under_review: "bg-indigo-50 text-indigo-700",
+    appointed: "bg-cyan-50 text-cyan-700",
+    approved: "bg-emerald-50 text-emerald-700",
+    completed: "bg-green-50 text-green-700",
+    rejected: "bg-red-50 text-red-700",
+    shared: "bg-purple-50 text-purple-700",
+    returned: "bg-orange-50 text-orange-700",
+    escalated: "bg-rose-50 text-rose-700",
+  };
+
+  return colors[key] || "bg-muted text-muted-foreground";
+}
+
+const statusCards = [
+  { key: "total", label: "Total", icon: FileText },
+  { key: "pending", label: "Pending", icon: Clock3 },
+  { key: "submitted", label: "Submitted", icon: FileText },
+  { key: "under_review", label: "Under Review", icon: SearchCheck },
+  { key: "appointed", label: "Appointed", icon: CalendarCheck2 },
+  { key: "approved", label: "Approved", icon: CheckCircle2 },
+  { key: "completed", label: "Completed", icon: BadgeCheck },
+  { key: "rejected", label: "Rejected", icon: XCircle },
+  { key: "shared", label: "Shared", icon: ArrowRight },
+  { key: "returned", label: "Returned", icon: Clock3 },
+  { key: "escalated", label: "Escalated", icon: ArrowRight },
+];
+
 export default function DashboardPage() {
   const {
     data,
@@ -126,6 +164,20 @@ export default function DashboardPage() {
     .includes("customer");
 
   if (!isCustomer) {
+    const recentApplications = data.recent_applications || [];
+    const recentUsers = data.recent_users || [];
+
+    const moduleCards = [
+      { label: "Active Users", value: modules.active_users, icon: Users },
+      { label: "Inactive Users", value: modules.inactive_users, icon: Users },
+      { label: "Active Services", value: modules.active_services, icon: FileText },
+      { label: "Inactive Services", value: modules.inactive_services, icon: FileText },
+      { label: "Windows", value: modules.windows, icon: PanelsTopLeft },
+      { label: "Form Sections", value: modules.form_sections, icon: FileText },
+      { label: "Form Fields", value: modules.form_fields, icon: FileText },
+      { label: "Appointments", value: modules.appointments, icon: CalendarCheck2 },
+    ];
+
     return (
       <div className="space-y-6">
         <div className="rounded-3xl border bg-card p-6 shadow-sm">
@@ -143,19 +195,24 @@ export default function DashboardPage() {
                 {dashboard.subtitle}
               </p>
             </div>
-          </div>
-        </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <Button asChild variant="outline" className="rounded-2xl">
+              <Link href="/dashboard/service-applications">
+                View Applications
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {data.cards.map((card) => (
             <Card
               key={card.key}
               className="rounded-3xl"
             >
               <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">
-                  {card.label}
-                </CardTitle>
+                <CardTitle className="text-sm text-muted-foreground">{card.label}</CardTitle>
               </CardHeader>
 
               <CardContent>
@@ -169,12 +226,169 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
+        </section>
+
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+          {statusCards.map((card) => {
+            const CardIcon = card.icon;
+
+            return (
+              <Card key={card.key} className="rounded-2xl">
+                <CardContent className="p-4">
+                  <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl ${getStatusColor(card.key)}`}>
+                    <CardIcon className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs font-medium text-muted-foreground">{card.label}</p>
+                  <p className="mt-1 text-2xl font-bold">{numberValue(status[card.key])}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {moduleCards.map((item) => {
+            const ItemIcon = item.icon;
+
+            return (
+              <Card key={item.label} className="rounded-2xl">
+                <CardContent className="flex items-center gap-4 p-5">
+                  <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+                    <ItemIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{item.label}</p>
+                    <p className="text-2xl font-bold">{numberValue(item.value)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
+          <Card className="rounded-[2rem] shadow-sm">
+            <CardHeader className="flex flex-col gap-3 border-b md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle>Recent Applications</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Latest applications inside your access scope.
+                </p>
+              </div>
+
+              <Button asChild variant="outline" className="rounded-2xl">
+                <Link href="/dashboard/service-applications">
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tracking Number</TableHead>
+                      <TableHead>Service</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Submitted</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {recentApplications.length ? (
+                      recentApplications.map((application) => (
+                        <TableRow key={application.id}>
+                          <TableCell className="font-medium">{application.tracking_number || "-"}</TableCell>
+                          <TableCell>{application.service_name || "-"}</TableCell>
+                          <TableCell>{application.customer_name || "-"}</TableCell>
+                          <TableCell>
+                            <ApplicationStatusBadge status={application.status || "-"} />
+                          </TableCell>
+                          <TableCell>{formatDate(application.submitted_at)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button asChild variant="outline" size="sm" className="rounded-xl">
+                              <Link href={`/dashboard/service-applications/${application.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View
+                              </Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                          No recent applications found.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6">
+            <Card className="rounded-[2rem] shadow-sm">
+              <CardHeader className="border-b">
+                <CardTitle>Quick Access</CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-3 p-5">
+                {(data.quick_links || []).length ? (
+                  data.quick_links.map((item) => (
+                    <Button
+                      key={item.href}
+                      asChild
+                      variant="outline"
+                      className="h-12 w-full justify-between rounded-2xl px-4"
+                    >
+                      <Link href={item.href}>
+                        <span>{item.label}</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No quick links available.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[2rem] shadow-sm">
+              <CardHeader className="border-b">
+                <CardTitle>Recent Users</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 p-5">
+                {recentUsers.length ? (
+                  recentUsers.map((user) => (
+                    <div key={user.id} className="rounded-2xl border p-3">
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-xs text-muted-foreground">{user.email || "-"}</p>
+                      <div className="mt-2 flex items-center justify-between text-xs">
+                        <span className="capitalize">{titleCase(user.role)}</span>
+                        <span className={user.is_active ? "text-green-600" : "text-red-600"}>
+                          {user.is_active ? "Active" : "Disabled"}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No recent users found.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
       </div>
     );
   }
 
-  const statusCards = [
+  const customerStatusCards = [
     {
       label: "Total",
       value: numberValue(status.total),
@@ -269,7 +483,7 @@ export default function DashboardPage() {
     },
     {
       label: "Complaints & Feedback",
-      href: "/dashboard/complaints",
+      href: "/dashboard/complaints-feedback",
       icon: MessageSquareText,
       count: getCount(overview, [
         "complaints",
@@ -279,7 +493,7 @@ export default function DashboardPage() {
     },
     {
       label: "Help & Support",
-      href: "/dashboard/help",
+      href: "/dashboard/help-support",
       icon: Headphones,
       count: null,
     },
@@ -331,7 +545,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-        {statusCards.map((card) => {
+        {customerStatusCards.map((card) => {
           const CardIcon = card.icon;
 
           return (

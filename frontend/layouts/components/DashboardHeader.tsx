@@ -9,6 +9,8 @@ import {
   CreditCard,
   LogOut,
   Menu,
+  Settings,
+  UserCircle,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -69,6 +69,10 @@ export default function FormBuilderCanvas({
 
   const [stepTitle, setStepTitle] = useState("");
   const [sectionTitle, setSectionTitle] = useState("");
+
+  useEffect(() => {
+    setLocalFields(data.fields);
+  }, [data.fields]);
 
   const createStep = useCreateServiceFormStep(serviceFormId);
   const createSection = useCreateServiceFormSection(serviceFormId);

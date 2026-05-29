@@ -28,6 +28,7 @@ class StoreServiceFormFieldConditionRequest extends FormRequest
                 Rule::in(['equals', 'not_equals', 'contains', 'not_contains', 'greater_than', 'less_than', 'is_empty', 'is_not_empty']),
             ],
             'expected_value' => ['nullable', 'string'],
+            'action' => ['nullable', 'string'],
         ];
     }
 }
