@@ -4,67 +4,90 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\SmsService;
+use App\Support\AppRoles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Log;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'phone' => ['required', 'string', 'max:20'],
-            'password' => ['required', 'confirmed', 'min:8'],
-            'address' => ['nullable', 'string', 'max:500'],
-        ]);
+    public function register(Request $request, SmsService $sms)
+{
+    $validator = Validator::make($request->all(), [
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+        'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
+        'password' => ['required', 'confirmed', 'min:8'],
+        'address' => ['nullable', 'string', 'max:500'],
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'password' => Hash::make($request->password),
-            'is_active' => true,
-        ]);
-
-        $user->assignRole('customer');
-
-        $accessToken = $user->createToken('aig-api-token')->plainTextToken;
-        $refreshToken = Str::random(64);
-
-        $user->forceFill([
-            'refresh_token' => hash('sha256', $refreshToken),
-            'refresh_token_expires_at' => now()->addDays(30),
-        ])->save();
-
-        return response()->json($this->authPayload($user, $accessToken, $refreshToken), 201)
-            ->cookie($this->refreshCookie($refreshToken));
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors' => $validator->errors(),
+        ], 422);
     }
+
+    $plainPassword = $request->password;
+
+    // ✅ CREATE USER ONLY ONCE
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'phone' => $request->phone,
+        'address' => $request->address,
+        'password' => Hash::make($plainPassword),
+        'is_active' => true,
+    ]);
+
+    // ✅ ROLE
+    $user->syncRoles(['customer']);
+
+    // ✅ TOKENS
+    $accessToken = $user->createToken('api-token')->plainTextToken;
+    $refreshToken = Str::random(64);
+
+    $user->forceFill([
+        'refresh_token' => hash('sha256', $refreshToken),
+        'refresh_token_expires_at' => now()->addDays(30),
+    ])->save();
+
+    // ✅ SMS (no password sending)
+    try {
+        $message = "Welcome {$user->name}! Your MESOB account has been created successfully.";
+        $sms->sendToPhone($user->phone, $message);
+    } catch (\Throwable $exception) {
+        Log::error('Registration SMS failed: ' . $exception->getMessage());
+    }
+
+    return response()->json(
+        $this->authPayload($user, $accessToken, $refreshToken),
+        201
+    )->cookie($this->refreshCookie($refreshToken));
+}
 
     public function login(Request $request)
     {
         $request->validate([
-            'email' => ['required', 'email'],
+            'login' => ['required_without:email', 'nullable', 'string'],
+            'email' => ['required_without:login', 'nullable', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $loginInput = $request->login ?? $request->email;
+
+        $user = User::where('email', $loginInput)
+            ->orWhere('phone', $loginInput)
+            ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Invalid email or password.'],
+                'login' => ['Invalid email/phone or password.'],
             ]);
         }
 
@@ -81,6 +104,7 @@ class AuthController extends Controller
         $user->forceFill([
             'refresh_token' => hash('sha256', $refreshToken),
             'refresh_token_expires_at' => now()->addDays(30),
+            'last_login_at' => now(),
         ])->save();
 
         return response()->json($this->authPayload($user, $accessToken, $refreshToken))
@@ -131,6 +155,9 @@ class AuthController extends Controller
 
     protected function userPayload(User $user): array
     {
+        $user->loadMissing(['city', 'subcity', 'woreda', 'roles']);
+        $role = $user->getRoleNames()->first();
+
         return [
             'id' => $user->id,
             'name' => $user->name,
@@ -138,6 +165,14 @@ class AuthController extends Controller
             'phone' => $user->phone,
             'address' => $user->address,
             'status' => $user->is_active ? 'active' : 'disabled',
+            'city_id' => $user->city_id,
+            'subcity_id' => $user->subcity_id,
+            'woreda_id' => $user->woreda_id,
+            'location_level' => AppRoles::userLevel($user),
+            'city' => $user->city,
+            'subcity' => $user->subcity,
+            'woreda' => $user->woreda,
+            'role' => $role,
             'roles' => $user->getRoleNames()->values()->all(),
             'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
         ];
