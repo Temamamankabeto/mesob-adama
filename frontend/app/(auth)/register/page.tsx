@@ -37,7 +37,7 @@ export default function RegisterPage() {
       const response = await authService.registerCustomer(payload);
       authService.saveSession(response);
       toast.success("Customer account created successfully");
-      router.replace("/public/menu");
+      router.replace("/login");
     } catch (error) {
       if (error instanceof z.ZodError) {
         const nextErrors: FieldErrors = {};

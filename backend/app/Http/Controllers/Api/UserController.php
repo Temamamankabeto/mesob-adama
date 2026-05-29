@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\AssignUserRoleRequest;
-use App\Http\Requests\User\IndexUserRequest;
 use App\Http\Requests\User\ResetUserPasswordRequest;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateProfileRequest;
@@ -13,6 +12,7 @@ use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -20,11 +20,14 @@ class UserController extends Controller
         protected UserService $userService
     ) {}
 
-    public function index(IndexUserRequest $request): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', User::class);
 
-        $users = $this->userService->paginateUsers($request->validated());
+        $users = $this->userService->paginateUsers(
+            $request->only(['search', 'status', 'role', 'per_page']),
+            $request->user()
+        );
 
         return response()->json(
             $this->userService->transformPaginatedUsers($users)
@@ -43,6 +46,15 @@ class UserController extends Controller
         ]);
     }
 
+    public function profile(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile retrieved successfully',
+            'data' => $request->user()->load(['roles', 'city', 'subcity', 'woreda']),
+        ]);
+    }
+
     public function rolesLite(): JsonResponse
     {
         $this->authorize('rolesLite', User::class);
@@ -58,7 +70,10 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
-        $user = $this->userService->createUser($request->validated());
+        $user = $this->userService->createUser(
+            $request->validated(),
+            $request->user()
+        );
 
         return response()->json([
             'success' => true,
@@ -72,7 +87,11 @@ class UserController extends Controller
         $user = $this->userService->getUser($id);
         $this->authorize('update', $user);
 
-        $updatedUser = $this->userService->updateUser($user, $request->validated());
+        $updatedUser = $this->userService->updateUser(
+            $user,
+            $request->validated(),
+            $request->user()
+        );
 
         return response()->json([
             'success' => true,
@@ -86,7 +105,11 @@ class UserController extends Controller
         $user = $this->userService->getUser($id);
         $this->authorize('assignRole', $user);
 
-        $updatedUser = $this->userService->assignRole($user, $request->validated()['role']);
+        $updatedUser = $this->userService->assignRole(
+            $user,
+            $request->validated()['role'],
+            $request->user()
+        );
 
         return response()->json([
             'success' => true,
@@ -142,7 +165,7 @@ class UserController extends Controller
         $updatedUser = $this->userService->updateProfile(
             $user,
             $request->validated(),
-            $request->file('profile')
+            $request->file('profile') ?: $request->file('profile_image')
         );
 
         return response()->json([
@@ -157,11 +180,65 @@ class UserController extends Controller
         $user = $this->userService->getUser($id);
         $this->authorize('delete', $user);
 
-        $this->userService->deleteUser($user, auth()->id());
+        $this->userService->deleteUser($user, Auth::user()->id);
 
         return response()->json([
             'success' => true,
             'message' => 'User deleted successfully',
+        ]);
+    }
+
+    public function changeOwnPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $this->userService->changePassword(
+            $request->user(),
+            $request->input('current_password'),
+            $request->input('new_password')
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password changed successfully',
+        ]);
+    }
+
+    public function changePassword(Request $request, int|string $id): JsonResponse
+    {
+        $user = $this->userService->getUser($id);
+
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $this->userService->changePassword(
+            $user,
+            $request->input('current_password'),
+            $request->input('new_password')
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password changed successfully',
+        ]);
+    }
+
+    public function toggleStatus(int|string $id): JsonResponse
+    {
+        $user = $this->userService->getUser($id);
+        $this->authorize('toggle', $user);
+
+        $updatedUser = $this->userService->toggleUser($user);
+
+        return response()->json([
+            'success' => true,
+            'message' => $updatedUser->is_active ? 'User enabled successfully' : 'User disabled successfully',
+            'data' => $updatedUser,
         ]);
     }
 }

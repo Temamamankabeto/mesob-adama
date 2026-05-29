@@ -8,25 +8,53 @@ use Illuminate\Http\Request;
 
 class AuditLogController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $rows = AuditLog::query()
-            ->with('user')
-            ->when($request->filled('entity_type'), fn($q) => $q->where('entity_type', $request->entity_type))
-            ->when($request->filled('entity_id'), fn($q) => $q->where('entity_id', (int) $request->entity_id))
-            ->when($request->filled('action'), fn($q) => $q->where('action', $request->action))
-            ->when($request->filled('user_id'), fn($q) => $q->where('user_id', (int) $request->user_id))
-            ->when($request->filled('date_from'), fn($q) => $q->whereDate('created_at', '>=', $request->date_from))
-            ->when($request->filled('date_to'), fn($q) => $q->whereDate('created_at', '<=', $request->date_to))
-            ->orderByDesc('id')
-            ->paginate((int) $request->get('per_page', 30));
-
-        return response()->json(['success' => true, 'data' => $rows]);
+        return AuditLog::latest()->paginate(20);
     }
 
-    public function show(int $id)
+    public function store(Request $request)
     {
-        $row = AuditLog::with('user')->findOrFail($id);
-        return response()->json(['success' => true, 'data' => $row]);
+        $validated = $request->validate([
+            'user_id' => 'nullable|exists:users,id',
+            'role_name' => 'nullable|string',
+            'ip_address' => 'nullable|string',
+            'user_agent' => 'nullable|string',
+            'device_id' => 'nullable|string',
+            'entity_type' => 'nullable|string',
+            'entity_id' => 'nullable|integer',
+            'action' => 'required|string',
+            'message' => 'nullable|string',
+            'before' => 'nullable|array',
+            'after' => 'nullable|array',
+            'approved_by' => 'nullable|exists:users,id',
+            'approved_at' => 'nullable|date',
+            'approval_reason' => 'nullable|string',
+        ]);
+
+        $log = AuditLog::create($validated);
+
+        return response()->json($log, 201);
+    }
+
+    public function show($id)
+    {
+        return AuditLog::findOrFail($id);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $log = AuditLog::findOrFail($id);
+
+        $log->update($request->all());
+
+        return response()->json($log);
+    }
+
+    public function destroy($id)
+    {
+        AuditLog::destroy($id);
+
+        return response()->json(['message' => 'Deleted successfully']);
     }
 }

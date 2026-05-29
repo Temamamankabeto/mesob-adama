@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Support\AppRoles;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -14,10 +16,11 @@ class RoleService
     public function paginateRoles(array $filters): LengthAwarePaginator
     {
         $search = trim((string) ($filters['search'] ?? ''));
-        $perPage = max(1, min((int) ($filters['per_page'] ?? 10), 100));
+        $perPage = max(1, min((int) ($filters['per_page'] ?? 50), 100));
 
         $query = Role::query()
             ->where('guard_name', $this->guard)
+            ->whereIn('name', AppRoles::all())
             ->orderBy('name');
 
         if ($search !== '') {
@@ -48,6 +51,7 @@ class RoleService
     {
         return Role::query()
             ->where('guard_name', $this->guard)
+            ->whereIn('name', AppRoles::all())
             ->findOrFail($id);
     }
 
@@ -68,8 +72,16 @@ class RoleService
 
     public function createRole(array $data): Role
     {
-        $role = Role::create([
-            'name' => $data['name'],
+        $roleName = AppRoles::normalize($data['name'] ?? null);
+
+        if (!$roleName || !AppRoles::isBuiltin($roleName)) {
+            throw ValidationException::withMessages([
+                'name' => ['Only the predefined MESOB roles are allowed.'],
+            ]);
+        }
+
+        $role = Role::firstOrCreate([
+            'name' => $roleName,
             'guard_name' => $this->guard,
         ]);
 
@@ -80,8 +92,16 @@ class RoleService
 
     public function updateRole(Role $role, array $data): Role
     {
+        $roleName = AppRoles::normalize($data['name'] ?? null);
+
+        if (!$roleName || !AppRoles::isBuiltin($roleName)) {
+            throw ValidationException::withMessages([
+                'name' => ['Only the predefined MESOB roles are allowed.'],
+            ]);
+        }
+
         $role->update([
-            'name' => $data['name'],
+            'name' => $roleName,
         ]);
 
         $this->clearPermissionCache();
@@ -97,28 +117,30 @@ class RoleService
             ->get(['id', 'name', 'guard_name']);
     }
 
-    public function assignPermissions(Role $role, array $permissionNames = []): array
+    public function assignPermissions($role, array $permissions)
     {
-        $permNames = collect($permissionNames)
-            ->map(fn ($name) => trim((string) $name))
+        $cleanPermissions = collect($permissions)
+            ->map(function ($permission) {
+                if (is_array($permission)) {
+                    return $permission['name'] ?? null;
+                }
+
+                return $permission;
+            })
             ->filter()
             ->values()
-            ->all();
+            ->toArray();
 
-        $existingPermissions = Permission::query()
+        $validPermissions = Permission::whereIn('name', $cleanPermissions)
             ->where('guard_name', $this->guard)
-            ->whereIn('name', $permNames)
-            ->get();
+            ->pluck('name')
+            ->toArray();
 
-        $role->syncPermissions($existingPermissions);
+        $role->syncPermissions($validPermissions);
 
         $this->clearPermissionCache();
 
-        return [
-            'role_id' => $role->id,
-            'assigned_count' => $existingPermissions->count(),
-            'permissions' => $existingPermissions->pluck('name')->values(),
-        ];
+        return $role->load('permissions');
     }
 
     protected function clearPermissionCache(): void
