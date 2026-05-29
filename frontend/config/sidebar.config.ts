@@ -1,4 +1,5 @@
 import {
+  ClipboardCheck,
   ClipboardList,
   FileText,
   LayoutDashboard,
@@ -8,7 +9,6 @@ import {
   Users,
   Building2,
   Workflow,
-  ClipboardCheck,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -35,10 +35,22 @@ export type SidebarItem = {
   children?: SidebarChildItem[];
 };
 
-export type SidebarSection = { title: string; items: SidebarItem[] };
-export type RoleSidebar = { title: string; icon: LucideIcon; sections: SidebarSection[] };
+export type SidebarSection = {
+  title: string;
+  items: SidebarItem[];
+};
 
-const s = (title: string, items: SidebarItem[]): SidebarSection => ({ title, items });
+export type RoleSidebar = {
+  title: string;
+  icon: LucideIcon;
+  sections: SidebarSection[];
+};
+
+const s = (title: string, items: SidebarItem[]): SidebarSection => ({
+  title,
+  items,
+});
+
 const dashboardItem = (role: AppRoleKey): SidebarItem => ({
   label: "Dashboard",
   href: dashboardConfig[role].route,
@@ -55,7 +67,6 @@ const userManagementMenu: SidebarItem = {
     { label: "Create User", href: "/dashboard/users/add", permission: "users.create" },
     { label: "Activation Requests", href: "/dashboard/user-activation-requests", permission: "users.activate" },
     { label: "Roles", href: "/dashboard/roles", permission: "roles.read", scopes: cityOnly },
-    // { label: "Permissions", href: "/dashboard/permissions", permission: "permissions.read", scopes: cityOnly },
   ],
 };
 
@@ -106,7 +117,13 @@ const applicationManagementMenu: SidebarItem = {
 const officerApplicationMenu: SidebarItem = {
   label: "Officer Applications",
   icon: ClipboardCheck,
-  children: [{ label: "Application Queue", href: "/dashboard/officer/applications", permission: "service_applications.review" }],
+  children: [
+    {
+      label: "Application Queue",
+      href: "/dashboard/officer/applications",
+      permission: "service_applications.review",
+    },
+  ],
 };
 
 const customerApplicationMenu: SidebarItem = {
@@ -122,7 +139,14 @@ const systemMenu: SidebarItem = {
   label: "System",
   icon: Settings,
   scopes: cityOnly,
-  children: [{ label: "Audit Logs", href: "/dashboard/audit-logs", permission: "audit_logs.read", scopes: cityOnly }],
+  children: [
+    {
+      label: "Audit Logs",
+      href: "/dashboard/audit-logs",
+      permission: "audit_logs.read",
+      scopes: cityOnly,
+    },
+  ],
 };
 
 const adminSections = (role: AppRoleKey): SidebarSection[] => [
@@ -162,6 +186,7 @@ export function getSidebarForRole(role?: string | null): RoleSidebar {
 
 function currentScopeKey(): string {
   if (typeof window === "undefined") return "super_admin";
+
   try {
     const rawUser = localStorage.getItem("user") || localStorage.getItem("mesob_user");
     const rawRoles = localStorage.getItem("roles") || localStorage.getItem("mesob_roles");
@@ -169,9 +194,12 @@ function currentScopeKey(): string {
     const roles = rawRoles ? JSON.parse(rawRoles) : [];
     const role = Array.isArray(roles) ? roles[0] : roles || user.role;
     const normalized = String(role || "").toLowerCase().replace(/[-\s]+/g, "_");
+
     if (normalized === "super_admin") return "super_admin";
     if (normalized === "customer") return "customer";
+
     const level = user.location_level || (user.woreda_id ? "woreda" : user.subcity_id ? "subcity" : user.city_id ? "city" : "");
+
     return level ? `${normalized}:${level}` : normalized;
   } catch {
     return "super_admin";
@@ -180,25 +208,38 @@ function currentScopeKey(): string {
 
 function scopeAllowed(scopes: string[] | undefined): boolean {
   if (!scopes?.length) return true;
+
   return scopes.includes(currentScopeKey());
 }
+
 function childAllowed(child: SidebarChildItem, permissions: string[]): boolean {
   return (!child.permission || permissions.includes(child.permission)) && scopeAllowed(child.scopes);
 }
+
 function itemAllowed(item: SidebarItem, permissions: string[]): boolean {
   return (!item.permission || permissions.includes(item.permission)) && scopeAllowed(item.scopes);
 }
-export function filterSidebarByPermissions(roleSidebar: RoleSidebar, permissions: string[] = []): SidebarSection[] {
+
+export function filterSidebarByPermissions(
+  roleSidebar: RoleSidebar,
+  permissions: string[] = []
+): SidebarSection[] {
   return roleSidebar.sections
     .map((section) => {
       const items = section.items
         .map((item) => {
-          if (!item.children?.length) return itemAllowed(item, permissions) ? item : null;
+          if (!item.children?.length) {
+            return itemAllowed(item, permissions) ? item : null;
+          }
+
           const children = item.children.filter((child) => childAllowed(child, permissions));
+
           if (children.length === 0 && !itemAllowed(item, permissions)) return null;
+
           return { ...item, children };
         })
         .filter(Boolean) as SidebarItem[];
+
       return { ...section, items };
     })
     .filter((section) => section.items.length > 0);
