@@ -47,13 +47,7 @@ function formDataFromPayload(payload: any) {
     }
 
     if (Array.isArray(value)) {
-      value.forEach((item) => {
-        if (item instanceof File) {
-          formData.append(`${key}[]`, item);
-        } else {
-          formData.append(`${key}[]`, String(item));
-        }
-      });
+      value.forEach((item) => formData.append(`${key}[]`, item as any));
       return;
     }
 
@@ -63,23 +57,9 @@ function formDataFromPayload(payload: any) {
   return formData;
 }
 
-async function postOfficerWorkflow(id: number, endpoint: string, payload: any = {}) {
+async function postWorkflow(id: number, endpoint: string, payload: any = {}) {
   const response = await api.post(
     `/officer/applications/${id}/${endpoint}`,
-    formDataFromPayload(payload),
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
-
-  return bodyData(response);
-}
-
-async function postManagerWorkflow(id: number, endpoint: string, payload: any = {}) {
-  const response = await api.post(
-    `/manager/applications/${id}/${endpoint}`,
     formDataFromPayload(payload),
     {
       headers: {
@@ -102,7 +82,7 @@ export const managerWorkflowEndpoints = {
 export const applicationWorkflowService = {
   officer: {
     certificateUrl(id: number) {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "/api";
       return `${baseUrl}/officer/applications/${id}/certificate`;
     },
 
@@ -122,13 +102,8 @@ export const applicationWorkflowService = {
     },
 
     async action(payload: any) {
-      const source = {
-        ...(payload || {}),
-        ...(payload?.payload || {}),
-      };
-
-      const id = Number(source?.id ?? source?.application_id);
-      const action = String(source?.action || payload?.action || "");
+      const id = Number(payload?.id ?? payload?.application_id);
+      const action = String(payload?.action || "");
 
       if (!id || !action) {
         throw new Error("Application id and action are required.");
@@ -142,23 +117,27 @@ export const applicationWorkflowService = {
         share_to_officer: "share-to-officer",
         "share-to-officer": "share-to-officer",
         forward_to_back_officer: "forward-to-back-officer",
-        "forward-to-back-officer": "forward-to-back-officer",
         approve: "approve",
         reject: "reject",
         return: "return",
         return_to_customer: "return",
         complete: "complete",
         escalate_to_manager: "escalate-to-manager",
-        "escalate-to-manager": "escalate-to-manager",
       };
 
       const endpoint = map[action] || action.replaceAll("_", "-");
 
-      return postOfficerWorkflow(id, endpoint, payload);
+      return postWorkflow(id, endpoint, payload);
     },
 
     async backOfficerAction(payload: any) {
       return this.action(payload);
+    },
+
+    async frontOfficers(params?: Record<string, any>) {
+      const response = await api.get("/officer/sharing/windows", { params });
+      const body = bodyData(response);
+      return listFrom(body);
     },
 
     async sharingWindows(params?: Record<string, any>) {
@@ -169,12 +148,6 @@ export const applicationWorkflowService = {
 
     async sharingOfficers(windowId: number | string, params?: Record<string, any>) {
       const response = await api.get(`/officer/sharing/windows/${windowId}/officers`, { params });
-      const body = bodyData(response);
-      return listFrom(body);
-    },
-
-    async frontOfficers(params?: Record<string, any>) {
-      const response = await api.get("/officer/sharing/windows", { params });
       const body = bodyData(response);
       return listFrom(body);
     },
@@ -226,7 +199,8 @@ export const applicationWorkflowService = {
 
       const endpoint = map[action] || action.replaceAll("_", "-");
 
-      return postManagerWorkflow(id, endpoint, source);
+      const response = await api.post(`/manager/applications/${id}/${endpoint}`, payload);
+      return bodyData(response);
     },
   },
 
@@ -249,11 +223,98 @@ export const applicationWorkflowService = {
     },
   },
 
-  forms: {},
-  steps: {},
-  sections: {},
-  fields: {},
-  conditions: {},
-  builder: {},
+  forms: {
+    async show(id: number) {
+      const response = await api.get(`/admin/service-forms/${id}`);
+      const form = bodyData<any>(response);
+
+      return {
+        form,
+        steps: form?.steps ?? [],
+        sections: form?.sections ?? [],
+        fields: form?.fields ?? [],
+        conditions: [
+          ...(form?.fields ?? []).flatMap((field: any) => field?.conditions ?? []),
+          ...(form?.sections ?? []).flatMap((section: any) =>
+            (section?.fields ?? []).flatMap((field: any) => field?.conditions ?? [])
+          ),
+          ...(form?.steps ?? []).flatMap((step: any) =>
+            (step?.sections ?? []).flatMap((section: any) =>
+              (section?.fields ?? []).flatMap((field: any) => field?.conditions ?? [])
+            )
+          ),
+        ],
+      };
+    },
+  },
+
+  steps: {
+    async create(payload: any) {
+      const response = await api.post("/admin/service-form-steps", payload);
+      return bodyData(response);
+    },
+
+    async update(id: number, payload: any) {
+      const response = await api.put(`/admin/service-form-steps/${id}`, payload);
+      return bodyData(response);
+    },
+
+    async remove(id: number) {
+      const response = await api.delete(`/admin/service-form-steps/${id}`);
+      return bodyData(response);
+    },
+  },
+
+  sections: {
+    async create(payload: any) {
+      const response = await api.post("/admin/service-form-sections", payload);
+      return bodyData(response);
+    },
+
+    async update(id: number, payload: any) {
+      const response = await api.put(`/admin/service-form-sections/${id}`, payload);
+      return bodyData(response);
+    },
+
+    async remove(id: number) {
+      const response = await api.delete(`/admin/service-form-sections/${id}`);
+      return bodyData(response);
+    },
+  },
+
+  fields: {
+    async create(payload: any) {
+      const response = await api.post("/admin/service-form-fields", payload);
+      return bodyData(response);
+    },
+
+    async update(id: number, payload: any) {
+      const response = await api.put(`/admin/service-form-fields/${id}`, payload);
+      return bodyData(response);
+    },
+
+    async remove(id: number) {
+      const response = await api.delete(`/admin/service-form-fields/${id}`);
+      return bodyData(response);
+    },
+  },
+
+  conditions: {
+    async create(payload: any) {
+      const response = await api.post("/admin/service-form-field-conditions", payload);
+      return bodyData(response);
+    },
+
+    async remove(id: number) {
+      const response = await api.delete(`/admin/service-form-field-conditions/${id}`);
+      return bodyData(response);
+    },
+  },
+
+  builder: {
+    async show(id: number) {
+      return applicationWorkflowService.forms.show(id);
+    },
+  },
   serviceApplications: {},
 };

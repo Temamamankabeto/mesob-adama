@@ -14,9 +14,9 @@ class ServiceFormFieldController extends Controller
         protected ServiceFormFieldService $fieldService
     ) {}
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
-        $fields = $this->fieldService->getAll();
+        $fields = $this->fieldService->getAll($request);
 
         return response()->json([
             'success' => true,

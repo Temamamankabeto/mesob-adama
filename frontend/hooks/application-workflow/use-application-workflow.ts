@@ -94,22 +94,9 @@ export function useManagerApplicationAction(_id?: Id) {
 
   return useMutation({
     mutationFn: (payload: any) =>
-      workflow.manager?.action?.({
-        id: payload?.id ?? payload?.application_id ?? _id,
-        action: payload?.action,
-        ...(payload?.payload || {}),
-        payload: payload?.payload,
-      }) ?? workflow.manager?.update?.({
-        id: payload?.id ?? payload?.application_id ?? _id,
-        action: payload?.action,
-        ...(payload?.payload || {}),
-        payload: payload?.payload,
-      }),
-    onSuccess: (_data, variables: any) => {
-      qc.invalidateQueries({ queryKey: ["manager-applications"] });
-      qc.invalidateQueries({ queryKey: ["officer-application", variables?.id ?? _id] });
-      qc.invalidateQueries();
-    },
+      workflow.manager?.action?.(payload) ??
+      workflow.manager?.update?.(payload),
+    onSuccess: () => qc.invalidateQueries(),
   });
 }
 

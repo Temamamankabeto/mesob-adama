@@ -28,7 +28,12 @@ export default function ServiceFormBuilderPage() {
           </Link>
         </Button>
 
-        <div className="rounded-3xl border p-8 text-muted-foreground">Could not load form builder.</div>
+        <div className="rounded-3xl border p-8 text-muted-foreground">
+          Could not load form builder.
+          {error instanceof Error && (
+            <p className="mt-2 text-sm text-red-600">{error.message}</p>
+          )}
+        </div>
       </div>
     );
   }
