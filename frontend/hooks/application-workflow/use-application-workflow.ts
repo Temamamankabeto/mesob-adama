@@ -157,9 +157,16 @@ export function useCreateServiceFormField(serviceFormId?: Id) {
 }
 
 export function useUpdateServiceFormField(_serviceFormId?: Id) {
+  const qc = useQueryClient();
+
   return useMutation({
-    mutationFn: (payload: any) =>
-      workflow.fields?.update?.(Number(payload.id), payload),
+    mutationFn: ({ id, payload }: { id: Id; payload: Record<string, unknown> }) =>
+      workflow.fields?.update?.(Number(id), payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["service-form-builder", _serviceFormId] });
+      qc.invalidateQueries({ queryKey: ["service-form-fields"] });
+      qc.invalidateQueries({ queryKey: ["service-forms"] });
+    },
   });
 }
 

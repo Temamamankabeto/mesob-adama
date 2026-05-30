@@ -289,7 +289,20 @@ export const applicationWorkflowService = {
     },
 
     async update(id: number, payload: any) {
-      const response = await api.put(`/admin/service-form-fields/${id}`, payload);
+      const body = {
+        ...(payload || {}),
+        service_form_section_id:
+          payload?.service_form_section_id ?? payload?.section_id ?? null,
+      };
+
+      delete (body as any).id;
+      delete (body as any).section_id;
+      delete (body as any).conditions;
+      delete (body as any).section;
+      delete (body as any).step;
+      delete (body as any).form;
+
+      const response = await api.put(`/admin/service-form-fields/${id}`, body);
       return bodyData(response);
     },
 
