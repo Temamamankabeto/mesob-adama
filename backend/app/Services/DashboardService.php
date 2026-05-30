@@ -321,31 +321,134 @@ class DashboardService
 
     protected function statusCounts($query, ?User $user = null): array
     {
+        /*
+        |--------------------------------------------------------------------------
+        | Mutually-exclusive customer dashboard categories
+        |--------------------------------------------------------------------------
+        | Each raw workflow status belongs to only one customer-facing category.
+        | This guarantees:
+        | Pending + Rejected + Approved + Appointed + Completed <= Total
+        |--------------------------------------------------------------------------
+        */
         $pendingStatuses = [
-            'draft', 'submitted', 'pending', 'accepted', 'under_review',
-            'front_officer_review', 'appointment_scheduled', 'shared',
-            'shared_to_front_officer', 'shared_to_back_officer',
-            'returned_from_share', 'forwarded_to_back_officer',
-            'back_officer_review', 'under_back_review', 'returned',
-            'returned_to_customer', 'returned_to_front_officer',
-            'returned_to_back_officer', 'resubmitted', 'escalated',
-            'escalated_to_manager', 'manager_review', 'manager_assigned',
-            'assigned_by_manager', 'manager_returned', 'returned_to_manager',
+            'draft',
+            'submitted',
+            'resubmitted',
+            'accepted',
+            'front_officer_review',
+            'under_review',
+            'forwarded_to_back_officer',
+            'back_officer_review',
+            'under_back_review',
+            'shared',
+            'shared_to_front_officer',
+            'shared_to_back_officer',
+            'returned_from_share',
+            'escalated',
+            'escalated_to_manager',
+            'manager_review',
+            'manager_assigned',
             'manager_forwarded',
+            'manager_returned',
+            'returned_to_front_officer',
+            'returned_to_back_officer',
+        ];
+
+        $rejectedStatuses = [
+            'rejected',
+            'returned',
+            'returned_to_customer',
+            'back_officer_rejected',
+            'cancelled',
+        ];
+
+        $approvedStatuses = [
+            'approved',
+            'back_officer_approved',
+            'manager_resolved',
+        ];
+
+        $appointedStatuses = [
+            'appointment_scheduled',
+        ];
+
+        $completedStatuses = [
+            'completed',
+            'closed',
         ];
 
         return [
             'total' => (clone $query)->count(),
-            'pending' => (clone $query)->whereIn('status', $pendingStatuses)->count(),
-            'approved' => (clone $query)->whereIn('status', ['approved', 'back_officer_approved', 'manager_resolved'])->count(),
-            'rejected' => (clone $query)->whereIn('status', ['rejected', 'back_officer_rejected', 'cancelled'])->count(),
+
+            'pending' => (clone $query)
+                ->whereIn('status', $pendingStatuses)
+                ->count(),
+
+            'rejected' => (clone $query)
+                ->whereIn('status', $rejectedStatuses)
+                ->count(),
+
+            'approved' => (clone $query)
+                ->whereIn('status', $approvedStatuses)
+                ->count(),
+
+            'appointed' => (clone $query)
+                ->whereIn('status', $appointedStatuses)
+                ->count(),
+
+            'completed' => (clone $query)
+                ->whereIn('status', $completedStatuses)
+                ->count(),
+
+            /*
+            |--------------------------------------------------------------------------
+            | Extra operational counters
+            |--------------------------------------------------------------------------
+            | These are still useful for staff dashboards but must not be added to
+            | the customer card total, because they can overlap with the primary
+            | customer categories.
+            |--------------------------------------------------------------------------
+            */
             'submitted' => (clone $query)->where('status', 'submitted')->count(),
-            'under_review' => (clone $query)->whereIn('status', ['front_officer_review', 'forwarded_to_back_officer', 'back_officer_review', 'under_review', 'under_back_review', 'manager_review'])->count(),
-            'appointed' => (clone $query)->whereIn('status', ['appointment_scheduled'])->count(),
-            'completed' => (clone $query)->whereIn('status', ['completed', 'closed'])->count(),
-            'shared' => (clone $query)->whereIn('status', ['shared', 'shared_to_front_officer', 'shared_to_back_officer'])->count(),
-            'returned' => (clone $query)->whereIn('status', ['returned', 'returned_to_customer', 'returned_to_front_officer', 'returned_to_back_officer', 'back_officer_rejected'])->count(),
-            'escalated' => (clone $query)->whereIn('status', ['escalated', 'escalated_to_manager', 'manager_review', 'manager_forwarded'])->count(),
+
+            'under_review' => (clone $query)
+                ->whereIn('status', [
+                    'front_officer_review',
+                    'forwarded_to_back_officer',
+                    'back_officer_review',
+                    'under_review',
+                    'under_back_review',
+                    'manager_review',
+                ])
+                ->count(),
+
+            'shared' => (clone $query)
+                ->whereIn('status', [
+                    'shared',
+                    'shared_to_front_officer',
+                    'shared_to_back_officer',
+                ])
+                ->count(),
+
+            'returned' => (clone $query)
+                ->whereIn('status', [
+                    'returned',
+                    'returned_to_customer',
+                    'returned_to_front_officer',
+                    'returned_to_back_officer',
+                    'returned_from_share',
+                    'manager_returned',
+                ])
+                ->count(),
+
+            'escalated' => (clone $query)
+                ->whereIn('status', [
+                    'escalated',
+                    'escalated_to_manager',
+                    'manager_review',
+                    'manager_forwarded',
+                ])
+                ->count(),
         ];
     }
 

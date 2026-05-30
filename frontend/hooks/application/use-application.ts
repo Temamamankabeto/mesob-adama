@@ -41,7 +41,14 @@ export const useApplyForService = useApplyService;
 
 export function useTrackApplication() {
   return useMutation({
-    mutationFn: (payload: any) => service.track(payload),
+    mutationFn: (payload: any) => {
+      const tracking =
+        typeof payload === "string"
+          ? payload
+          : payload?.tracking_number ?? payload?.application_number ?? payload?.tracking;
+
+      return service.track({ tracking_number: tracking });
+    },
   });
 }
 

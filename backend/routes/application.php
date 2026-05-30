@@ -52,6 +52,7 @@ Route::prefix('public')->group(function () {
 
 Route::middleware('auth:sanctum')->prefix('officer')->group(function () {
     Route::get('/applications/queue', [OfficerApplicationController::class, 'queue']);
+    Route::get('/notifications', [OfficerApplicationController::class, 'notifications']);
     Route::get('/applications/{application}', [OfficerApplicationController::class, 'show']);
     Route::get('/sharing/windows', [OfficerApplicationShareController::class, 'windows']);
     Route::get('/sharing/windows/{window}/officers', [OfficerApplicationShareController::class, 'officers']);

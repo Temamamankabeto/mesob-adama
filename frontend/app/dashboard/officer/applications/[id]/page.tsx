@@ -15,6 +15,7 @@ import {
   useBackOfficerApplicationAction,
   useOfficerApplication,
   useOfficerApplicationAction,
+  useManagerApplicationAction,
   useOfficerSharingOfficers,
   useOfficerSharingWindows,
 } from "@/hooks/application-workflow/use-application-workflow";
@@ -36,6 +37,11 @@ type BackAction =
   | "share"
   | "escalate-to-manager";
 
+type ManagerAction =
+  | "assign_officer"
+  | "return_to_officer"
+  | "escalate_up";
+
 type PendingAction =
   | {
       actor: "front";
@@ -46,6 +52,12 @@ type PendingAction =
   | {
       actor: "back";
       action: BackAction;
+      label: string;
+      requiresShare?: boolean;
+    }
+  | {
+      actor: "manager";
+      action: ManagerAction;
       label: string;
       requiresShare?: boolean;
     };
@@ -122,6 +134,10 @@ function isBackOfficer() {
 
 function isFrontOfficer() {
   return storedRoles().some((role) => role.includes("front"));
+}
+
+function isManager() {
+  return storedRoles().some((role) => role.includes("manager"));
 }
 
 function normalize(value?: string | null) {
@@ -202,6 +218,7 @@ export default function OfficerApplicationDetailPage() {
   const { data, isLoading } = useOfficerApplication(id);
   const frontAction = useOfficerApplicationAction(id);
   const backAction = useBackOfficerApplicationAction(id);
+  const managerAction = useManagerApplicationAction(id);
 
   const [remark, setRemark] = useState("");
   const [documents, setDocuments] = useState<File[]>([]);
@@ -214,17 +231,22 @@ export default function OfficerApplicationDetailPage() {
   const [actionSubmitted, setActionSubmitted] = useState(false);
 
   const shouldFetchSharing = pendingAction?.requiresShare === true;
+  const sharingParams = shouldFetchSharing
+    ? {
+        service_id: data?.service_id || data?.service?.id,
+        level: data?.administrative_level,
+      }
+    : false;
 
-  const { data: shareWindows = [] } =
-    useOfficerSharingWindows(shouldFetchSharing);
+  const { data: shareWindows = [], isLoading: loadingShareWindows } =
+    useOfficerSharingWindows(sharingParams);
 
-  const { data: rawShareOfficers = [] } = useOfficerSharingOfficers(
-    shareWindowId,
-    shouldFetchSharing
-  );
+  const { data: rawShareOfficers = [], isLoading: loadingShareOfficers } =
+    useOfficerSharingOfficers(shareWindowId, shouldFetchSharing);
 
   const front = isFrontOfficer();
   const back = isBackOfficer();
+  const manager = isManager();
   const files = useMemo(() => documents, [documents]);
 
   const status = data?.status;
@@ -245,6 +267,10 @@ const serviceHasBackOfficer = Boolean(
 
     return rawShareOfficers.filter((officer: any) => {
       const role = officerRoleName(officer);
+
+      if (pendingAction.actor === "manager") {
+        return role.includes("front") || role.includes("back");
+      }
 
       if (pendingAction.actor === "back") {
         return role.includes("back");
@@ -272,35 +298,27 @@ const serviceHasBackOfficer = Boolean(
 
     if (backApproved) {
       return [
-        { actor: "front", action: "complete", label: "Accept & Complete" },
         appointmentAction,
+        { actor: "front", action: "complete", label: "Accept & Complete" },
         shareAction,
       ];
     }
 
     if (backRejected) {
       return [
+        appointmentAction,
         {
           actor: "front",
           action: "reject",
           label: "Reject & Return to Customer",
         },
-        {
-          actor: "front",
-          action: "share-to-officer",
-          label: "Share with Another Officer",
-          requiresShare: true,
-        },
+        shareAction,
       ];
     }
 
     if (serviceHasBackOfficer) {
       return [
-        {
-          actor: "front",
-          action: "accept",
-          label: "Accept",
-        },
+        appointmentAction,
         {
           actor: "front",
           action: "forward-to-back-officer",
@@ -308,19 +326,15 @@ const serviceHasBackOfficer = Boolean(
         },
         {
           actor: "front",
-          action: "share-to-officer",
-          label: "Share with Another Officer",
-          requiresShare: true,
+          action: "reject",
+          label: "Reject & Return to Customer",
         },
+        shareAction,
       ];
     }
 
     return [
-      {
-        actor: "front",
-        action: "accept",
-        label: "Accept",
-      },
+      appointmentAction,
       {
         actor: "front",
         action: "complete",
@@ -331,17 +345,7 @@ const serviceHasBackOfficer = Boolean(
         action: "reject",
         label: "Reject & Return to Customer",
       },
-      {
-        actor: "front",
-        action: "return",
-        label: "Return to Customer",
-      },
-      {
-        actor: "front",
-        action: "share-to-officer",
-        label: "Share with Another Officer",
-        requiresShare: true,
-      },
+      shareAction,
     ];
   }, [front, actionVisible, serviceHasBackOfficer, backApproved, backRejected]);
 
@@ -373,7 +377,30 @@ const serviceHasBackOfficer = Boolean(
     ];
   }, [back, actionVisible, backDecisionDone]);
 
-  const activeActions = back ? backActions : frontActions;
+  const managerActions = useMemo<PendingAction[]>(() => {
+    if (!manager || !actionVisible) return [];
+
+    return [
+      {
+        actor: "manager",
+        action: "assign_officer",
+        label: "Assign to Officer",
+        requiresShare: true,
+      },
+      {
+        actor: "manager",
+        action: "return_to_officer",
+        label: "Return to Officer",
+      },
+      {
+        actor: "manager",
+        action: "escalate_up",
+        label: "Escalate Up",
+      },
+    ];
+  }, [manager, actionVisible]);
+
+  const activeActions = manager ? managerActions : back ? backActions : frontActions;
 
   function resetActionForm() {
     setPendingAction(null);
@@ -476,14 +503,50 @@ const serviceHasBackOfficer = Boolean(
     });
   }
 
+  async function submitManagerAction(action: PendingAction) {
+    if (action.actor !== "manager") return;
+
+    if (action.action === "assign_officer") {
+      if (!shareWindowId || !shareOfficerId) {
+        toast.error("Select window and officer.");
+        return;
+      }
+
+      await managerAction.mutateAsync({
+        action: "assign_officer",
+        payload: {
+          window_id: shareWindowId,
+          officer_id: shareOfficerId,
+          note: remark,
+          remark,
+          documents: files,
+        },
+      });
+
+      return;
+    }
+
+    await managerAction.mutateAsync({
+      action: action.action,
+      payload: {
+        remark,
+        note: remark,
+        reason: remark,
+        documents: files,
+      },
+    });
+  }
+
   async function submitSelectedAction() {
     if (!pendingAction) return;
 
     try {
       if (pendingAction.actor === "front") {
         await submitFrontAction(pendingAction);
-      } else {
+      } else if (pendingAction.actor === "back") {
         await submitBackAction(pendingAction);
+      } else {
+        await submitManagerAction(pendingAction);
       }
 
       setActionSubmitted(true);
@@ -592,7 +655,7 @@ const serviceHasBackOfficer = Boolean(
 
               <div>
                 <label className="text-sm font-medium">
-                  {back ? "Back Officer Action" : "Front Officer Action"}
+                  {manager ? "Manager Action" : back ? "Back Officer Action" : "Front Officer Action"}
                 </label>
                 <select
                   className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
@@ -625,7 +688,12 @@ const serviceHasBackOfficer = Boolean(
                         setShareOfficerId(undefined);
                       }}
                     >
-                      <option value="">Select window</option>
+                      <option value="">
+                        {loadingShareWindows ? "Loading windows..." : "Select window"}
+                      </option>
+                      {!loadingShareWindows && shareWindows.length === 0 && (
+                        <option value="" disabled>No windows available</option>
+                      )}
                       {shareWindows.map((window) => (
                         <option key={window.id} value={window.id}>
                           {window.name}
@@ -636,7 +704,7 @@ const serviceHasBackOfficer = Boolean(
 
                   <div>
                     <label className="text-sm font-medium">
-                      {back ? "Back Officer" : "Front Officer"}
+                      {manager ? "Officer" : back ? "Back Officer" : "Front Officer"}
                     </label>
                     <select
                       className="mt-2 w-full rounded-md border bg-background p-3 text-sm"
@@ -650,7 +718,12 @@ const serviceHasBackOfficer = Boolean(
                       }
                       disabled={!shareWindowId}
                     >
-                      <option value="">Select officer</option>
+                      <option value="">
+                        {loadingShareOfficers ? "Loading officers..." : "Select officer"}
+                      </option>
+                      {!loadingShareOfficers && shareWindowId && shareOfficers.length === 0 && (
+                        <option value="" disabled>No officers available</option>
+                      )}
                       {shareOfficers.map((officer) => (
                         <option key={officer.id} value={officer.id}>
                           {officer.name}
@@ -740,6 +813,7 @@ const serviceHasBackOfficer = Boolean(
                   disabled={
                     frontAction.isPending ||
                     backAction.isPending ||
+                    managerAction.isPending ||
                     (pendingAction.requiresShare &&
                       (!shareWindowId || !shareOfficerId))
                   }
@@ -814,7 +888,7 @@ const serviceHasBackOfficer = Boolean(
 
         <Card className="rounded-3xl">
           <CardHeader>
-            <CardTitle>Workflow History</CardTitle>
+            <CardTitle>Workflow History & Action Attachments</CardTitle>
           </CardHeader>
           <CardContent>
             <ApplicationWorkflowTimeline

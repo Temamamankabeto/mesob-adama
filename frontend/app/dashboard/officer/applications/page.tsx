@@ -35,6 +35,12 @@ const queueStatusMap: Record<string, string[]> = {
   completed: ["completed"],
 };
 
+
+function windowDisplayName(window: any, fallback?: any) {
+  if (!window) return fallback || "-";
+  return window.display_name || window.name || fallback || "-";
+}
+
 function normalize(value?: string | null) {
   return String(value || "").toLowerCase();
 }
@@ -194,7 +200,7 @@ export default function OfficerApplicationsPage() {
 
                       <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
                         <span>Level: {application.administrative_level || "-"}</span>
-                        <span>Window: {application.current_window?.name || application.current_window_id || "-"}</span>
+                        <span>Window: {windowDisplayName(application.current_window, application.current_window_id)}</span>
                         <span>Stage: {application.current_stage || "-"}</span>
                         <span>
                           Submitted:{" "}

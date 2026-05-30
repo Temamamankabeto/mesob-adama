@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Circle, Clock3, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, Clock3, Download, FileText, XCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { ServiceApplicationHistory, ServiceApplicationWorkflow } from "@/types/application-workflow";
@@ -27,7 +27,7 @@ function appointmentDateLabel(item: any) {
 
   if (!date) return item.remark || item.comment || null;
 
-  const location = item.metadata?.appointment_location;
+  const location = item.metadata?.appointment_location || item.metadata?.location;
   const message = item.metadata?.appointment_message || item.remark || item.comment;
 
   return [
@@ -76,6 +76,17 @@ function isActive(status?: string | null) {
   ].includes(String(status));
 }
 
+function fileUrl(file: any) {
+  if (file.download_url) return file.download_url;
+  if (!file.path) return "#";
+  if (String(file.path).startsWith("http")) return file.path;
+  return `/storage/${file.path}`;
+}
+
+function actionFiles(item: any) {
+  return item.metadata?.files || item.files || [];
+}
+
 export default function ApplicationWorkflowTimeline({ workflow = [], histories = [] }: Props) {
   const historyItems = histories.map((item: any) => ({
     id: `history-${item.id}`,
@@ -87,6 +98,7 @@ export default function ApplicationWorkflowTimeline({ workflow = [], histories =
     actor: item.actor?.name || item.sender?.name,
     receiver: item.receiver?.name,
     date: item.created_at,
+    files: actionFiles(item),
   }));
 
   const workflowItems = workflow.map((item: any) => ({
@@ -97,6 +109,7 @@ export default function ApplicationWorkflowTimeline({ workflow = [], histories =
     actor: item.officer?.name,
     receiver: null,
     date: item.acted_at || item.updated_at || item.created_at,
+    files: actionFiles(item),
   }));
 
   const items = historyItems.length ? historyItems : workflowItems;
@@ -143,6 +156,30 @@ export default function ApplicationWorkflowTimeline({ workflow = [], histories =
               </div>
 
               {item.note && <p className="mt-2 text-sm text-muted-foreground">{item.note}</p>}
+
+              {item.files?.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">Action Attachments</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {item.files.map((file: any) => (
+                      <a
+                        key={file.id || file.path || file.original_name}
+                        href={fileUrl(file)}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                        className="flex items-center justify-between gap-2 rounded-xl border bg-background px-3 py-2 text-sm transition hover:bg-muted"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{file.original_name || "Attachment"}</span>
+                        </span>
+                        <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );

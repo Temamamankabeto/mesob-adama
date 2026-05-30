@@ -19,16 +19,54 @@ import {
 import { useCustomerApplications } from "@/hooks/customer/use-customer-applications";
 
 const STATUS_FILTERS = [
-  { key: "all", label: "Total" },
+  { key: "all", label: "Total Application" },
   { key: "pending", label: "Pending" },
-  { key: "under_review", label: "Under Review" },
-  { key: "appointed", label: "Appointed" },
-  { key: "approved", label: "Approved" },
-  { key: "completed", label: "Completed" },
   { key: "rejected", label: "Rejected" },
+  { key: "approved", label: "Approved" },
+  { key: "appointed", label: "Appointed" },
+  { key: "completed", label: "Completed" },
 ] as const;
 
 type StatusKey = (typeof STATUS_FILTERS)[number]["key"];
+
+
+function applicationActions(application: any) {
+  const status = String(application.status || "").toLowerCase();
+
+  const items = [
+    {
+      label: "View",
+      href: `/dashboard/my-applications/${application.id}`,
+    },
+    {
+      label: "Track",
+      href: `/dashboard/track-application?tracking=${application.tracking_number}`,
+    },
+  ];
+
+  if (status.includes("completed") || status.includes("approved")) {
+    items.push({
+      label: "Download",
+      href: `/dashboard/my-applications/${application.id}`,
+    });
+  }
+
+  if (status.includes("payment")) {
+    items.push({
+      label: "Pay",
+      href: `/dashboard/payments?application_id=${application.id}`,
+    });
+  }
+
+  if (status.includes("returned") || status.includes("rejected")) {
+    items.push({
+      label: "Resubmit",
+      href: `/dashboard/my-applications/${application.id}/edit`,
+    });
+  }
+
+  return items;
+}
 
 export default function DashboardMyApplicationsPage() {
   const [page, setPage] = useState(1);
@@ -80,7 +118,7 @@ export default function DashboardMyApplicationsPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
         {STATUS_FILTERS.map((item) => {
           const active = status === item.key;
 
@@ -135,20 +173,17 @@ export default function DashboardMyApplicationsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tracking Number</TableHead>
-                  <TableHead>Service</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Location</TableHead>
+                  <TableHead>Application ID</TableHead>
+                  <TableHead>Submission Date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center">
+                    <TableCell colSpan={4} className="py-10 text-center">
                       Loading applications...
                     </TableCell>
                   </TableRow>
@@ -156,39 +191,33 @@ export default function DashboardMyApplicationsPage() {
                   applications.map((application) => (
                     <TableRow key={application.id}>
                       <TableCell className="font-semibold">
-                        {application.tracking_number}
-                      </TableCell>
-                      <TableCell>{application.service?.name || application.service_id}</TableCell>
-                      <TableCell className="capitalize">
-                        {application.administrative_level || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {application.woreda?.name ||
-                          application.subcity?.name ||
-                          application.city?.name ||
-                          "-"}
-                      </TableCell>
-                      <TableCell>
-                        <ApplicationStatusBadge status={application.status} />
+                        {application.tracking_number || `APP-${application.id}`}
                       </TableCell>
                       <TableCell>
                         {application.submitted_at
                           ? new Date(application.submitted_at).toLocaleDateString()
                           : "-"}
                       </TableCell>
+                      <TableCell>
+                        <ApplicationStatusBadge status={application.status} />
+                      </TableCell>
                       <TableCell className="text-right">
-                        <Button asChild variant="outline" size="sm" className="rounded-xl">
-                          <Link href={`/dashboard/my-applications/${application.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                          </Link>
-                        </Button>
+                        <div className="flex flex-wrap justify-end gap-1 text-sm">
+                          {applicationActions(application).map((item, index) => (
+                            <span key={`${application.id}-${item.label}`} className="inline-flex items-center">
+                              {index > 0 && <span className="mx-1 text-muted-foreground">|</span>}
+                              <Link href={item.href} className="font-medium text-primary hover:underline">
+                                {item.label}
+                              </Link>
+                            </span>
+                          ))}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                    <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
                       No applications found for this filter.
                     </TableCell>
                   </TableRow>

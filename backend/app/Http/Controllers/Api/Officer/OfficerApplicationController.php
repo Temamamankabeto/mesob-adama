@@ -12,12 +12,21 @@ class OfficerApplicationController extends Controller
 {
     public function __construct(protected OfficerApplicationService $applicationService) {}
 
+    public function notifications(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Officer notifications retrieved successfully',
+            'data' => $this->applicationService->notificationSummary($request->user()),
+        ]);
+    }
+
     public function queue(Request $request)
     {
         return response()->json([
             'success' => true,
             'message' => 'Officer queue retrieved successfully',
-            'data' => $this->applicationService->queue($request->user(), $request->query('bucket')),
+            'data' => $this->applicationService->queue($request->user(), $request->query('bucket'), $request->query('search')),
         ]);
     }
 

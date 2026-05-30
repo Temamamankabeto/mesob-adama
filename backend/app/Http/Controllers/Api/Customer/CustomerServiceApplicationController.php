@@ -12,41 +12,50 @@ class CustomerServiceApplicationController extends Controller
 {
     private const STATUS_GROUPS = [
         'pending' => [
-            'pending',
+            'draft',
             'submitted',
-            'assigned',
+            'resubmitted',
             'accepted',
-            'forwarded_to_back_officer',
-            'waiting_customer_response',
-            'waiting_payment',
-            'payment_pending',
-        ],
-        'under_review' => [
+            'front_officer_review',
             'under_review',
-            'in_review',
-            'processing',
+            'forwarded_to_back_officer',
             'back_officer_review',
-            'forwarded',
+            'under_back_review',
+            'shared',
+            'shared_to_front_officer',
+            'shared_to_back_officer',
+            'returned_from_share',
+            'escalated',
+            'escalated_to_manager',
+            'manager_review',
+            'manager_assigned',
+            'manager_forwarded',
+            'manager_returned',
+            'returned_to_front_officer',
+            'returned_to_back_officer',
         ],
-        'appointed' => [
-            'appointed',
-            'appointment_scheduled',
-        ],
-        'approved' => [
-            'approved',
-            'verified',
-            'back_officer_approved',
-            'approved_by_manager',
-            'manager_approved',
-            'payment_verified',
-        ],
-        'completed' => [
-            'completed',
-        ],
+
         'rejected' => [
             'rejected',
-            'rejected_by_manager',
+            'returned',
+            'returned_to_customer',
             'back_officer_rejected',
+            'cancelled',
+        ],
+
+        'approved' => [
+            'approved',
+            'back_officer_approved',
+            'manager_resolved',
+        ],
+
+        'appointed' => [
+            'appointment_scheduled',
+        ],
+
+        'completed' => [
+            'completed',
+            'closed',
         ],
     ];
 
@@ -114,6 +123,12 @@ class CustomerServiceApplicationController extends Controller
                 'shares.toWindow',
             ]),
         ]);
+    }
+
+
+    private function customerStatusGroup(string $status): array
+    {
+        return self::STATUS_GROUPS[$status] ?? [$status];
     }
 
     private function applySearch(Builder $query, Request $request): void

@@ -1,8 +1,15 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { CalendarClock, CheckCircle2, Clock3, FileText, Search } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import {
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  Loader2,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import ApplicationFilesList from "@/components/application/ApplicationFilesList";
@@ -11,10 +18,21 @@ import ApplicationWorkflowTimeline from "@/components/application/ApplicationWor
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useTrackApplication } from "@/hooks/application/use-application";
+import api from "@/lib/api";
+
+function extractApplication(response: any) {
+  const body = response?.data ?? response;
+
+  if (body?.data?.tracking_number || body?.data?.id) return body.data;
+  if (body?.tracking_number || body?.id) return body;
+  if (body?.data?.data?.tracking_number || body?.data?.data?.id) return body.data.data;
+
+  return null;
+}
 
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
+
   return new Date(value).toLocaleString(undefined, {
     year: "numeric",
     month: "long",
@@ -26,6 +44,7 @@ function formatDateTime(value?: string | null) {
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
+
   return new Date(value).toLocaleDateString(undefined, {
     year: "numeric",
     month: "long",
@@ -35,6 +54,7 @@ function formatDate(value?: string | null) {
 
 function formatTime(value?: string | null) {
   if (!value) return "-";
+
   return new Date(value).toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
@@ -48,7 +68,6 @@ function latestAppointment(application: any) {
 
   if (application?.appointment_at) {
     return {
-      id: "current",
       appointment_at: application.appointment_at,
       location: application.appointment_location,
       message: application.appointment_message,
@@ -59,18 +78,26 @@ function latestAppointment(application: any) {
   return null;
 }
 
-function locationText(data: any) {
-  return data?.woreda?.name || data?.subcity?.name || data?.city?.name || "-";
+function locationText(application: any) {
+  return (
+    application?.woreda?.name ||
+    application?.subcity?.name ||
+    application?.city?.name ||
+    "-"
+  );
 }
 
 export default function DashboardTrackApplicationPage() {
-  const params = useSearchParams();
-  const initialTracking = params.get("tracking") || "";
+  const searchParams = useSearchParams();
+  const initialTracking =
+    searchParams.get("tracking") ||
+    searchParams.get("tracking_number") ||
+    searchParams.get("application_number") ||
+    "";
 
   const [trackingNumber, setTrackingNumber] = useState(initialTracking);
   const [application, setApplication] = useState<any>(null);
-
-  const track = useTrackApplication();
+  const [loading, setLoading] = useState(false);
 
   async function submit(event?: FormEvent) {
     event?.preventDefault();
@@ -82,17 +109,31 @@ export default function DashboardTrackApplicationPage() {
       return;
     }
 
-    try {
-      const response = await track.mutateAsync(tracking);
+    setLoading(true);
 
-      setApplication(
-        (response as any)?.data?.data ??
-          (response as any)?.data ??
-          response
-      );
+    try {
+      const response = await api.post("/public/track-application", {
+        tracking_number: tracking,
+      });
+
+      const found = extractApplication(response);
+
+      if (!found?.id && !found?.tracking_number) {
+        throw new Error("Application not found");
+      }
+
+      setApplication(found);
     } catch (error: any) {
-      toast.error(error?.message || "Application not found");
+      const message =
+        error?.response?.data?.message ||
+        Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
+        error?.message ||
+        "Application not found";
+
       setApplication(null);
+      toast.error(String(message));
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -111,7 +152,8 @@ export default function DashboardTrackApplicationPage() {
         <CardHeader>
           <CardTitle>Track Application</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Enter your tracking number to check status, appointment schedule, documents, and workflow progress.
+            Enter your tracking number to check status, appointment schedule,
+            documents, and workflow progress.
           </p>
         </CardHeader>
 
@@ -123,24 +165,28 @@ export default function DashboardTrackApplicationPage() {
               placeholder="Example: ADA-2026-000001"
             />
 
-            <Button disabled={track.isPending}>
-              <Search className="mr-2 h-4 w-4" />
+            <Button type="submit" disabled={loading}>
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="mr-2 h-4 w-4" />
+              )}
               Track
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      {application && (
+      {application ? (
         <>
           <div className="rounded-3xl border bg-card p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold">
-                  {application.tracking_number}
+                  {application.tracking_number || "-"}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {application.service?.name}
+                  {application.service?.name || `Service #${application.service_id || "-"}`}
                 </p>
               </div>
 
@@ -179,27 +225,12 @@ export default function DashboardTrackApplicationPage() {
               </CardHeader>
 
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <Info
-                  label="Service"
-                  value={application.service?.name || application.service_id}
-                />
-                <Info
-                  label="Tracking Number"
-                  value={application.tracking_number}
-                />
-                <Info
-                  label="Administrative Level"
-                  value={application.administrative_level || "-"}
-                />
-                <Info
-                  label="Location"
-                  value={
-                    application.woreda?.name ||
-                    application.subcity?.name ||
-                    application.city?.name ||
-                    "-"
-                  }
-                />
+                <Info label="Service" value={application.service?.name || application.service_id || "-"} />
+                <Info label="Tracking Number" value={application.tracking_number || "-"} />
+                <Info label="Administrative Level" value={application.administrative_level || "-"} />
+                <Info label="Location" value={locationText(application)} />
+                <Info label="Submitted Date" value={formatDateTime(application.submitted_at)} />
+                <Info label="Last Updated" value={formatDateTime(application.updated_at)} />
               </CardContent>
             </Card>
 
@@ -213,6 +244,12 @@ export default function DashboardTrackApplicationPage() {
 
               <CardContent className="space-y-3">
                 <ApplicationStatusBadge status={application.status} />
+                {application.current_window && (
+                  <p className="text-sm text-muted-foreground">
+                    Current Window:{" "}
+                    {application.current_window.display_name || application.current_window.name}
+                  </p>
+                )}
                 {application.rejection_reason && (
                   <p className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">
                     {application.rejection_reason}
@@ -251,6 +288,12 @@ export default function DashboardTrackApplicationPage() {
             </Card>
           </div>
         </>
+      ) : (
+        <Card className="rounded-3xl border-dashed">
+          <CardContent className="p-10 text-center text-sm text-muted-foreground">
+            Search by tracking number to display application details.
+          </CardContent>
+        </Card>
       )}
     </div>
   );

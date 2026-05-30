@@ -69,11 +69,18 @@ export const applicationService = {
     return unwrap(response);
   },
 
-  async track(payload: { tracking_number?: string; application_number?: string }) {
+  async track(payload: string | { tracking_number?: string; application_number?: string; tracking?: string }) {
+    const trackingNumber =
+      typeof payload === "string"
+        ? payload
+        : payload.tracking_number ?? payload.application_number ?? payload.tracking;
+
     const response = await api.post("/public/track-application", {
-      tracking_number: payload.tracking_number ?? payload.application_number,
+      tracking_number: trackingNumber,
     });
 
-    return unwrap(response);
+    const body = unwrap<{ success: boolean; message: string; data: any }>(response);
+
+    return body.data;
   },
 };

@@ -39,7 +39,7 @@ export default function ApplicationFilesList({ files = [] }: { files?: ServiceAp
             <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
             <span className="min-w-0">
               <span className="block truncate font-medium">{file.original_name}</span>
-              <span className="text-xs text-muted-foreground">{fileCategory(file)}</span>
+              <span className="text-xs text-muted-foreground">{fileCategory(file)}{file.uploader?.name ? ` · By ${file.uploader.name}` : ""}</span>
             </span>
           </span>
 

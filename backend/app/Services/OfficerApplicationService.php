@@ -19,36 +19,183 @@ class OfficerApplicationService
         protected ApplicationFileService $fileService
     ) {}
 
-    public function queue(User $actor, ?string $bucket = null)
+    public function queue(User $actor, ?string $bucket = null, ?string $search = null)
     {
-        $query = ServiceApplication::with(['service','customer','currentWindow','currentOfficer'])
-            ->where(function ($query) use ($actor) {
-                $query->where('assigned_to', $actor->id)
-                    ->orWhere('current_officer_id', $actor->id)
-                    ->orWhere(function ($q) use ($actor) {
-                        $q->whereIn('status', ['submitted','returned_to_front_officer','back_officer_approved'])
-                          ->whereHas('service.assignedUsers', fn ($aq) => $aq->where('users.id', $actor->id));
+        $role = $this->actorOfficerRole($actor);
+
+        $query = ServiceApplication::query()
+            ->with([
+                'service',
+                'customer',
+                'city',
+                'subcity',
+                'woreda',
+                'currentWindow',
+                'currentOfficer',
+                'assignee',
+            ])
+            ->where(function ($query) use ($actor, $role) {
+                /*
+                |--------------------------------------------------------------------------
+                | Directly assigned applications
+                |--------------------------------------------------------------------------
+                */
+                $query
+                    ->where('assigned_to', $actor->id)
+                    ->orWhere('current_officer_id', $actor->id);
+
+                /*
+                |--------------------------------------------------------------------------
+                | Front officer intake
+                |--------------------------------------------------------------------------
+                */
+                if ($role === AppRoles::FRONT_OFFICER) {
+                    $query->orWhere(function ($q) use ($actor) {
+                        $q->whereIn('status', [
+                            'submitted',
+                            'resubmitted',
+                            'returned_to_front_officer',
+                            'back_officer_approved',
+                            'back_officer_rejected',
+                            'appointment_scheduled',
+                        ])
+                            ->whereHas('service.assignedUsers', function ($assignment) use ($actor) {
+                                $assignment
+                                    ->where('users.id', $actor->id)
+                                    ->where('user_service_assignments.is_active', true)
+                                    ->whereIn('user_service_assignments.officer_type', [
+                                        AppRoles::FRONT_OFFICER,
+                                        'front',
+                                    ]);
+                            });
                     });
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Back officer queue
+                |--------------------------------------------------------------------------
+                */
+                if ($role === AppRoles::BACK_OFFICER) {
+                    $query->orWhere(function ($q) use ($actor) {
+                        $q->whereIn('status', [
+                            'forwarded_to_back_officer',
+                            'shared_to_back_officer',
+                            'back_officer_review',
+                            'under_back_review',
+                        ])
+                            ->whereHas('service.assignedUsers', function ($assignment) use ($actor) {
+                                $assignment
+                                    ->where('users.id', $actor->id)
+                                    ->where('user_service_assignments.is_active', true)
+                                    ->whereIn('user_service_assignments.officer_type', [
+                                        AppRoles::BACK_OFFICER,
+                                        'back',
+                                    ]);
+                            });
+                    });
+                }
             });
 
         $this->scope->applyServiceApplicationScope($query, $actor);
 
         $map = [
-            'new' => ['submitted'],
-            'shared' => ['shared_to_front_officer','shared_to_back_officer'],
-            'accepted' => ['front_officer_review','back_officer_review'],
-            'approved' => ['back_officer_approved','approved'],
-            'escalated' => ['escalated_to_manager','assigned_by_manager'],
-            'returned' => ['returned_to_front_officer','returned_to_customer'],
-            'rejected' => ['rejected','back_officer_rejected'],
-            'completed' => ['completed'],
+            'new' => ['submitted', 'resubmitted'],
+            'shared' => ['shared', 'shared_to_front_officer', 'shared_to_back_officer'],
+            'accepted' => ['accepted', 'front_officer_review', 'back_officer_review', 'under_review', 'under_back_review'],
+            'approved' => ['back_officer_approved', 'approved'],
+            'appointment' => ['appointment_scheduled'],
+            'escalated' => ['escalated', 'escalated_to_manager', 'assigned_by_manager', 'manager_review'],
+            'returned' => ['returned', 'returned_to_front_officer', 'returned_to_customer', 'back_officer_rejected'],
+            'rejected' => ['rejected'],
+            'completed' => ['completed', 'closed'],
         ];
 
         if ($bucket && isset($map[$bucket])) {
             $query->whereIn('status', $map[$bucket]);
         }
 
-        return $query->latest()->paginate(10);
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('tracking_number', 'like', "%{$search}%")
+                    ->orWhere('administrative_level', 'like', "%{$search}%")
+                    ->orWhereHas('service', fn ($service) => $service->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('currentWindow', fn ($window) => $window->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        return $query
+            ->latest('updated_at')
+            ->paginate(20);
+    }
+
+
+    public function notificationSummary(User $actor): array
+    {
+        $role = $this->actorOfficerRole($actor);
+        $applications = $this->queue($actor, null, null)->getCollection();
+
+        $newStatuses = $role === AppRoles::BACK_OFFICER
+            ? ['forwarded_to_back_officer']
+            : ['submitted', 'pending', 'resubmitted'];
+
+        $sharedStatuses = $role === AppRoles::BACK_OFFICER
+            ? ['shared', 'shared_to_back_officer']
+            : ['shared', 'shared_to_front_officer'];
+
+        $returnedStatuses = [
+            'back_officer_approved',
+            'back_officer_rejected',
+            'returned_to_front_officer',
+        ];
+
+        $new = $applications->whereIn('status', $newStatuses)->values();
+        $shared = $applications->whereIn('status', $sharedStatuses)->values();
+        $returned = $role === AppRoles::FRONT_OFFICER
+            ? $applications->whereIn('status', $returnedStatuses)->values()
+            : collect();
+
+        $notifications = collect()
+            ->merge($new->map(fn (ServiceApplication $application) => $this->officerNotificationPayload($application, 'new')))
+            ->merge($shared->map(fn (ServiceApplication $application) => $this->officerNotificationPayload($application, 'shared')))
+            ->merge($returned->map(fn (ServiceApplication $application) => $this->officerNotificationPayload($application, 'returned_from_back')))
+            ->sortByDesc('date')
+            ->values();
+
+        return [
+            'unread_count' => $notifications->count(),
+            'new_count' => $new->count(),
+            'shared_count' => $shared->count(),
+            'returned_from_back_count' => $returned->count(),
+            'notifications' => $notifications,
+        ];
+    }
+
+    protected function officerNotificationPayload(ServiceApplication $application, string $type): array
+    {
+        return [
+            'id' => $type . '-' . $application->id,
+            'type' => $type,
+            'title' => match ($type) {
+                'shared' => 'Application shared to you',
+                'returned_from_back' => 'Returned from Back Officer',
+                default => 'New application',
+            },
+            'message' => match ($type) {
+                'shared' => 'A service application has been shared to your queue.',
+                'returned_from_back' => 'Back Officer has returned a decision for this application.',
+                default => 'A new service application is waiting for your action.',
+            },
+            'application_id' => $application->id,
+            'tracking_number' => $application->tracking_number,
+            'service_name' => $application->service?->name,
+            'customer_name' => $application->customer?->name,
+            'window_name' => $application->currentWindow?->name,
+            'status' => $application->status,
+            'date' => optional($application->updated_at ?: $application->submitted_at)->toDateTimeString(),
+            'href' => '/dashboard/officer/applications/' . $application->id,
+        ];
     }
 
     public function managerQueue(User $manager, ?string $bucket = null)
