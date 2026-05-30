@@ -31,6 +31,8 @@ class UserService
             $this->applyLocationScope($query, $actor);
         }
 
+        $this->applyRequestedLocationFilters($query, $filters, $actor);
+
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -482,6 +484,36 @@ class UserService
         }
     }
 
+    protected function applyRequestedLocationFilters($query, array $filters, ?User $actor = null): void
+    {
+        $actorLevel = $actor ? AppRoles::userLevel($actor) : null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Important scope rule
+        |--------------------------------------------------------------------------
+        | Subcity Admin and Woreda Admin must not use request filters to expand
+        | beyond their own level. Their list scope is already locked by
+        | applyLocationScope(). Therefore we only allow optional location filters
+        | for Super Admin and City-level users.
+        */
+        if ($actor && ! $actor->hasRole(AppRoles::SUPER_ADMIN) && $actorLevel !== AppRoles::LEVEL_CITY) {
+            return;
+        }
+
+        if (! empty($filters['city_id'])) {
+            $query->where('city_id', (int) $filters['city_id']);
+        }
+
+        if (! empty($filters['subcity_id'])) {
+            $query->where('subcity_id', (int) $filters['subcity_id']);
+        }
+
+        if (! empty($filters['woreda_id'])) {
+            $query->where('woreda_id', (int) $filters['woreda_id']);
+        }
+    }
+
     protected function applyLocationScope($query, User $actor): void
     {
         if ($actor->hasRole(AppRoles::SUPER_ADMIN)) {
@@ -492,10 +524,10 @@ class UserService
 
         if ($level === AppRoles::LEVEL_CITY && $actor->city_id) {
             /*
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             | City Admin
-            |--------------------------------------------------------------------------
-            | City admin can view users under the city scope.
+            |----------------------------------------------------------------------
+            | City admin can see all users inside the city scope.
             */
             $query->where('city_id', $actor->city_id);
             return;
@@ -503,13 +535,14 @@ class UserService
 
         if ($level === AppRoles::LEVEL_SUBCITY && $actor->subcity_id) {
             /*
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             | Subcity Admin
-            |--------------------------------------------------------------------------
-            | Show ONLY users directly assigned to the same subcity.
-            | Do not include woreda-level users under that subcity.
+            |----------------------------------------------------------------------
+            | Show ONLY users who belong directly to this subcity level.
+            | Woreda users under the subcity are excluded intentionally.
             */
-            $query->where('city_id', $actor->city_id)
+            $query
+                ->where('city_id', $actor->city_id)
                 ->where('subcity_id', $actor->subcity_id)
                 ->whereNull('woreda_id');
             return;
@@ -517,12 +550,13 @@ class UserService
 
         if ($level === AppRoles::LEVEL_WOREDA && $actor->woreda_id) {
             /*
-            |--------------------------------------------------------------------------
+            |----------------------------------------------------------------------
             | Woreda Admin
-            |--------------------------------------------------------------------------
-            | Show ONLY users directly assigned to the same woreda.
+            |----------------------------------------------------------------------
+            | Show ONLY users who belong to the same woreda.
             */
-            $query->where('city_id', $actor->city_id)
+            $query
+                ->where('city_id', $actor->city_id)
                 ->where('subcity_id', $actor->subcity_id)
                 ->where('woreda_id', $actor->woreda_id);
             return;

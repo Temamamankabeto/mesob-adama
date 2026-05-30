@@ -25,7 +25,7 @@ class UserController extends Controller
         $this->authorize('viewAny', User::class);
 
         $users = $this->userService->paginateUsers(
-            $request->only(['search', 'status', 'role', 'per_page']),
+            $request->only(['search', 'status', 'role', 'per_page', 'city_id', 'subcity_id', 'woreda_id']),
             $request->user()
         );
 

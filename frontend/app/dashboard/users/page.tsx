@@ -56,7 +56,106 @@ function canToggleUsers() {
   );
 }
 
+
+function currentUserScope() {
+  const user = authService.getStoredUser() as any;
+
+  if (!user) {
+    return {
+      level: "",
+      cityId: "",
+      subcityId: "",
+      woredaId: "",
+      locked: false,
+      label: "All users",
+    };
+  }
+
+  const level =
+    user.location_level ||
+    (user.woreda_id ? "woreda" : user.subcity_id ? "subcity" : user.city_id ? "city" : "");
+
+  return {
+    level,
+    cityId: user.city_id ? String(user.city_id) : "",
+    subcityId: user.subcity_id ? String(user.subcity_id) : "",
+    woredaId: user.woreda_id ? String(user.woreda_id) : "",
+    locked: level === "subcity" || level === "woreda",
+    label:
+      level === "woreda"
+        ? "Showing users in your woreda only"
+        : level === "subcity"
+          ? "Showing subcity-level users only"
+          : level === "city"
+            ? "Showing users in your city"
+            : "All users",
+  };
+}
+
+
+function normalizeRoleName(value?: string | null) {
+  return String(value || "")
+    .toLowerCase()
+    .replaceAll("-", "_")
+    .replaceAll(" ", "_");
+}
+
+function getUserScope(user: any, role?: string | null) {
+  const normalizedRole = normalizeRoleName(role || user?.role || user?.roles?.[0]?.name);
+
+  if (normalizedRole.includes("woreda_admin") || user?.woreda_id) {
+    return {
+      level: "woreda",
+      city_id: user?.city_id,
+      subcity_id: user?.subcity_id,
+      woreda_id: user?.woreda_id,
+      locked: true,
+    };
+  }
+
+  if (normalizedRole.includes("subcity_admin") || user?.subcity_id) {
+    return {
+      level: "subcity",
+      city_id: user?.city_id,
+      subcity_id: user?.subcity_id,
+      woreda_id: null,
+      locked: true,
+    };
+  }
+
+  if (normalizedRole.includes("city_admin") || normalizedRole === "admin" || user?.city_id) {
+    return {
+      level: "city",
+      city_id: user?.city_id,
+      subcity_id: null,
+      woreda_id: null,
+      locked: false,
+    };
+  }
+
+  return {
+    level: "system",
+    city_id: null,
+    subcity_id: null,
+    woreda_id: null,
+    locked: false,
+  };
+}
+
+
 export default function UsersPage() {
+  const currentUser =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("user") || localStorage.getItem("mesob_user") || "{}")
+      : {};
+  const currentRoles =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("roles") || localStorage.getItem("mesob_roles") || "[]")
+      : [];
+  const currentRole = Array.isArray(currentRoles) ? currentRoles[0] : currentRoles;
+  const userScope = getUserScope(currentUser, currentRole);
+  const scope = userScope;
+
   const router = useRouter();
 
   const [page, setPage] = useState(1);
@@ -176,7 +275,7 @@ export default function UsersPage() {
               </SelectContent>
             </Select>
 
-            <Select value={cityId || "all"} onValueChange={(value) => {
+            <Select value={(scope.locked ? scope.cityId : cityId) || "all"} disabled={scope.locked} onValueChange={(value) => {
               const selected = value === "all" ? "" : value;
               setCityId(selected);
               setSubcityId("");
