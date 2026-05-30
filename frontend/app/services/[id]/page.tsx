@@ -2,16 +2,12 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-
 import {
   ArrowRight,
-  BadgeCheck,
   Building2,
   CheckCircle2,
-  Clock3,
-  CreditCard,
+  ClipboardCheck,
   FileText,
-  Layers3,
   MapPin,
   ShieldCheck,
 } from "lucide-react";
@@ -21,9 +17,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { authService } from "@/services/auth/auth.service";
 import { normalizeRoleName } from "@/config/roles.config";
 import { usePublicService } from "@/hooks/public-service/use-public-service";
+import { authService } from "@/services/auth/auth.service";
 
 function selectionQuery(searchParams: URLSearchParams) {
   const params = new URLSearchParams();
@@ -36,26 +32,46 @@ function selectionQuery(searchParams: URLSearchParams) {
   return params.toString();
 }
 
-function formatAvailability(availability: any) {
-  if (!availability) return "This service has no public availability configured.";
-
-  if (typeof availability === "string") {
-    try {
-      availability = JSON.parse(availability);
-    } catch {
-      return availability;
-    }
+function criteriaLines(criterion: any) {
+  if (Array.isArray(criterion?.criteria_items) && criterion.criteria_items.length) {
+    return criterion.criteria_items;
   }
 
-  const levels = availability.levels || availability.administrative_levels || [];
-  const parts = [];
+  return String(criterion?.criteria || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
-  if (levels.length) parts.push(`Available levels: ${levels.join(", ")}`);
-  if (availability.city_ids?.length) parts.push(`Selected cities: ${availability.city_ids.join(", ")}`);
-  if (availability.subcity_ids?.length) parts.push(`Selected subcities: ${availability.subcity_ids.join(", ")}`);
-  if (availability.woreda_ids?.length) parts.push(`Selected woredas: ${availability.woreda_ids.join(", ")}`);
+function allCriteriaItems(service: any) {
+  const criteria = Array.isArray(service?.criteria) ? service.criteria : [];
 
-  return parts.length ? parts.join(" · ") : "Available for configured locations.";
+  return criteria
+    .filter((item: any) => item?.is_active !== false)
+    .flatMap((item: any) =>
+      criteriaLines(item).map((line: string) => ({
+        title: item.title || "Service Criteria",
+        line,
+      }))
+    );
+}
+
+function applySteps(service: any) {
+  const steps = [
+    "Login or create customer account",
+    "Click Start Application",
+    "Fill the service form carefully",
+    "Upload required files if requested",
+    "Submit and track your application",
+  ];
+
+  if (service?.has_back_officer) {
+    steps.push("Wait for office review and final decision");
+  } else {
+    steps.push("Wait for front office completion");
+  }
+
+  return steps;
 }
 
 export default function ServiceDetailPage() {
@@ -117,6 +133,9 @@ export default function ServiceDetailPage() {
     );
   }
 
+  const criteria = allCriteriaItems(service);
+  const steps = applySteps(service);
+
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="mx-auto max-w-6xl space-y-8 px-4 py-10">
@@ -127,19 +146,16 @@ export default function ServiceDetailPage() {
 
               <h1 className="text-4xl font-bold tracking-tight">{service.name}</h1>
 
-              <p className="max-w-3xl text-base leading-7 text-muted-foreground">
-                {service.description || "This service is available through the Mesob Adama enterprise eService platform."}
-              </p>
+              {service.description && (
+                <p className="max-w-3xl text-base leading-7 text-muted-foreground">
+                  {service.description}
+                </p>
+              )}
 
               <div className="flex flex-wrap gap-3">
                 <Badge variant="secondary" className="rounded-full">
                   <ShieldCheck className="mr-2 h-4 w-4" />
                   Secure Digital Service
-                </Badge>
-
-                <Badge variant="outline" className="rounded-full">
-                  <Layers3 className="mr-2 h-4 w-4" />
-                  Dynamic Application Workflow
                 </Badge>
 
                 {selectedLevel && (
@@ -167,102 +183,43 @@ export default function ServiceDetailPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className="rounded-3xl lg:col-span-2">
             <CardHeader>
-              <CardTitle>Service Details</CardTitle>
+              <CardTitle>Service Criteria</CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              <div>
-                <h3 className="font-semibold">Description</h3>
-                <p className="mt-2 leading-7 text-muted-foreground">
-                  {service.description || "No detailed description was provided for this service."}
-                </p>
-              </div>
+            <CardContent>
+              <h3 className="flex items-center gap-2 font-semibold">
+                <ClipboardCheck className="h-5 w-5 text-primary" />
+                Required Criteria
+              </h3>
 
-              <Separator />
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border p-4">
-                  <div className="mb-2 flex items-center gap-2 font-semibold">
-                    <Clock3 className="h-4 w-4" />
-                    Processing Time
-                  </div>
-                  <p className="text-sm text-muted-foreground">3–7 Working Days</p>
-                </div>
-
-                <div className="rounded-2xl border p-4">
-                  <div className="mb-2 flex items-center gap-2 font-semibold">
-                    <CreditCard className="h-4 w-4" />
-                    Service Fee
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {Number(service.service_fee || 0) > 0 ? `${service.service_fee} ETB` : "Free Service"}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border p-4">
-                  <div className="mb-2 flex items-center gap-2 font-semibold">
-                    <BadgeCheck className="h-4 w-4" />
-                    Back Officer
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {service.has_back_officer ? "Required" : "Not Required"}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border p-4">
-                  <div className="mb-2 flex items-center gap-2 font-semibold">
-                    <FileText className="h-4 w-4" />
-                    Status
-                  </div>
-                  <p className="text-sm capitalize text-muted-foreground">{service.status || "active"}</p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h3 className="font-semibold">Availability</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {formatAvailability(service.availability)}
-                </p>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h3 className="font-semibold">Required Information</h3>
-                <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                  <li className="flex gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                    Valid customer account and contact information.
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                    Correct service form information.
-                  </li>
-                  <li className="flex gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-primary" />
-                    Required files or supporting documents if requested by the form.
-                  </li>
+              {criteria.length ? (
+                <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+                  {criteria.map((item: any, index: number) => (
+                    <li key={`${item.title}-${index}`} className="flex gap-3 rounded-2xl border p-4">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <div>
+                        <p className="font-medium text-foreground">{item.line}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{item.title}</p>
+                      </div>
+                    </li>
+                  ))}
                 </ul>
-              </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">
+                  No criteria has been configured for this service yet.
+                </div>
+              )}
             </CardContent>
           </Card>
 
           <Card className="rounded-3xl">
             <CardHeader>
-              <CardTitle>Application Workflow</CardTitle>
+              <CardTitle>Steps to Apply</CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-4">
-              {[
-                "Customer submits application",
-                "Front Officer accepts and reviews",
-                service.has_back_officer ? "Front Officer forwards to Back Officer" : "Front Officer completes directly",
-                service.has_back_officer ? "Back Officer approves or rejects" : "Workflow ends after completion",
-                service.has_back_officer ? "Front Officer completes after approval" : null,
-              ].filter(Boolean).map((step, index) => (
-                <div key={String(step)} className="flex gap-3">
+              {steps.map((step, index) => (
+                <div key={step} className="flex gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm text-primary-foreground">
                     {index + 1}
                   </div>
@@ -278,6 +235,18 @@ export default function ServiceDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="rounded-3xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Before You Apply
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm leading-7 text-muted-foreground">
+            Please read the criteria carefully and prepare the required information before starting the application.
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

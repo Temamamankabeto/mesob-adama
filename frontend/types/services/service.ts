@@ -61,6 +61,18 @@ export interface AssignedUser {
 |--------------------------------------------------------------------------
 */
 
+export interface ServiceCriterion {
+  id: number;
+  service_id: number;
+  title: string;
+  criteria: string;
+  criteria_items?: string[];
+  sort_order?: number;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Service {
   id: number;
 
@@ -89,6 +101,8 @@ export interface Service {
   assignedUsers?: AssignedUser[];
 
   assigned_users?: AssignedUser[];
+
+  criteria?: ServiceCriterion[];
 }
 
 /*
