@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\ServiceFormController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\ServiceCriterionController;
 use App\Http\Controllers\Api\UserServiceAssignmentController;
 use App\Http\Controllers\Api\ServiceFormSectionController;
 use App\Http\Controllers\Api\ServiceFormFieldController;
@@ -13,6 +14,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/services', [ServiceController::class, 'store']);
     Route::put('/services/{service}', [ServiceController::class, 'update']);
     Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
+
+    Route::apiResource('service-criteria', ServiceCriterionController::class);
 
     Route::apiResource('service-forms', ServiceFormController::class);
 

@@ -76,6 +76,7 @@ const serviceManagementMenu: SidebarItem = {
   scopes: cityOnly,
   children: [
     { label: "Services", href: "/dashboard/services", permission: "services.read", scopes: cityOnly },
+    { label: "Service Criteria", href: "/dashboard/service-criteria", permission: "services.read", scopes: cityOnly },
     { label: "Service Providers", href: "/dashboard/service-providers", permission: "service_providers.read", scopes: ["super_admin"] },
     { label: "Officer Services", href: "/dashboard/user-services", permission: "services.read", scopes: cityOnly },
     { label: "Assigned Services", href: "/dashboard/services/officers", permission: "services.read", scopes: cityOnly },

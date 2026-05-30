@@ -81,4 +81,9 @@ class Service extends Model
     {
         return $this->hasMany(ServiceApplication::class);
     }
+
+    public function criteria()
+    {
+        return $this->hasMany(ServiceCriterion::class)->orderBy('sort_order');
+    }
 }
