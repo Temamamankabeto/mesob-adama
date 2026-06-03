@@ -68,7 +68,7 @@ export function clearSession() {
   localStorage.removeItem("refresh_token");
 
   document.cookie = "token=; Path=/; Max-Age=0; SameSite=Lax";
-  document.cookie = "roles=; Path=/; Max-Age=0; SameSite=Lax";
+  document.cookie = "roles=; Path=/; Max-Age=0; SameSite=Lax"; 
   document.cookie = "permissions=; Path=/; Max-Age=0; SameSite=Lax";
   document.cookie = "user=; Path=/; Max-Age=0; SameSite=Lax";
   document.cookie = "refresh_token=; Path=/; Max-Age=0; SameSite=Lax";

@@ -8,51 +8,17 @@ use App\Http\Controllers\Api\Public\PublicServiceController;
 use App\Http\Controllers\Api\Public\ApplicationTrackingController;
 use App\Http\Controllers\Api\Public\ContactController;
 use App\Http\Controllers\Api\Public\PublicReportController;
+use App\Http\Controllers\Api\Chatbot\PublicChatbotController;
 
 Route::prefix('public')->group(function () {
-    Route::get('/homepage', [
-        HomeController::class,
-        'index',
-    ]);
-
-    Route::get('/locations', [
-        PublicLocationController::class,
-        'index',
-    ]);
-
-    Route::get('/services', [
-        PublicServiceController::class,
-        'index',
-    ]);
-
-    Route::get('/services/featured', [
-        PublicServiceController::class,
-        'featured',
-    ]);
-
-    Route::get('/window-services', [
-        PublicServiceController::class,
-        'windowServices',
-    ]);
-
-    Route::get('/services/{service}', [
-        PublicServiceController::class,
-        'show',
-    ]);
-
-    Route::post('/track-application', [
-        ApplicationTrackingController::class,
-        'track',
-    ]);
-
-    Route::post('/contact', [
-        ContactController::class,
-        'store',
-    ]);
-
-    Route::get('/reports/dashboard', [
-        PublicReportController::class,
-        'dashboard',
-    ]);
-
+    Route::get('/homepage', [HomeController::class, 'index']);
+    Route::get('/locations', [PublicLocationController::class, 'index']);
+    Route::get('/services', [PublicServiceController::class, 'index']);
+    Route::get('/services/featured', [PublicServiceController::class, 'featured']);
+    Route::get('/window-services', [PublicServiceController::class, 'windowServices']);
+    Route::get('/services/{service}', [PublicServiceController::class, 'show']);
+    Route::post('/track-application', [ApplicationTrackingController::class, 'track']);
+    Route::post('/contact', [ContactController::class, 'store']);
+    Route::post('/chatbot/message', [PublicChatbotController::class, 'message']);
+    Route::get('/reports/dashboard', [PublicReportController::class, 'dashboard']);
 });

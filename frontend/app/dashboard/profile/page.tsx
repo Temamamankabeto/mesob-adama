@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { ComponentType, FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Camera,
   KeyRound,
@@ -21,6 +22,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authService, type AuthUser } from "@/services/auth/auth.service";
 
+type ProfileUser = AuthUser & {
+  role?: string | null;
+  roles?: Array<string | { name?: string | null }> | null;
+  city_id?: number | string | null;
+  subcity_id?: number | string | null;
+  woreda_id?: number | string | null;
+  city?: { id?: number | string; name?: string | null } | null;
+  subcity?: { id?: number | string; name?: string | null } | null;
+  woreda?: { id?: number | string; name?: string | null } | null;
+  gender?: string | null;
+  date_of_birth?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  profile_image_url?: string | null;
+  photo_url?: string | null;
+};
+
 function initials(name?: string | null) {
   return (
     (name || "User")
@@ -32,7 +50,20 @@ function initials(name?: string | null) {
   );
 }
 
-function locationText(user: AuthUser | null) {
+function roleText(user: ProfileUser | null) {
+  if (!user) return "User";
+
+  const roles = user.roles as Array<string | { name?: string | null }> | undefined | null;
+  const firstRole = Array.isArray(roles) ? roles[0] : null;
+
+  if (typeof firstRole === "string") return firstRole;
+
+  const roleObject = firstRole as { name?: string | null } | null;
+
+  return roleObject?.name || user.role || "User";
+}
+
+function locationText(user: ProfileUser | null) {
   if (!user) return "-";
 
   return (
@@ -51,7 +82,7 @@ function locationText(user: AuthUser | null) {
 }
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<ProfileUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
@@ -71,14 +102,16 @@ export default function ProfilePage() {
     return URL.createObjectURL(image);
   }, [image, user?.profile_image_url, user?.photo_url]);
 
-  function fillForm(data: AuthUser | null) {
+  function fillForm(data: AuthUser | ProfileUser | null) {
     if (!data) return;
 
-    setUser(data);
-    setName(data.name || "");
-    setGender(data.gender || "");
-    setDateOfBirth(data.date_of_birth ? String(data.date_of_birth).slice(0, 10) : "");
-    setAddress(data.address || "");
+    const profile = data as ProfileUser;
+
+    setUser(profile);
+    setName(profile.name || "");
+    setGender(profile.gender || "");
+    setDateOfBirth(profile.date_of_birth ? String(profile.date_of_birth).slice(0, 10) : "");
+    setAddress(profile.address || "");
   }
 
   async function loadProfile() {
@@ -107,7 +140,6 @@ export default function ProfilePage() {
 
   async function submitProfile(event: FormEvent) {
     event.preventDefault();
-
     setSavingProfile(true);
 
     try {
@@ -123,7 +155,7 @@ export default function ProfilePage() {
 
       const updated = await authService.updateProfile(payload);
 
-      setUser(updated);
+      fillForm(updated);
       setImage(null);
       localStorage.setItem("user", JSON.stringify(updated));
 
@@ -183,15 +215,9 @@ export default function ProfilePage() {
                   <AvatarImage src={imagePreview || undefined} alt={user?.name || "Profile"} />
                   <AvatarFallback className="text-2xl">{initials(user?.name)}</AvatarFallback>
                 </Avatar>
+
                 {imagePreview && (
-                  <Image
-                    src={imagePreview}
-                    alt=""
-                    width={1}
-                    height={1}
-                    className="hidden"
-                    unoptimized
-                  />
+                  <Image src={imagePreview} alt="" width={1} height={1} className="hidden" unoptimized />
                 )}
               </div>
 
@@ -199,7 +225,7 @@ export default function ProfilePage() {
                 <p className="text-sm font-medium text-muted-foreground">My Profile</p>
                 <h1 className="text-2xl font-bold md:text-3xl">{user?.name}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {user?.role || user?.roles?.[0] || "User"} · {locationText(user)}
+                  {roleText(user)} · {locationText(user)}
                 </p>
               </div>
             </div>
@@ -349,7 +375,7 @@ function ReadOnlyField({
 }: {
   label: string;
   value: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
 }) {
   return (
     <div className="space-y-2">

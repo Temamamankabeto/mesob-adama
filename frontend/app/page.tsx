@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import mesob from "@/app/mesob.jpg";
+import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
 
 const navGroups = [
   {
@@ -309,6 +310,7 @@ export default function HomePage() {
         </div>
         <div className="border-t border-white/20"><div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm md:flex-row md:px-8"><p>© 2026 Adama MESOB eService. All Rights Reserved.</p><div className="flex items-center gap-4"><span>Follow Us</span><Facebook /><Send /><Youtube /><Linkedin /></div></div></div>
       </footer>
+          <ChatbotWidget source="public-home" />
     </main>
   );
 }

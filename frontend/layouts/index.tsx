@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import DashboardHeader from "@/layouts/components/DashboardHeader";
 import Sidebar from "@/layouts/components/Sidebar";
+import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
 
 export default function DashboardLayoutShell({
   children,

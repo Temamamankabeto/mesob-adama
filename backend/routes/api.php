@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Chatbot\CustomerChatbotController;
+
+Route::middleware('auth:sanctum')->post('/chatbot/message', [CustomerChatbotController::class, 'message']);
 
 Route::get('/ping', function () {
     return response()->json([

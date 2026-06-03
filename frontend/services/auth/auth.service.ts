@@ -7,6 +7,17 @@ export type AuthUser = {
   email?: string;
   phone?: string;
   address?: string | null;
+  gender?: string | null;
+  date_of_birth?: string | null;
+  city_id?: number | string | null;
+  subcity_id?: number | string | null;
+  woreda_id?: number | string | null;
+  city?: { id?: number | string; name?: string | null } | null;
+  subcity?: { id?: number | string; name?: string | null } | null;
+  woreda?: { id?: number | string; name?: string | null } | null;
+  profile_image?: string | null;
+  profile_image_url?: string | null;
+  photo_url?: string | null;
   role?: string;
   roles?: string[];
   permissions?: string[];
@@ -70,7 +81,36 @@ export const authService = {
 
   async me() {
     const response = await api.get("/auth/me");
-    return unwrap<AuthUser>(response);
+    return normalizeUserResponse(response);
+  },
+
+  async profile() {
+    try {
+      const response = await api.get("/profile");
+      return normalizeUserResponse(response);
+    } catch {
+      const response = await api.get("/auth/me");
+      return normalizeUserResponse(response);
+    }
+  },
+
+  async updateProfile(payload: FormData) {
+    const response = await api.post("/profile/update", payload, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return normalizeUserResponse(response);
+  },
+
+  async changeOwnPassword(payload: {
+    current_password: string;
+    new_password: string;
+    new_password_confirmation: string;
+  }) {
+    const response = await api.post("/profile/change-password", payload);
+    return unwrap<{ success: boolean; message: string }>(response);
   },
 
   async logout() {
