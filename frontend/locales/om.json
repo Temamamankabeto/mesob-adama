@@ -1,0 +1,32 @@
+{
+  "common": {
+    "language": "Afaan",
+    "search": "Barbaadi",
+    "login": "Seeni",
+    "register": "Galmaa'i",
+    "cancel": "Dhiisi",
+    "save": "Olkaa'i",
+    "loading": "Fe'amaa jira..."
+  },
+  "chatbot": {
+    "title": "Gargaaraa MESOB",
+    "subtitle": "Deeggarsa rule-based bilisaa",
+    "welcome": "Akkam! Ani gargaaraa MESOB eService dha. Tajaajila, ulaagaa, gabaasa, akka iyyatan, hordoffii, beellama, kaffaltii fi irra deebiin galchuu irratti gaafachuu dandeessa.",
+    "placeholder": "Waa'ee MESOB gaafadhu...",
+    "typing": "Deebisaa jira...",
+    "error": "Dhiifama, yeroo ammaa deebisuu hin dandeenye. Irra deebi'i yaali.",
+    "failed": "Chatbot deebisuu dadhabe",
+    "suggestions": {
+      "services": "Tajaajiloota tarreessi",
+      "criteria": "Ulaagaa tajaajilaa",
+      "apply": "Akkamitti iyyachuu?",
+      "report": "Gabaasa koo"
+    }
+  },
+  "home": {
+    "brand": "Adama MESOB eService",
+    "services": "Tajaajiloota",
+    "resources": "Qabeenya",
+    "contacts": "Quunnamtii"
+  }
+}

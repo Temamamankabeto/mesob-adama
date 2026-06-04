@@ -2,14 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\ChatbotCategory;
 use App\Models\ChatbotConversation;
+use App\Models\ChatbotTrainingQuestion;
 use App\Models\City;
 use App\Models\Service;
 use App\Models\ServiceApplication;
 use App\Models\Subcity;
 use App\Models\User;
 use App\Models\Woreda;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -18,427 +19,460 @@ class RuleBasedChatbotService
 {
     public function reply(?User $user, string $message, ?string $sessionId = null, string $source = 'web'): array
     {
-        $message = trim($message);
-        $language = $this->detectLanguage($message);
-        $normalized = $this->normalize($message);
-        $tracking = $this->extractTrackingNumber($message);
+        $question = trim($message);
+        $normalized = ChatbotTrainingQuestion::normalize($question);
+        $language = $this->detectLanguage($question);
+        $role = $this->roleName($user);
+        $scope = $this->scopeName($user);
         $context = $this->lastContext($sessionId, $user);
 
-        if ($this->isCustomerLike($user) && $this->isBlockedCustomerQuestion($normalized)) {
-            return $this->respond($user, 'blocked_internal_info', $language, $this->blockedCustomerAnswer($language), $sessionId, $source, $message, ['blocked' => true]);
+        $match = $this->findBestMatch($normalized, $language);
+        $category = $match?->category;
+
+        if (! $category) {
+            $category = ChatbotCategory::where('code', 'fallback')->where('is_active', true)->first();
         }
 
-        $flow = $this->continueFlow($user, $message, $normalized, $language, $context);
-        if ($flow) {
-            return $this->respond($user, $flow['intent'], $language, $flow['reply'], $sessionId, $source, $message, $flow['context'] ?? null, $flow['suggestions'] ?? null);
+        if ($category && ! $this->roleAllowed($category, $role)) {
+            $blocked = ChatbotCategory::where('code', 'blocked_customer_internal')->where('is_active', true)->first();
+            $category = $blocked ?: $category;
+            $match = $category?->trainingQuestions()->where('is_active', true)->first();
         }
 
-        $intent = $this->detectIntent($normalized, $tracking);
+        $answer = $this->runAction($user, $question, $normalized, $category, $match, $context);
 
-        $result = match ($intent) {
-            'greeting' => $this->greeting($language),
-            'services_list' => $this->servicesList($language),
-            'service_detail' => $this->serviceDetail($message, $language),
-            'service_criteria' => $this->serviceCriteria($message, $language),
-            'apply_steps' => $this->startApplyFlow($message, $language, 'apply'),
-            'application_tracking' => $this->trackApplication($user, $tracking, $message, $language),
-            'appointment' => $this->appointment($user, $tracking, $message, $language),
-            'payment' => $this->payment($user, $tracking, $message, $language),
-            'documents' => $this->documents($user, $tracking, $message, $language),
-            'rejection_return' => $this->resubmitOrRejection($user, $tracking, $message, $language),
-            'auth_help' => $this->authHelp($language),
-            'profile_account' => $this->profileHelp($language),
-            'officer_queue_report', 'manager_report', 'admin_report', 'super_admin_report', 'report_questions' => $this->reportHelp($user, $intent, $language),
-            default => ['reply' => $this->fallback($language)],
+        $this->saveConversation(
+            $user,
+            $sessionId,
+            $role,
+            $scope,
+            $question,
+            $normalized,
+            $category?->id,
+            $answer['reply'],
+            $answer['context'] ?? null
+        );
+
+        return [
+            'reply' => $answer['reply'],
+            'intent' => $category?->code ?? 'fallback',
+            'role' => $role,
+            'scope' => $scope,
+            'language' => $language,
+            'suggestions' => $answer['suggestions'] ?? $this->defaultSuggestions($role),
+            'context' => $answer['context'] ?? null,
+        ];
+    }
+
+    protected function findBestMatch(string $normalized, string $language): ?ChatbotTrainingQuestion
+    {
+        $questions = ChatbotTrainingQuestion::query()
+            ->with('category')
+            ->where('is_active', true)
+            ->whereHas('category', fn ($q) => $q->where('is_active', true))
+            ->get();
+
+        $best = null;
+        $bestScore = 0;
+
+        foreach ($questions as $question) {
+            $score = $this->scoreQuestion($normalized, $question, $language);
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $question;
+            }
+        }
+
+        return $bestScore > 0 ? $best : null;
+    }
+
+    protected function scoreQuestion(string $normalized, ChatbotTrainingQuestion $question, string $language): int
+    {
+        $score = 0;
+
+        if ($question->language === $language) {
+            $score += 10;
+        }
+
+        if ($question->normalized_question && str_contains($normalized, $question->normalized_question)) {
+            $score += 100;
+        }
+
+        foreach (($question->keywords ?? []) as $keyword) {
+            $keyword = ChatbotTrainingQuestion::normalize($keyword);
+
+            if ($keyword && str_contains($normalized, $keyword)) {
+                $score += 20 + mb_strlen($keyword);
+            }
+        }
+
+        foreach (explode(' ', $normalized) as $word) {
+            if (mb_strlen($word) > 2 && str_contains((string) $question->normalized_question, $word)) {
+                $score += 2;
+            }
+        }
+
+        return $score;
+    }
+
+    protected function roleAllowed(ChatbotCategory $category, string $role): bool
+    {
+        $role = $this->normalizeRole($role);
+        $allowed = collect($category->allowed_roles ?? [])->map(fn ($item) => $this->normalizeRole($item))->values();
+        $blocked = collect($category->blocked_roles ?? [])->map(fn ($item) => $this->normalizeRole($item))->values();
+
+        if ($blocked->contains($role)) {
+            return false;
+        }
+
+        if ($allowed->isEmpty()) {
+            return true;
+        }
+
+        if ($allowed->contains('*')) {
+            return true;
+        }
+
+        return $allowed->contains($role)
+            || $allowed->contains(fn ($allowedRole) => str_contains($role, $allowedRole) || str_contains($allowedRole, $role));
+    }
+
+    protected function runAction(?User $user, string $question, string $normalized, ?ChatbotCategory $category, ?ChatbotTrainingQuestion $training, ?array $context): array
+    {
+        $action = $training?->action_type ?: $category?->code ?: 'fallback';
+
+        return match ($action) {
+            'query_services', 'service_list' => $this->queryServices(),
+            'query_service_criteria', 'service_criteria' => $this->queryServiceCriteria($question, $training),
+            'apply_steps', 'public_apply_help' => $this->applySteps($question),
+            'tracking', 'application_tracking' => $this->trackApplication($user, $question),
+            'appointment_status', 'appointment' => $this->appointmentStatus($user, $question),
+            'payment_status', 'payment' => $this->paymentStatus($user, $question),
+            'resubmit_help', 'resubmit' => $this->resubmitHelp($user, $question),
+            'document_summary', 'documents' => $this->documentSummary($user, $question),
+            'customer_dashboard_report' => $this->customerDashboardReport($user),
+            'officer_queue_report' => $this->roleGuide($training, 'Officer queue report is available from Officer Applications. Ask about assigned, shared, returned, completed, rejected, SLA overdue, service or window reports.'),
+            'manager_report' => $this->roleGuide($training, 'Manager report is available from Manager dashboard. Ask about escalations, workload, SLA, bottlenecks, rejected reasons, appointment or completed applications.'),
+            'admin_user_report' => $this->roleGuide($training, 'Admin reports are available from dashboard modules. Ask about users, activation requests, services, windows, forms, assignments or application summary.'),
+            'super_admin_report' => $this->roleGuide($training, 'Super Admin can view full system reports: users, services, applications, windows, assignments, payment, appointment, SLA, audit logs and comparisons.'),
+            'blocked_customer_internal' => $this->blockedCustomerInternal($training),
+            'static_answer' => $this->staticAnswer($training),
+            default => $this->staticAnswer($training),
         };
-
-        return $this->respond($user, $intent, $language, $result['reply'], $sessionId, $source, $message, $result['context'] ?? null, $result['suggestions'] ?? null);
     }
 
-    private function normalize(string $message): string
+    protected function queryServices(): array
     {
-        $value = Str::lower($message);
-        $value = preg_replace('/[^\p{L}\p{N}\s\-]/u', ' ', $value) ?: $value;
-        return trim(preg_replace('/\s+/', ' ', $value) ?: $value);
+        $services = Service::where('status', 'active')->orderBy('name')->limit(15)->get(['id', 'name']);
+        $list = $services->map(fn ($service, $index) => ($index + 1) . '. ' . $service->name)->implode("\n") ?: '-';
+
+        return [
+            'reply' => "Available MESOB services:\n{$list}\n\nWrite the service name to continue.",
+            'suggestions' => $services->take(4)->pluck('name')->values()->all(),
+        ];
     }
 
-    private function detectLanguage(string $message): string
+    protected function queryServiceCriteria(string $question, ?ChatbotTrainingQuestion $training): array
     {
-        if (preg_match('/[\x{1200}-\x{137F}]/u', $message)) return 'am';
-        foreach (['akkam', 'maal', 'eessa', 'tajaajila', 'iyyata', 'kaffaltii', 'beellama', 'ulaagaa', 'gabaasa'] as $word) {
-            if (str_contains(Str::lower($message), $word)) return 'om';
+        $service = $this->findServiceInMessage($question);
+
+        if (! $service) {
+            return ['reply' => $training?->answer_template ?: 'Which service criteria do you want to know? Please mention the service name.'];
         }
-        return 'en';
+
+        $service->load(['criteria' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')]);
+
+        $items = $service->criteria
+            ->flatMap(fn ($criterion) => $criterion->criteria_items ?: preg_split('/\r\n|\r|\n/', (string) $criterion->criteria))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->values();
+
+        if ($items->isEmpty()) {
+            return ['reply' => "No criteria are configured yet for {$service->name}."];
+        }
+
+        $list = $items->map(fn ($item, $index) => ($index + 1) . '. ' . $item)->implode("\n");
+
+        return ['reply' => "Criteria for {$service->name}:\n{$list}"];
     }
 
-    private function detectIntent(string $normalized, ?string $tracking): string
+    protected function applySteps(string $question): array
     {
-        if ($tracking) return 'application_tracking';
-        $scores = [];
-        foreach (config('chatbot_rules.intents', []) as $intent => $keywords) {
-            $scores[$intent] = 0;
-            foreach ($keywords as $keyword) {
-                $keyword = Str::lower($keyword);
-                if (str_contains($normalized, $keyword)) $scores[$intent] += 100 + mb_strlen($keyword);
-            }
-        }
-        arsort($scores);
-        return (($scores[array_key_first($scores)] ?? 0) > 0) ? array_key_first($scores) : 'fallback';
-    }
+        $service = $this->findServiceInMessage($question);
 
-    private function continueFlow(?User $user, string $message, string $normalized, string $language, ?array $context): ?array
-    {
-        if (!$context || empty($context['flow'])) return null;
-
-        if ($this->detectIntent($normalized, null) === 'services_list') {
-            $list = $this->servicesList($language);
-            $list['context'] = $context;
-            $list['intent'] = 'services_list';
-            return $list;
-        }
-
-        if ($context['flow'] === 'apply_select_service') {
-            $service = $this->findServiceInMessage($message);
-            if (!$service) {
-                return [
-                    'intent' => 'apply_steps',
-                    'reply' => $this->text($language, 'Please write the service name you want to apply for. You can also ask: list services.', "Maqaa tajaajila iyyachuu barbaaddu barreessi. Akkasumas 'tajaajiloota tarreessi' jettee gaafachuu dandeessa.", 'እባክዎ ለማመልከት የሚፈልጉትን የአገልግሎት ስም ይፃፉ። እንዲሁም "አገልግሎቶችን ዘርዝር" ማለት ይችላሉ።'),
-                    'context' => $context,
-                    'suggestions' => ['List services', 'Service criteria'],
-                ];
-            }
-            return ['intent' => 'apply_steps', ...$this->askLevelForService($service, $language)];
-        }
-
-        if ($context['flow'] === 'apply_select_level' && !empty($context['service_id'])) {
-            $service = Service::find((int) $context['service_id']);
-            $level = $this->extractLevel($normalized);
-            if (!$service || !$level) {
-                return [
-                    'intent' => 'apply_steps',
-                    'reply' => $this->text($language, 'Please choose one level: city, subcity, or woreda.', 'Sadarkaa tokko fili: city, subcity, yookaan woreda.', 'እባክዎ አንድ ደረጃ ይምረጡ፦ city, subcity, ወይም woreda።'),
-                    'context' => $context,
-                    'suggestions' => ['city', 'subcity', 'woreda'],
-                ];
-            }
-            return ['intent' => 'apply_steps', ...$this->handleLevelSelection($service, $level, $language)];
-        }
-
-        if ($context['flow'] === 'apply_select_subcity') {
-            $service = Service::find((int) $context['service_id']);
-            $subcity = $this->findSubcityInMessage($message);
-            if (!$service || !$subcity) {
-                return ['intent' => 'apply_steps', 'reply' => $this->text($language, 'Please select a valid subcity from the list.', 'Subcity sirrii tarree keessaa fili.', 'እባክዎ ከዝርዝሩ ትክክለኛ ክፍለ ከተማ ይምረጡ።'), 'context' => $context];
-            }
-            if (($context['level'] ?? '') === 'subcity') {
-                return ['intent' => 'apply_steps', ...$this->formLink($service, 'subcity', $language, ['city_id' => $subcity->city_id, 'subcity_id' => $subcity->id])];
-            }
-            $woredas = Woreda::where('subcity_id', $subcity->id)->orderBy('name')->get();
+        if (! $service) {
             return [
-                'intent' => 'apply_steps',
-                'reply' => $this->text($language, "Please select your woreda:\n" . $this->numbered($woredas), "Woreda kee fili:\n" . $this->numbered($woredas), "እባክዎ ወረዳዎን ይምረጡ፦\n" . $this->numbered($woredas)),
-                'context' => ['flow' => 'apply_select_woreda', 'service_id' => $service->id, 'level' => 'woreda', 'city_id' => $subcity->city_id, 'subcity_id' => $subcity->id],
+                'reply' => "To apply: login/register, search service, read criteria, select level/location, fill form, upload files, submit, and save tracking number.\n\nWhich service do you want to apply for?",
+                'context' => ['flow' => 'apply_select_service'],
+                'suggestions' => ['List services', 'Service criteria'],
             ];
         }
 
-        if ($context['flow'] === 'apply_select_woreda') {
-            $service = Service::find((int) $context['service_id']);
-            $woreda = $this->findWoredaInMessage($message, (int) $context['subcity_id']);
-            if (!$service || !$woreda) return ['intent' => 'apply_steps', 'reply' => $this->text($language, 'Please select a valid woreda from the list.', 'Woreda sirrii tarree keessaa fili.', 'እባክዎ ከዝርዝሩ ትክክለኛ ወረዳ ይምረጡ።'), 'context' => $context];
-            return ['intent' => 'apply_steps', ...$this->formLink($service, 'woreda', $language, ['city_id' => $context['city_id'], 'subcity_id' => $context['subcity_id'], 'woreda_id' => $woreda->id])];
+        return [
+            'reply' => "Open the service page and click Apply Now:\n/services/{$service->id}\n\nThen select city/subcity/woreda, fill the form, upload files, and submit.",
+            'suggestions' => ['Service criteria', 'Track application'],
+        ];
+    }
+
+    protected function trackApplication(?User $user, string $question): array
+    {
+        $application = $this->findApplication($user, $question);
+
+        if (! $application) {
+            return ['reply' => 'Application not found. Please provide a valid tracking number. Logged-in customers can only view their own applications.'];
         }
 
-        return null;
+        $appointment = $application->appointments()->latest('appointment_at')->first();
+        $appointmentText = $appointment ? "\nAppointment: {$appointment->appointment_at?->format('Y-m-d H:i')} at " . ($appointment->location ?: '-') : '';
+        $reason = $application->rejection_reason ? "\nReason: {$application->rejection_reason}" : '';
+
+        return ['reply' => "Application {$application->tracking_number}\nService: {$application->service?->name}\nStatus: {$this->statusLabel($application->status)}{$appointmentText}{$reason}"];
     }
 
-    private function greeting(string $language): array
+    protected function appointmentStatus(?User $user, string $question): array
     {
-        return ['reply' => $this->text($language, 'Hello! I am MESOB eService Assistant. I can help with services, reports, applications, appointments, payments, and workflow guidance.', "Akkam! Ani MESOB eService Assistant dha. Tajaajila, gabaasa, iyyata, beellama, kaffaltii fi adeemsa hojii irratti si gargaaruu nan danda'a.", 'ሰላም! እኔ የMESOB eService ረዳት ነኝ። ስለ አገልግሎቶች፣ ሪፖርቶች፣ ማመልከቻዎች፣ ቀጠሮ፣ ክፍያ እና workflow ልረዳዎት እችላለሁ።')];
+        $application = $this->findApplication($user, $question);
+
+        if (! $application) {
+            return ['reply' => 'Please provide tracking number or login to check appointment.'];
+        }
+
+        $appointment = $application->appointments()->latest('appointment_at')->first();
+
+        if (! $appointment) {
+            return ['reply' => 'No appointment is scheduled for this application yet.'];
+        }
+
+        return ['reply' => "Appointment: {$appointment->appointment_at?->format('Y-m-d H:i')}\nLocation: " . ($appointment->location ?: '-') . "\nMessage: " . ($appointment->message ?: '-')];
     }
 
-    private function servicesList(string $language): array
+    protected function paymentStatus(?User $user, string $question): array
     {
-        $services = Service::where('status', 'active')->orderBy('name')->limit(15)->get(['id', 'name']);
-        $list = $services->map(fn ($s, $i) => ($i + 1) . '. ' . $s->name)->implode("\n") ?: '-';
-        return ['reply' => $this->text($language, "Available MESOB services:\n{$list}\n\nWrite the service name to continue.", "Tajaajiloota MESOB jiran:\n{$list}\n\nItti fufuuf maqaa tajaajilaa barreessi.", "የMESOB አገልግሎቶች:\n{$list}\n\nለመቀጠል የአገልግሎቱን ስም ይፃፉ።"), 'suggestions' => $services->take(4)->pluck('name')->values()->all()];
-    }
+        $application = $this->findApplication($user, $question);
 
-    private function serviceDetail(string $message, string $language): array
-    {
-        $service = $this->findServiceInMessage($message);
-        if (!$service) return ['reply' => $this->text($language, 'Please mention the service name.', 'Maqaa tajaajilaa barreessi.', 'እባክዎ የአገልግሎቱን ስም ይጥቀሱ።')];
-        $fee = Number_format((float) ($service->service_fee ?? 0), 2);
-        return ['reply' => "Service: {$service->name}\nDescription: " . ($service->description ?: '-') . "\nFee: {$fee} ETB\nBack officer review: " . ($service->has_back_officer ? 'Required' : 'Not required')];
-    }
+        if (! $application) {
+            return ['reply' => 'Please provide tracking number or login to check payment.'];
+        }
 
-    private function serviceCriteria(string $message, string $language): array
-    {
-        $service = $this->findServiceInMessage($message);
-        if (!$service) return ['reply' => $this->text($language, 'Which service criteria do you want to know? Please mention the service name.', 'Ulaagaa tajaajila kami beekuu barbaadda? Maqaa tajaajilaa barreessi.', 'የየትኛውን አገልግሎት መስፈርት ማወቅ ይፈልጋሉ? የአገልግሎቱን ስም ይጥቀሱ።')];
-        $service->load(['criteria' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')]);
-        $items = $service->criteria->flatMap(fn ($c) => $c->criteria_items ?: preg_split('/\r\n|\r|\n/', (string) $c->criteria))->map(fn ($item) => trim((string) $item))->filter()->values();
-        if ($items->isEmpty()) return ['reply' => $this->text($language, "No criteria are configured yet for {$service->name}.", "{$service->name} irratti ulaagaan hin galmoofne.", "ለ{$service->name} መስፈርት አልተመዘገበም።")];
-        $list = $items->map(fn ($item, $i) => ($i + 1) . '. ' . $item)->implode("\n");
-        return ['reply' => $this->text($language, "Criteria for {$service->name}:\n{$list}", "{$service->name}f ulaagaalee:\n{$list}", "የ{$service->name} መስፈርቶች:\n{$list}")];
-    }
+        if (! Schema::hasTable('payments')) {
+            return ['reply' => 'Payment module is not enabled. Service fee: ' . ($application->service?->service_fee ?? 0) . ' ETB.'];
+        }
 
-    private function startApplyFlow(string $message, string $language, string $source): array
-    {
-        $service = $this->findServiceInMessage($message);
-        if (!$service) return ['reply' => $this->text($language, "To apply: login/register, search service, read criteria, select level/location, fill form, upload files, submit, and save tracking number.\n\nWhich service do you want to apply for?", "Iyyachuuf: login/galmaa'i, tajaajila barbaadi, ulaagaa dubbisi, sadarkaa fi bakka fili, formii guuti, faayilii fe'i, galchi, lakkoofsa hordoffii olkaa'i.\n\nTajaajila kamiif iyyachuu barbaadda?", "ለማመልከት፦ ይግቡ/ይመዝገቡ፣ አገልግሎት ይፈልጉ፣ መስፈርት ያንብቡ፣ ደረጃ/ቦታ ይምረጡ፣ ቅጽ ይሙሉ፣ ፋይል ይጫኑ፣ ያስገቡ፣ መከታተያ ቁጥር ያስቀምጡ።\n\nለየትኛው አገልግሎት ማመልከት ይፈልጋሉ?"), 'context' => ['flow' => 'apply_select_service', 'source' => $source], 'suggestions' => ['List services', 'Service criteria']];
-        return $this->askLevelForService($service, $language);
-    }
-
-    private function askLevelForService(Service $service, string $language): array
-    {
-        $levels = $this->serviceLevels($service);
-        $label = implode(', ', $levels);
-        return ['reply' => $this->text($language, "This service is available at: {$label}.\nWhich level do you want?", "Tajaajilli kun sadarkaalee kanneen irratti ni argama: {$label}.\nSadarkaa kami barbaadda?", "ይህ አገልግሎት በእነዚህ ደረጃዎች ይገኛል፦ {$label}።\nየትኛውን ደረጃ ይፈልጋሉ?"), 'context' => ['flow' => 'apply_select_level', 'service_id' => $service->id], 'suggestions' => $levels];
-    }
-
-    private function handleLevelSelection(Service $service, string $level, string $language): array
-    {
-        if (!in_array($level, $this->serviceLevels($service), true)) return ['reply' => $this->text($language, 'This service is not available at the selected level.', 'Tajaajilli kun sadarkaa filatame irratti hin argamu.', 'ይህ አገልግሎት በተመረጠው ደረጃ አይገኝም።'), 'context' => ['flow' => 'apply_select_level', 'service_id' => $service->id]];
-        if ($level === 'city') return $this->formLink($service, 'city', $language, ['city_id' => City::orderBy('id')->value('id')]);
-        $subcities = Subcity::orderBy('name')->get();
-        return ['reply' => $this->text($language, "Please select your subcity:\n" . $this->numbered($subcities), "Subcity kee fili:\n" . $this->numbered($subcities), "እባክዎ ክፍለ ከተማዎን ይምረጡ፦\n" . $this->numbered($subcities)), 'context' => ['flow' => 'apply_select_subcity', 'service_id' => $service->id, 'level' => $level]];
-    }
-
-    private function formLink(Service $service, string $level, string $language, array $params): array
-    {
-        $query = http_build_query(array_filter(['administrative_level' => $level, 'city_id' => $params['city_id'] ?? null, 'subcity_id' => $params['subcity_id'] ?? null, 'woreda_id' => $params['woreda_id'] ?? null]));
-        $link = "/services/{$service->id}/apply?{$query}";
-        return ['reply' => $this->text($language, "Open this form link and submit your application:\n{$link}\n\nAfter submission, you will receive a tracking number.", "Linkii formii kana baniitii iyyata kee galchi:\n{$link}\n\nErga galchite booda lakkoofsa hordoffii ni argatta.", "ይህን የቅጽ ሊንክ ይክፈቱ እና ማመልከቻዎን ያስገቡ፦\n{$link}\n\nካስገቡ በኋላ መከታተያ ቁጥር ያገኛሉ።"), 'context' => ['flow' => 'apply_link_ready', 'link' => $link], 'suggestions' => ['Service criteria', 'How to track after submit']];
-    }
-
-    private function trackApplication(?User $user, ?string $tracking, string $message, string $language): array
-    {
-        $app = $this->findApplication($user, $tracking, $message);
-        if (!$app) return ['reply' => $this->text($language, 'Application not found. Please provide a valid tracking number.', 'Iyyanni hin argamne. Lakkoofsa hordoffii sirrii galchi.', 'ማመልከቻው አልተገኘም። ትክክለኛ መከታተያ ቁጥር ያስገቡ።')];
-        $appt = $app->appointments->first();
-        $extra = $appt ? "\nAppointment: " . optional($appt->appointment_at)->format('Y-m-d H:i') . ($appt->location ? " at {$appt->location}" : '') : '';
-        $reason = $app->rejection_reason ? "\nReason: {$app->rejection_reason}" : '';
-        return ['reply' => "Application {$app->tracking_number}\nService: {$app->service?->name}\nStatus: {$this->statusLabel($app->status)}{$extra}{$reason}"];
-    }
-
-    private function appointment(?User $user, ?string $tracking, string $message, string $language): array
-    {
-        $app = $this->findApplication($user, $tracking, $message);
-        if (!$app) return ['reply' => $this->text($language, 'Please provide your tracking number or login to check appointment.', 'Beellama ilaaluuf lakkoofsa hordoffii galchi ykn login godhi.', 'ቀጠሮ ለማየት መከታተያ ቁጥር ያስገቡ ወይም ይግቡ።')];
-        $appointment = $app->appointments()->latest('appointment_at')->first();
-        if (!$appointment) return ['reply' => $this->text($language, 'No appointment is scheduled for this application yet.', 'Iyyata kanaaf beellamni hin qabamne.', 'ለዚህ ማመልከቻ ቀጠሮ አልተያዘም።')];
-        return ['reply' => "Appointment: {$appointment->appointment_at->format('Y-m-d H:i')}\nLocation: " . ($appointment->location ?: '-') . "\nMessage: " . ($appointment->message ?: '-')];
-    }
-
-    private function payment(?User $user, ?string $tracking, string $message, string $language): array
-    {
-        $app = $this->findApplication($user, $tracking, $message);
-        if (!$app) return ['reply' => $this->text($language, 'Please provide tracking number or login to check payment.', 'Kaffaltii ilaaluuf lakkoofsa hordoffii galchi ykn login godhi.', 'ክፍያ ለማየት መከታተያ ቁጥር ያስገቡ ወይም ይግቡ።')];
-        if (!Schema::hasTable('payments')) return ['reply' => "Payment module is not enabled. Service fee: " . ($app->service?->service_fee ?? 0) . " ETB."];
         $columns = Schema::getColumnListing('payments');
-        $appCol = collect(['service_application_id', 'application_id'])->first(fn ($c) => in_array($c, $columns, true));
-        if (!$appCol) return ['reply' => 'Payment records are not linked to applications yet.'];
-        $payment = DB::table('payments')->where($appCol, $app->id)->latest('id')->first();
-        return ['reply' => $payment ? "Payment status: " . ($payment->status ?? 'pending') : 'No payment record found for this application.'];
+        $applicationColumn = collect(['service_application_id', 'application_id'])->first(fn ($column) => in_array($column, $columns, true));
+
+        if (! $applicationColumn) {
+            return ['reply' => 'Payment records are not linked to applications yet.'];
+        }
+
+        $payment = DB::table('payments')->where($applicationColumn, $application->id)->latest('id')->first();
+
+        return ['reply' => $payment ? 'Payment status: ' . ($payment->status ?? 'pending') : 'No payment record found for this application.'];
     }
 
-    private function documents(?User $user, ?string $tracking, string $message, string $language): array
+    protected function resubmitHelp(?User $user, string $question): array
     {
-        $app = $this->findApplication($user, $tracking, $message);
-        if (!$app) return ['reply' => 'Please provide tracking number or login to see document summary.'];
-        $count = $app->files()->count();
+        $application = $this->findApplication($user, $question);
+
+        if (! $application) {
+            return ['reply' => 'To resubmit, open your returned/rejected application detail, correct the requested information or files, then click Resubmit. If you want to apply again, tell me the service name.'];
+        }
+
+        $reason = $application->rejection_reason
+            ?: $application->histories()->whereIn('to_status', ['rejected', 'returned_to_customer', 'back_officer_rejected'])->latest()->value('remark');
+
+        return ['reply' => ($reason ? "Reason: {$reason}\n" : '') . 'To resubmit, open the application detail page, update requested information/files, then click Resubmit.'];
+    }
+
+    protected function documentSummary(?User $user, string $question): array
+    {
+        $application = $this->findApplication($user, $question);
+
+        if (! $application) {
+            return ['reply' => 'Please provide tracking number or login to see document summary.'];
+        }
+
+        $count = $application->files()->count();
+
         return ['reply' => "This application has {$count} uploaded file(s). Open the application detail page to download allowed documents."];
     }
 
-    private function resubmitOrRejection(?User $user, ?string $tracking, string $message, string $language): array
+    protected function customerDashboardReport(?User $user): array
     {
-        $app = $this->findApplication($user, $tracking, $message);
-        if (!$app) return $this->startApplyFlow($message, $language, 'resubmit');
-        $reason = $app->rejection_reason ?: $app->histories()->whereIn('to_status', ['rejected', 'returned_to_customer', 'back_officer_rejected'])->latest()->value('remark');
-        return ['reply' => $reason ? "Reason: {$reason}\nTo resubmit, open your application detail, update requested information/files, then click Resubmit." : 'To resubmit, open your returned/rejected application detail, correct the requested information/files, then click Resubmit.'];
-    }
-
-    private function authHelp(string $language): array
-    {
-        return ['reply' => 'Register at /register or login at /login. If your account is disabled or pending activation, contact the responsible office/admin.'];
-    }
-
-    private function profileHelp(string $language): array
-    {
-        return ['reply' => 'Open Dashboard → Profile to update profile information or change password. Some fields may be read-only depending on your account type.'];
-    }
-
-    private function reportHelp(?User $user, string $intent, string $language): array
-    {
-        $role = $this->roleName($user);
-        $scope = $this->scopeName($user);
-
-        if (!$user) return ['reply' => 'Public users can ask only public service summaries, such as available services by level. Internal reports require login.'];
-
-        if ($this->isCustomerLike($user)) {
-            $total = ServiceApplication::where('customer_id', $user->id)->count();
-            $pending = ServiceApplication::where('customer_id', $user->id)->whereIn('status', ['submitted', 'accepted', 'under_review', 'appointment_scheduled'])->count();
-            $approved = ServiceApplication::where('customer_id', $user->id)->whereIn('status', ['approved', 'completed'])->count();
-            $rejected = ServiceApplication::where('customer_id', $user->id)->whereIn('status', ['rejected', 'returned_to_customer'])->count();
-            return ['reply' => "Your application summary:\nTotal: {$total}\nPending/In progress: {$pending}\nApproved/Completed: {$approved}\nReturned/Rejected: {$rejected}"];
+        if (! $user) {
+            return ['reply' => 'Please login to see your report.'];
         }
 
-        return ['reply' => "Report help for role: {$role}, scope: {$scope}.\nYou can ask for application report, user report, service report, officer report, appointment report, payment report, SLA report, activation request report, workload, bottleneck, or performance summary. Detailed records must be viewed from the related dashboard module."];
+        $query = ServiceApplication::where('customer_id', $user->id);
+
+        return [
+            'reply' => "Your application summary:\nTotal: " . (clone $query)->count() .
+                "\nPending/In progress: " . (clone $query)->whereIn('status', ['submitted', 'accepted', 'under_review', 'appointment_scheduled'])->count() .
+                "\nApproved/Completed: " . (clone $query)->whereIn('status', ['approved', 'completed'])->count() .
+                "\nReturned/Rejected: " . (clone $query)->whereIn('status', ['rejected', 'returned_to_customer'])->count(),
+        ];
     }
 
-    private function findServiceInMessage(string $message): ?Service
+    protected function roleGuide(?ChatbotTrainingQuestion $training, string $fallback): array
     {
-        $normalized = $this->normalize($message);
-        if ($this->detectIntent($normalized, null) === 'services_list') return null;
+        return ['reply' => $training?->answer_template ?: $fallback];
+    }
+
+    protected function blockedCustomerInternal(?ChatbotTrainingQuestion $training): array
+    {
+        return ['reply' => $training?->answer_template ?: 'This is internal office information and cannot be shared with customers. I can help you with services, service criteria, how to apply, tracking, appointment, payment, and returned application guidance.'];
+    }
+
+    protected function staticAnswer(?ChatbotTrainingQuestion $training): array
+    {
+        return ['reply' => $training?->answer_template ?: 'I could not understand your question clearly. Please ask with a service name, tracking number, officer name, window name, or location.'];
+    }
+
+    protected function findServiceInMessage(string $message): ?Service
+    {
+        $normalized = ChatbotTrainingQuestion::normalize($message);
+
         return Service::where('status', 'active')->with('criteria')->get()->first(function ($service) use ($normalized) {
-            $name = Str::lower($service->name);
-            if (str_contains($normalized, $name)) return true;
-            $words = collect(explode(' ', $name))->filter(fn ($w) => mb_strlen($w) > 2);
-            return $words->count() >= 2 ? $words->filter(fn ($w) => str_contains($normalized, $w))->count() >= 2 : $words->contains(fn ($w) => str_contains($normalized, $w));
+            $name = ChatbotTrainingQuestion::normalize($service->name);
+
+            if ($name && str_contains($normalized, $name)) {
+                return true;
+            }
+
+            $words = collect(explode(' ', $name))->filter(fn ($word) => mb_strlen($word) > 2);
+
+            return $words->count() >= 2
+                ? $words->filter(fn ($word) => str_contains($normalized, $word))->count() >= 2
+                : $words->contains(fn ($word) => str_contains($normalized, $word));
         });
     }
 
-    private function findApplication(?User $user, ?string $tracking, string $message): ?ServiceApplication
+    protected function findApplication(?User $user, string $question): ?ServiceApplication
     {
+        $tracking = $this->extractTrackingNumber($question);
         $query = ServiceApplication::with(['service', 'appointments', 'histories']);
-        if ($user && $this->isCustomerLike($user)) $query->where('customer_id', $user->id);
-        if ($tracking) return $query->where(fn ($q) => $q->where('tracking_number', $tracking)->orWhere('id', $tracking))->latest('updated_at')->first();
-        if ($user && str_contains($this->normalize($message), 'my')) return $query->latest('updated_at')->first();
-        return null;
-    }
 
-    private function extractTrackingNumber(string $message): ?string
-    {
-        if (preg_match('/\b[A-Z]{2,10}-\d{4}-[A-Z0-9-]+\b/i', $message, $m)) return strtoupper($m[0]);
-        return null;
-    }
-
-    private function extractLevel(string $message): ?string
-    {
-        foreach (['woreda', 'subcity', 'city'] as $level) if (str_contains($message, $level)) return $level;
-        if (str_contains($message, 'ወረዳ')) return 'woreda';
-        if (str_contains($message, 'ክፍለ')) return 'subcity';
-        if (str_contains($message, 'ከተማ')) return 'city';
-        return null;
-    }
-
-    private function serviceLevels(Service $service): array
-    {
-        $availability = $service->availability;
-        if (is_string($availability)) $availability = json_decode($availability, true) ?: [];
-        if (is_array($availability)) {
-            if (array_is_list($availability)) return array_values(array_intersect(['city', 'subcity', 'woreda'], $availability));
-            if (isset($availability['levels'])) return array_values(array_intersect(['city', 'subcity', 'woreda'], (array) $availability['levels']));
-            if (isset($availability['administrative_levels'])) return array_values(array_intersect(['city', 'subcity', 'woreda'], (array) $availability['administrative_levels']));
-            $levels = collect(['city', 'subcity', 'woreda'])->filter(fn ($l) => ($availability[$l] ?? false) === true)->values()->all();
-            return $levels ?: ['city'];
+        if ($user && $this->isCustomerRole($user)) {
+            $query->where('customer_id', $user->id);
         }
-        return ['city'];
+
+        if ($tracking) {
+            return $query->where(fn ($q) => $q->where('tracking_number', $tracking)->orWhere('id', $tracking))->latest('updated_at')->first();
+        }
+
+        if ($user && str_contains(ChatbotTrainingQuestion::normalize($question), 'my')) {
+            return $query->latest('updated_at')->first();
+        }
+
+        return null;
     }
 
-    private function findSubcityInMessage(string $message): ?Subcity
+    protected function extractTrackingNumber(string $message): ?string
     {
-        $n = $this->normalize($message);
-        return Subcity::orderBy('name')->get()->first(fn ($s) => str_contains($n, Str::lower($s->name)) || str_contains($n, (string) $s->id));
+        if (preg_match('/\b[A-Z]{2,10}-\d{4}-[A-Z0-9-]+\b/i', $message, $matches)) {
+            return strtoupper($matches[0]);
+        }
+
+        return null;
     }
 
-    private function findWoredaInMessage(string $message, int $subcityId): ?Woreda
+    protected function isCustomerRole(User $user): bool
     {
-        $n = $this->normalize($message);
-        return Woreda::where('subcity_id', $subcityId)->orderBy('name')->get()->first(fn ($w) => str_contains($n, Str::lower($w->name)) || str_contains($n, (string) $w->id));
-    }
+        $role = $this->normalizeRole($this->roleName($user));
 
-    private function numbered(Collection $items): string
-    {
-        return $items->isEmpty() ? '-' : $items->map(fn ($i, $idx) => ($idx + 1) . '. ' . $i->name)->implode("\n");
-    }
-
-    private function isBlockedCustomerQuestion(string $normalized): bool
-    {
-        foreach (config('chatbot_rules.blocked_customer_keywords', []) as $kw) if (str_contains($normalized, Str::lower($kw))) return true;
-        return false;
-    }
-
-    private function isCustomerLike(?User $user): bool
-    {
-        if (!$user) return true;
-        $role = $this->roleName($user);
         return str_contains($role, 'customer') || str_contains($role, 'citizen');
     }
 
-    private function roleName(?User $user): string
+    protected function roleName(?User $user): string
     {
-        if (!$user) return 'public';
-        if (method_exists($user, 'getRoleNames')) return Str::lower((string) ($user->getRoleNames()->first() ?: $user->role ?: 'user'));
-        return Str::lower((string) ($user->role ?: 'user'));
+        if (! $user) {
+            return 'public';
+        }
+
+        if (method_exists($user, 'getRoleNames')) {
+            return (string) ($user->getRoleNames()->first() ?: $user->role ?: 'user');
+        }
+
+        return (string) ($user->role ?: 'user');
     }
 
-    private function scopeName(?User $user): string
+    protected function normalizeRole(string $role): string
     {
-        if (!$user) return 'public';
+        return Str::of($role)->lower()->replace('-', '_')->replace(' ', '_')->toString();
+    }
+
+    protected function scopeName(?User $user): string
+    {
+        if (! $user) return 'public';
         if ($user->woreda_id) return 'woreda';
         if ($user->subcity_id) return 'subcity';
         if ($user->city_id) return 'city';
+
         return 'system';
     }
 
-    private function blockedCustomerAnswer(string $language): string
+    protected function detectLanguage(string $question): string
     {
-        return $this->text($language, 'This is internal office information and cannot be shared with customers. I can help you with available services, service criteria, how to apply, tracking, appointment, payment, and returned application guidance.', 'Kun odeeffannoo keessaa waajjiraa waan ta’eef maamiltootaaf hin qoodamu. Tajaajiloota, ulaagaa, akka iyyatan, hordoffii, beellama, kaffaltii fi gorsa iyyata deebi’e irratti si gargaaruu nan danda’a.', 'ይህ የውስጥ የቢሮ መረጃ ስለሆነ ለደንበኞች አይጋራም። እኔ ስለ አገልግሎቶች፣ መስፈርቶች፣ ማመልከት፣ ክትትል፣ ቀጠሮ፣ ክፍያ እና የተመለሰ ማመልከቻ መመሪያ ልረዳዎት እችላለሁ።');
-    }
-
-    private function fallback(string $language): string
-    {
-        return match ($language) {
-            'om' => "Dhiifama, gaaffii kee sirriitti hin hubanne. Ani tajaajiloota, ulaagaalee, akka iyyatan, hordoffii, beellama, kaffaltii, sababaa deebii/diddaa, irra deebiin galchuu, gabaasa, fayyadamtoota, hojjettoota, foddaa fi ramaddii irratti akka role keetitti si gargaaruu nan danda'a.",
-            'am' => 'ይቅርታ፣ ጥያቄዎን በትክክል አልተረዳሁም። ስለ አገልግሎቶች፣ መስፈርቶች፣ ማመልከት፣ ክትትል፣ ቀጠሮ፣ ክፍያ፣ መመለሻ/ውድቅ ምክንያት፣ እንደገና ማስገባት፣ ሪፖርቶች፣ ተጠቃሚዎች፣ ኦፊሰሮች፣ መስኮቶች እና ምደባዎች በሚናዎ መሰረት ልረዳዎት እችላለሁ።',
-            default => 'I could not understand your question clearly. I can help with services, criteria, how to apply, tracking, appointment, payment, returned/rejected reason, resubmission, reports, users, officers, windows, and assignments based on your role. Please ask with a service name, tracking number, officer name, window name, or location.',
-        };
-    }
-
-    private function suggestions(string $language): array
-    {
-        return match ($language) {
-            'om' => ['Tajaajiloota tarreessi', 'Ulaagaa tajaajilaa', 'Iyyata akkamitti galchuu?', 'Gabaasa koo'],
-            'am' => ['አገልግሎቶችን ዘርዝር', 'የአገልግሎት መስፈርት', 'እንዴት ማመልከት?', 'የእኔ ሪፖርት'],
-            default => ['List services', 'Service criteria', 'How to apply?', 'Show my report'],
-        };
-    }
-
-    private function lastContext(?string $sessionId, ?User $user): ?array
-    {
-        if (!$sessionId || !Schema::hasTable('chatbot_conversations')) return null;
-        $q = ChatbotConversation::where('session_id', $sessionId)->whereNotNull('source_context');
-        if ($user) $q->where(fn ($x) => $x->whereNull('user_id')->orWhere('user_id', $user->id));
-        return $q->latest()->value('source_context');
-    }
-
-    private function respond(?User $user, string $intent, string $language, string $reply, ?string $sessionId, string $source, string $question, ?array $context = null, ?array $suggestions = null): array
-    {
-        if (Schema::hasTable('chatbot_conversations')) {
-            ChatbotConversation::create([
-                'user_id' => $user?->id,
-                'session_id' => $sessionId,
-                'source' => $source,
-                'intent' => $intent,
-                'role' => $this->roleName($user),
-                'scope' => $this->scopeName($user),
-                'language' => $language,
-                'question' => $question,
-                'answer' => $reply,
-                'source_context' => $context ? array_merge($context, ['intent' => $intent]) : null,
-            ]);
+        if (preg_match('/[\x{1200}-\x{137F}]/u', $question)) {
+            return 'am';
         }
-        return ['reply' => $reply, 'intent' => $intent, 'role' => $this->roleName($user), 'scope' => $this->scopeName($user), 'language' => $language, 'suggestions' => $suggestions ?? $this->suggestions($language), 'context' => $context];
+
+        foreach (['akkam', 'maal', 'eessa', 'tajaajila', 'iyyata', 'kaffaltii', 'beellama', 'ulaagaa', 'gabaasa'] as $word) {
+            if (str_contains(Str::lower($question), $word)) {
+                return 'om';
+            }
+        }
+
+        return 'en';
     }
 
-    private function statusLabel(?string $status): string
+    protected function lastContext(?string $sessionId, ?User $user): ?array
+    {
+        if (! $sessionId || ! Schema::hasTable('chatbot_conversations')) {
+            return null;
+        }
+
+        $query = ChatbotConversation::where('session_id', $sessionId)->whereNotNull('source_context');
+
+        if ($user) {
+            $query->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', $user->id));
+        }
+
+        return $query->latest()->value('source_context');
+    }
+
+    protected function saveConversation(?User $user, ?string $sessionId, string $role, string $scope, string $question, string $normalized, ?int $categoryId, string $answer, ?array $context = null): void
+    {
+        if (! Schema::hasTable('chatbot_conversations')) {
+            return;
+        }
+
+        ChatbotConversation::create([
+            'user_id' => $user?->id,
+            'session_id' => $sessionId,
+            'role' => $role,
+            'scope' => $scope,
+            'question' => $question,
+            'normalized_question' => $normalized,
+            'matched_category_id' => $categoryId,
+            'answer' => $answer,
+            'source_context' => $context,
+        ]);
+    }
+
+    protected function defaultSuggestions(string $role): array
+    {
+        if ($role === 'public') {
+            return ['List services', 'How to apply?', 'Service criteria', 'Track application'];
+        }
+
+        return ['Show my report', 'List services', 'Track application', 'How to apply?'];
+    }
+
+    protected function statusLabel(?string $status): string
     {
         return Str::of($status ?: '-')->replace('_', ' ')->title()->toString();
-    }
-
-    private function text(string $language, string $en, string $om, string $am): string
-    {
-        return match ($language) {'om' => $om, 'am' => $am, default => $en};
     }
 }

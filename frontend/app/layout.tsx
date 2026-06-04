@@ -5,6 +5,7 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
 import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
+import I18nProvider from "@/providers/I18nProvider";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
