@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Traits\Auditable;
 use App\Models\ApplicationQueue;
+use App\Models\CustomerFeedback;
 
 class ServiceApplication extends Model
 {
@@ -139,8 +140,12 @@ class ServiceApplication extends Model
 public function queue()
 {
     return $this->hasOne(
-        \App\Models\ApplicationQueue::class,
+        ApplicationQueue::class,
         'service_application_id'
     );
+}
+public function feedback()
+{
+    return $this->hasOne(CustomerFeedback::class);
 }
 }
