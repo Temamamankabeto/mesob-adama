@@ -1,0 +1,32 @@
+{
+  "common": {
+    "language": "ቋንቋ",
+    "search": "ፈልግ",
+    "login": "ግባ",
+    "register": "ተመዝገብ",
+    "cancel": "ሰርዝ",
+    "save": "አስቀምጥ",
+    "loading": "በመጫን ላይ..."
+  },
+  "chatbot": {
+    "title": "MESOB ረዳት",
+    "subtitle": "ነፃ rule-based ድጋፍ",
+    "welcome": "ሰላም! እኔ የMESOB eService ረዳት ነኝ። ስለ አገልግሎቶች፣ መስፈርቶች፣ ሪፖርቶች፣ ማመልከት፣ ክትትል፣ ቀጠሮ፣ ክፍያ ወይም እንደገና ማስገባት መጠየቅ ይችላሉ።",
+    "placeholder": "ስለ MESOB ይጠይቁ...",
+    "typing": "በመመለስ ላይ...",
+    "error": "ይቅርታ፣ አሁን መመለስ አልቻልኩም። እባክዎ እንደገና ይሞክሩ።",
+    "failed": "Chatbot መመለስ አልቻለም",
+    "suggestions": {
+      "services": "አገልግሎቶችን ዘርዝር",
+      "criteria": "የአገልግሎት መስፈርት",
+      "apply": "እንዴት ማመልከት?",
+      "report": "የእኔ ሪፖርት"
+    }
+  },
+  "home": {
+    "brand": "Adama MESOB eService",
+    "services": "አገልግሎቶች",
+    "resources": "ሀብቶች",
+    "contacts": "እውቂያ"
+  }
+}

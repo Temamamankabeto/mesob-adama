@@ -67,6 +67,7 @@ const userManagementMenu: SidebarItem = {
     { label: "Create User", href: "/dashboard/users/add", permission: "users.create" },
     { label: "Activation Requests", href: "/dashboard/user-activation-requests", permission: "users.activate" },
     { label: "Roles", href: "/dashboard/roles", permission: "roles.read", scopes: cityOnly },
+    { label: "Chatbot Training", href: "/dashboard/chatbot-training", permission: "roles.read", scopes: cityOnly },
   ],
 };
 
