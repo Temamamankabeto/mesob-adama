@@ -35,10 +35,33 @@ class OfficerApplicationController extends Controller
         return response()->json(['success' => true,'message' => 'Application retrieved successfully','data' => $this->applicationService->show($application)]);
     }
 
-    public function accept(OfficerApplicationActionRequest $request, ServiceApplication $application)
-    {
-        return response()->json(['success'=>true,'message'=>'Application accepted successfully','data'=>$this->applicationService->accept($application,$request->user(),$request->remark)]);
+  public function accept(
+    OfficerApplicationActionRequest $request,
+    ServiceApplication $application
+) {
+    
+    $result = $this->applicationService->accept(
+        $application,
+        $request->user(),
+        $request->remark
+    );
+
+    // Update queue status
+    $application->load('queue');
+
+    if ($application->queue) {
+        $application->queue->update([
+            'status' => 'serving',
+            'called_at' => now(),
+        ]);
     }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Application accepted successfully',
+        'data' => $result,
+    ]);
+}
 
     public function appointment(OfficerApplicationActionRequest $request, ServiceApplication $application)
     {

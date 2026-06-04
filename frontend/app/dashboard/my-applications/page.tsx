@@ -113,7 +113,7 @@ export default function DashboardMyApplicationsPage() {
   switch (s) {
     case "waiting":
       return (
-        <Badge variant="info">
+        <Badge variant="secondary">
           Waiting
         </Badge>
       );
@@ -252,7 +252,7 @@ export default function DashboardMyApplicationsPage() {
 
       {/* QUEUE POSITION */}
       <span className="font-medium">
-        #{application.queue_info.applications_ahead + 1}
+        ={application.queue_info.applications_ahead + 1}
       </span>
 
       {/* STATUS BADGE (SHADCN) */}
