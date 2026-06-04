@@ -59,7 +59,7 @@ class AuthController extends Controller
 
     // ✅ SMS (no password sending)
     try {
-        $message = "Welcome {$user->name}! Your MESOB account has been created successfully.";
+        $message = "Welcome {$user->name}! Your Adama MESOB account has been created successfully. You can log in using your email or phone number. If you have any questions, please contact 9141 free call.";
         $sms->sendToPhone($user->phone, $message);
     } catch (\Throwable $exception) {
         Log::error('Registration SMS failed: ' . $exception->getMessage());

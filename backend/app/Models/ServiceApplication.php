@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Traits\Auditable;
+use App\Models\ApplicationQueue;
 
 class ServiceApplication extends Model
 {
@@ -131,4 +132,15 @@ class ServiceApplication extends Model
     {
         return $this->belongsTo(Woreda::class);
     }
+//     public function queue()
+// {
+//     return $this->hasOne(ApplicationQueue::class);
+// }
+public function queue()
+{
+    return $this->hasOne(
+        \App\Models\ApplicationQueue::class,
+        'service_application_id'
+    );
+}
 }

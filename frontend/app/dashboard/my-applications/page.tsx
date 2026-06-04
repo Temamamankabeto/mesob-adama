@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { useCustomerApplications } from "@/hooks/customer/use-customer-applications";
 
+import { Badge } from "@/components/ui/badge";
 const STATUS_FILTERS = [
   { key: "all", label: "Total Application" },
   { key: "pending", label: "Pending" },
@@ -98,6 +99,51 @@ export default function DashboardMyApplicationsPage() {
     setPage(1);
   }
 
+  function getQueueBadge(status: string, isNext?: boolean) {
+  const s = (status || "").toLowerCase();
+
+  if (isNext) {
+    return (
+      <Badge className="bg-green-600 text-white hover:bg-green-600">
+        Next in line
+      </Badge>
+    );
+  }
+
+  switch (s) {
+    case "waiting":
+      return (
+        <Badge variant="info">
+          Waiting
+        </Badge>
+      );
+
+    case "serving":
+      return (
+        <Badge className="bg-blue-600 text-white hover:bg-blue-600">
+          Being Served
+        </Badge>
+      );
+
+    case "completed":
+      return (
+        <Badge className="bg-green-600 text-white hover:bg-green-600">
+          Completed
+        </Badge>
+      );
+
+    case "rejected":
+      return (
+        <Badge variant="destructive">
+          Rejected
+        </Badge>
+      );
+
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+}
+
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border bg-card p-6 shadow-sm">
@@ -173,11 +219,13 @@ export default function DashboardMyApplicationsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Application ID</TableHead>
-                  <TableHead>Submission Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
+                <TableHead>Application ID</TableHead>
+                <TableHead>Queue No</TableHead>
+                <TableHead>Queue Position</TableHead>
+                <TableHead>Submission Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
               </TableHeader>
 
               <TableBody>
@@ -188,33 +236,75 @@ export default function DashboardMyApplicationsPage() {
                     </TableCell>
                   </TableRow>
                 ) : applications.length ? (
-                  applications.map((application) => (
-                    <TableRow key={application.id}>
-                      <TableCell className="font-semibold">
-                        {application.tracking_number || `APP-${application.id}`}
-                      </TableCell>
-                      <TableCell>
-                        {application.submitted_at
-                          ? new Date(application.submitted_at).toLocaleDateString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <ApplicationStatusBadge status={application.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex flex-wrap justify-end gap-1 text-sm">
-                          {applicationActions(application).map((item, index) => (
-                            <span key={`${application.id}-${item.label}`} className="inline-flex items-center">
-                              {index > 0 && <span className="mx-1 text-muted-foreground">|</span>}
-                              <Link href={item.href} className="font-medium text-primary hover:underline">
-                                {item.label}
-                              </Link>
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                 applications.map((application) => (
+  <TableRow key={application.id}>
+    <TableCell className="font-semibold">
+      {application.tracking_number || `APP-${application.id}`}
+    </TableCell>
+
+   <TableCell>
+  {application.queue?.queue_number ?? "-"}
+</TableCell>
+
+    <TableCell>
+  {application.queue_info ? (
+    <div className="flex flex-col gap-1">
+
+      {/* QUEUE POSITION */}
+      <span className="font-medium">
+        #{application.queue_info.applications_ahead + 1}
+      </span>
+
+      {/* STATUS BADGE (SHADCN) */}
+      {getQueueBadge(
+        application.queue_info.status,
+        application.queue_info.is_next
+      )}
+
+      {/* EXTRA INFO */}
+      <span className="text-[11px] text-muted-foreground">
+        Ahead: {application.queue_info.applications_ahead}
+      </span>
+
+    </div>
+  ) : (
+    "-"
+  )}
+</TableCell>
+
+    <TableCell>
+      {application.submitted_at
+        ? new Date(application.submitted_at).toLocaleDateString()
+        : "-"}
+    </TableCell>
+
+    <TableCell>
+      <ApplicationStatusBadge status={application.status} />
+    </TableCell>
+
+    <TableCell className="text-right">
+      <div className="flex flex-wrap justify-end gap-1 text-sm">
+        {applicationActions(application).map((item, index) => (
+          <span
+            key={`${application.id}-${item.label}`}
+            className="inline-flex items-center"
+          >
+            {index > 0 && (
+              <span className="mx-1 text-muted-foreground">|</span>
+            )}
+
+            <Link
+              href={item.href}
+              className="font-medium text-primary hover:underline"
+            >
+              {item.label}
+            </Link>
+          </span>
+        ))}
+      </div>
+    </TableCell>
+  </TableRow>
+))
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
