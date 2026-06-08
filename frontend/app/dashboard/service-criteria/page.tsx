@@ -10,7 +10,7 @@ import {
   useServiceCriteria,
   useUpdateServiceCriterion,
 } from "@/hooks/service-criteria/use-service-criteria";
-import { useServices } from "@/hooks/services/use-service";
+import { useDropdownServices, useServices } from "@/hooks/services/use-service";
 import {
   ServiceCriterion,
   ServiceCriterionPayload,
@@ -102,8 +102,7 @@ export default function ServiceCriteriaPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ServiceCriterion | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
-
-  const { data: servicesResponse } = useServices(1);
+const { data: servicesResponse } = useDropdownServices();
   const services = useMemo(() => normalizeServices(servicesResponse), [servicesResponse]);
 
   const { data, isLoading } = useServiceCriteria({
