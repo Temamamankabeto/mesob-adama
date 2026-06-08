@@ -405,18 +405,7 @@ export default function ServicePage() {
     setPage(1);
   }
 
-const ITEMS_PER_PAGE = 15;
 
-const paginatedServices = useMemo(() => {
-  const start = (page - 1) * ITEMS_PER_PAGE;
-  const end = start + ITEMS_PER_PAGE;
-
-  return filteredServices.slice(start, end);
-}, [filteredServices, page]);
-
-const totalPages = Math.ceil(
-  filteredServices.length / ITEMS_PER_PAGE
-);
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 p-3 sm:p-6">
       <div className="flex flex-col gap-4 rounded-3xl border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -541,8 +530,7 @@ const totalPages = Math.ceil(
                 <th className="p-4 text-right">Action</th>
               </tr>
             </thead>
-
-           <tbody>
+<tbody>
   {isLoading ? (
     <tr>
       <td
@@ -552,7 +540,7 @@ const totalPages = Math.ceil(
         Loading services...
       </td>
     </tr>
-  ) : paginatedServices.length === 0 ? (
+  ) : filteredServices.length === 0 ? (
     <tr>
       <td
         colSpan={7}
@@ -562,18 +550,22 @@ const totalPages = Math.ceil(
       </td>
     </tr>
   ) : (
-    paginatedServices.map((service, index: number) => {
+    filteredServices.map((service, index) => {
       const levels = normalizeAvailability(service.availability);
 
       return (
         <tr key={service.id} className="border-t">
           <td className="p-4">
-            {(page - 1) * ITEMS_PER_PAGE + index + 1}
+            {((data?.data?.current_page ?? 1) - 1) *
+              (data?.data?.per_page ?? 15) +
+              index +
+              1}
           </td>
 
           <td className="p-4">
             <div>
               <p className="font-medium">{service.name}</p>
+
               {service.description && (
                 <p className="line-clamp-1 text-sm text-muted-foreground">
                   {service.description}
@@ -686,44 +678,41 @@ const totalPages = Math.ceil(
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          Page {data?.data?.current_page || 1} of {data?.data?.last_page || 1}
-        </p>
+     <div className="flex items-center gap-2">
+  <Button
+    variant="outline"
+    size="sm"
+    disabled={!data?.data?.prev_page_url}
+    onClick={() => setPage((current) => Math.max(current - 1, 1))}
+  >
+    Previous
+  </Button>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!data?.data?.prev_page_url}
-            onClick={() => setPage((current) => Math.max(current - 1, 1))}
-          >
-            Previous
-          </Button>
+  {Array.from(
+    { length: data?.data?.last_page ?? 1 },
+    (_, index) => index + 1
+  )
+    .slice(0, 10)
+    .map((pageNumber) => (
+      <Button
+        key={pageNumber}
+        size="sm"
+        variant={page === pageNumber ? "default" : "outline"}
+        onClick={() => setPage(pageNumber)}
+      >
+        {pageNumber}
+      </Button>
+    ))}
 
-          {Array.from({ length: data?.data?.last_page || 1 }, (_, index) => index + 1)
-            .slice(0, 10)
-            .map((pageNumber) => (
-              <Button
-                key={pageNumber}
-                variant={page === pageNumber ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPage(pageNumber)}
-              >
-                {pageNumber}
-              </Button>
-            ))}
-
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!data?.data?.next_page_url}
-            onClick={() => setPage((current) => current + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+  <Button
+    variant="outline"
+    size="sm"
+    disabled={!data?.data?.next_page_url}
+    onClick={() => setPage((current) => current + 1)}
+  >
+    Next
+  </Button>
+</div>
 
       <Dialog
         open={editOpen}

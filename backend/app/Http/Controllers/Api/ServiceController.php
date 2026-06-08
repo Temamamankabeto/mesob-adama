@@ -28,6 +28,20 @@ class ServiceController extends Controller
             'data' => $services,
         ]);
     }
+    public function allServices(Request $request)
+{
+    $this->authorize('viewAny', Service::class);
+
+    $services = $this->serviceService->getAllServices(
+        $request->user()
+    );
+
+    return response()->json([
+        'success' => true,
+        'message' => 'All services retrieved successfully',
+        'data' => $services,
+    ]);
+}
 
     public function show(Service $service)
     {
