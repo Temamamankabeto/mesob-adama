@@ -405,6 +405,18 @@ export default function ServicePage() {
     setPage(1);
   }
 
+const ITEMS_PER_PAGE = 15;
+
+const paginatedServices = useMemo(() => {
+  const start = (page - 1) * ITEMS_PER_PAGE;
+  const end = start + ITEMS_PER_PAGE;
+
+  return filteredServices.slice(start, end);
+}, [filteredServices, page]);
+
+const totalPages = Math.ceil(
+  filteredServices.length / ITEMS_PER_PAGE
+);
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 p-3 sm:p-6">
       <div className="flex flex-col gap-4 rounded-3xl border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -530,128 +542,147 @@ export default function ServicePage() {
               </tr>
             </thead>
 
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                    Loading services...
-                  </td>
-                </tr>
-              ) : filteredServices.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                    No services found.
-                  </td>
-                </tr>
-              ) : (
-                filteredServices.map((service) => {
-                  const levels = normalizeAvailability(service.availability);
+           <tbody>
+  {isLoading ? (
+    <tr>
+      <td
+        colSpan={7}
+        className="p-8 text-center text-muted-foreground"
+      >
+        Loading services...
+      </td>
+    </tr>
+  ) : paginatedServices.length === 0 ? (
+    <tr>
+      <td
+        colSpan={7}
+        className="p-8 text-center text-muted-foreground"
+      >
+        No services found.
+      </td>
+    </tr>
+  ) : (
+    paginatedServices.map((service, index: number) => {
+      const levels = normalizeAvailability(service.availability);
 
-                  return (
-                    <tr key={service.id} className="border-t">
-                      <td className="p-4">{service.id}</td>
-                      <td className="p-4">
-                        <div>
-                          <p className="font-medium">{service.name}</p>
-                          {service.description && (
-                            <p className="line-clamp-1 text-sm text-muted-foreground">
-                              {service.description}
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4">{Number(service.service_fee || 0)}</td>
-                      <td className="p-4">
-                        <div className="flex flex-wrap gap-2">
-                          {levels.length ? (
-                            levels.map((level) => (
-                              <span
-                                key={level}
-                                className="rounded-full bg-muted px-3 py-1 text-xs font-medium"
-                              >
-                                {levelLabel(level)}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-sm text-muted-foreground">-</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        {service.has_back_officer ? "Yes" : "No"}
-                      </td>
-                      <td className="p-4">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            service.status === "active"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {service.status}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex justify-end">
-                          {/*
-                          |--------------------------------------------------------------------------
-                          | DropdownMenu modal={false}
-                          |--------------------------------------------------------------------------
-                          | Prevents dropdown focus trap from conflicting with edit Dialog.
-                          */}
-                          <DropdownMenu modal={false}>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
+      return (
+        <tr key={service.id} className="border-t">
+          <td className="p-4">
+            {(page - 1) * ITEMS_PER_PAGE + index + 1}
+          </td>
 
-                            <DropdownMenuContent align="end" className="z-[70]">
-                              <DropdownMenuItem
-                                onSelect={(event) => {
-                                  event.preventDefault();
-
-                                  /*
-                                  |--------------------------------------------------------------------------
-                                  | Delay dialog open until dropdown closes
-                                  |--------------------------------------------------------------------------
-                                  | Fixes stacked/frozen page caused by opening Dialog from
-                                  | inside DropdownMenu item.
-                                  */
-                                  window.setTimeout(() => openEditDialog(service), 0);
-                                }}
-                              >
-                                Edit
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                onSelect={(event) => {
-                                  event.preventDefault();
-                                  window.setTimeout(() => handleToggleStatus(service), 0);
-                                }}
-                              >
-                                {service.status === "active" ? "Disable" : "Enable"}
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onSelect={(event) => {
-                                  event.preventDefault();
-                                  window.setTimeout(() => handleDelete(service.id), 0);
-                                }}
-                              >
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+          <td className="p-4">
+            <div>
+              <p className="font-medium">{service.name}</p>
+              {service.description && (
+                <p className="line-clamp-1 text-sm text-muted-foreground">
+                  {service.description}
+                </p>
               )}
-            </tbody>
+            </div>
+          </td>
+
+          <td className="p-4">
+            {Number(service.service_fee || 0)}
+          </td>
+
+          <td className="p-4">
+            <div className="flex flex-wrap gap-2">
+              {levels.length ? (
+                levels.map((level) => (
+                  <span
+                    key={level}
+                    className="rounded-full bg-muted px-3 py-1 text-xs font-medium"
+                  >
+                    {levelLabel(level)}
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  -
+                </span>
+              )}
+            </div>
+          </td>
+
+          <td className="p-4">
+            {service.has_back_officer ? "Yes" : "No"}
+          </td>
+
+          <td className="p-4">
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                service.status === "active"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
+              {service.status}
+            </span>
+          </td>
+
+          <td className="p-4">
+            <div className="flex justify-end">
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                  align="end"
+                  className="z-[70]"
+                >
+                  <DropdownMenuItem
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      window.setTimeout(
+                        () => openEditDialog(service),
+                        0
+                      );
+                    }}
+                  >
+                    Edit
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      window.setTimeout(
+                        () => handleToggleStatus(service),
+                        0
+                      );
+                    }}
+                  >
+                    {service.status === "active"
+                      ? "Disable"
+                      : "Enable"}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className="text-red-600"
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      window.setTimeout(
+                        () => handleDelete(service.id),
+                        0
+                      );
+                    }}
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </td>
+        </tr>
+      );
+    })
+  )}
+</tbody>
           </table>
+          
         </div>
       </div>
 
