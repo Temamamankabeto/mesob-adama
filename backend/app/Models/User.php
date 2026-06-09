@@ -23,6 +23,9 @@ class User extends Authenticatable
         'user_type', 'status', 'is_active', 'city_id', 'subcity_id', 'woreda_id',
         'created_by', 'activated_by', 'activated_at',
         'phone_verified_at', 'last_login_at', 'date_of_birth', 'officer_code',
+         'fin',
+    'is_fayda_verified',
+    'fayda_payload'
     ];
 
     protected $hidden = ['password', 'remember_token'];

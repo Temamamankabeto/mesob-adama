@@ -28,5 +28,14 @@
     "services": "Tajaajiloota",
     "resources": "Qabeenya",
     "contacts": "Quunnamtii"
-  }
+  },
+    "services": {
+    "city_services": "Tajaajiloota Magaalaa",
+    "sub_city_services": "Tajaajiloota Sub Magaalaa",
+    "woreda_services": "Tajaajiloota Woreda",
+    "city_services_desc": "Tajaajiloota kanneen magaalatti kennaman",
+    "sub_city_services_desc": "Tajaajiloota kanneen sadarkaa sub magaalaa kennaman",
+    "woreda_services_desc": "Tajaajiloota kanneen sadarkaa woreda kennaman",
+    "all_services": "Tajaajiloota Hunda"
+    }
 }

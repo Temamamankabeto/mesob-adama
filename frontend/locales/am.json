@@ -28,5 +28,14 @@
     "services": "አገልግሎቶች",
     "resources": "ሀብቶች",
     "contacts": "እውቂያ"
+  },
+  "services": {
+    "city_services": "የከተማ አገልግሎቶች",
+    "sub_city_services": "የንዑስ ከተማ አገልግሎቶች",
+    "woreda_services": "የወረዳ አገልግሎቶች",
+    "city_services_desc": "በከተማ ደረጃ የሚሰጡ አገልግሎቶች",
+    "sub_city_services_desc": "በንዑስ ከተማ ደረጃ የሚሰጡ አገልግሎቶች",
+    "woreda_services_desc": "በወረዳ ደረጃ የሚሰጡ አገልግሎቶች",
+    "all_services": "ሁሉም አገልግሎቶች"
   }
 }

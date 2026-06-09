@@ -93,7 +93,16 @@ export const authService = {
       return normalizeUserResponse(response);
     }
   },
+  async faydaLogin(code: string) {
+  const response = await api.post(
+    "/auth/fayda/callback",
+    {
+      code,
+    }
+  );
 
+  return response.data;
+},
   async updateProfile(payload: FormData) {
     const response = await api.post("/profile/update", payload, {
       headers: {
