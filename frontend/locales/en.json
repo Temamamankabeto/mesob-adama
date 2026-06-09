@@ -28,5 +28,14 @@
     "services": "Services",
     "resources": "Resources",
     "contacts": "Contacts"
-  }
+  },
+  "services": {
+    "city_services": "City Services",
+    "sub_city_services": "Sub-City Services",
+    "woreda_services": "Woreda Services",
+    "city_services_desc": "Services provided at the city level",
+    "sub_city_services_desc": "Services provided at the sub-city level",
+    "woreda_services_desc": "Services provided at the woreda level",
+    "all_services": "All Services"
+   }
 }
