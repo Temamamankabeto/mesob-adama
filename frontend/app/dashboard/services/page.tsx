@@ -411,8 +411,8 @@ export default function ServicePage() {
       <div className="flex flex-col gap-4 rounded-3xl border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">
-            Services ({filteredServices.length})
-          </h1>
+  Services ({data?.data?.total ?? 0})
+</h1>
           <p className="text-sm text-muted-foreground">
             Manage services, fees, Back Officer requirement, level availability, and status.
           </p>

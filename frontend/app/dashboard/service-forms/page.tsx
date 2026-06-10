@@ -10,8 +10,7 @@ import {
   useUpdateServiceForm,
   useDeleteServiceForm,
 } from "@/hooks/services/useServiceForms";
-import { useServices } from "@/hooks/services/use-service";
-
+import { useDropdownServices } from "@/hooks/services/use-service";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,20 +47,17 @@ import {
 
 export default function ServiceFormsPage() {
   const { data, isLoading } = useServiceForms();
-  const { data: servicesData } = useServices();
 
   const create = useCreateServiceForm();
   const update = useUpdateServiceForm();
   const remove = useDeleteServiceForm();
 
-const services: any[] = Array.isArray(servicesData)
-  ? servicesData
-  : Array.isArray((servicesData as any)?.data?.data)
-    ? (servicesData as any).data.data
-    : Array.isArray((servicesData as any)?.data)
-      ? (servicesData as any).data
-      : [];
+const { data: servicesResponse } = useDropdownServices();
 
+const services = useMemo(
+  () => normalizeServices(servicesResponse),
+  [servicesResponse]
+);
   const forms: any[] = Array.isArray(data)
   ? data
   : Array.isArray((data as any)?.data?.data)
@@ -80,7 +76,7 @@ const services: any[] = Array.isArray(servicesData)
     description: "",
     is_active: true,
   });  const [currentPage, setCurrentPage] = useState(1);
-const itemsPerPage = 50;
+const itemsPerPage = 30;
 
 
   const filteredForms = useMemo(() => {
@@ -153,6 +149,16 @@ function reset() {
     reset();
   }
 
+  function normalizeServices(response: any) {
+  const value = response?.data ?? response;
+
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+
+  return [];
+}
+
   if (isLoading) return <div className="p-6">Loading...</div>;
 
   return (
@@ -196,11 +202,12 @@ function reset() {
         </TableCell>
 
         <TableCell>
-          {services.find(
-            (service: any) => service.id == item.service_id
-          )?.name ||
-            item.service?.name ||
-            "-"}
+         {services.find(
+  (service: any) =>
+    String(service.id) === String(item.service_id)
+)?.name ??
+  item.service?.name ??
+  "-"}
         </TableCell>
 
         <TableCell>
@@ -324,19 +331,30 @@ function reset() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <Select value={form.service_id} onValueChange={(value) => setForm({ ...form, service_id: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select service" />
-              </SelectTrigger>
+          <Select
+  value={form.service_id}
+  onValueChange={(value) =>
+    setForm({
+      ...form,
+      service_id: value,
+    })
+  }
+>
+  <SelectTrigger>
+    <SelectValue placeholder="Select service" />
+  </SelectTrigger>
 
-              <SelectContent>
-                {services.map((service: any) => (
-                  <SelectItem key={service.id} value={String(service.id)}>
-                    {service.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+  <SelectContent>
+    {services.map((service: any) => (
+      <SelectItem
+        key={service.id}
+        value={String(service.id)}
+      >
+        {service.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
 
             <Input placeholder="Title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
 

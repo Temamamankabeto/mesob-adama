@@ -53,10 +53,23 @@ const { data } = useUsers({
   const { data: subcitiesData } = useSubcities(1);
   const { data: woredasData } = useWoredas(1);
   const { roles } = useRoles();
+const cities = Array.isArray(citiesData?.data)
+  ? citiesData.data
+  : Array.isArray(citiesData)
+  ? citiesData
+  : [];
 
-  const cities = citiesData?.data || [];
-  const subcities = subcitiesData?.data || [];
-  const woredas = woredasData?.data || [];
+const subcities = Array.isArray(subcitiesData?.data)
+  ? subcitiesData.data
+  : Array.isArray(subcitiesData)
+  ? subcitiesData
+  : [];
+
+const woredas = Array.isArray(woredasData?.data)
+  ? woredasData.data
+  : Array.isArray(woredasData)
+  ? woredasData
+  : [];
 
   const [form, setForm] = useState<Form>({
     name: "",
@@ -76,8 +89,24 @@ const { data } = useUsers({
 
   const selectedRole = useMemo(() => getRoleOption(form.role), [form.role]);
 
-  const filteredSubcities = subcities.filter((subcity: any) => Number(subcity.city_id) === Number(form.city_id));
-  const filteredWoredas = woredas.filter((woreda: any) => Number(woreda.subcity_id) === Number(form.subcity_id));
+  const filteredSubcities = useMemo(() => {
+  if (!Array.isArray(subcities)) return [];
+
+  return subcities.filter(
+    (subcity: any) =>
+      Number(subcity.city_id) === Number(form.city_id)
+  );
+}, [subcities, form.city_id]);
+
+const filteredWoredas = useMemo(() => {
+  if (!Array.isArray(woredas)) return [];
+
+  return woredas.filter(
+    (woreda: any) =>
+      Number(woreda.subcity_id) === Number(form.subcity_id)
+  );
+}, [woredas, form.subcity_id]);
+
 
   const requiresCity = selectedRole.isScoped && ["city", "subcity", "woreda"].includes(form.location_level);
   const requiresSubcity = selectedRole.isScoped && ["subcity", "woreda"].includes(form.location_level);
