@@ -11,7 +11,7 @@ class ServiceService
         protected ServiceAvailabilityScopeService $scopeService
     ) {}
 
-    public function getAll(?User $actor = null, int $perPage = 20)
+    public function getAll(?User $actor = null, int $perPage = 10)
 {
     $query = Service::query()
         ->with([
@@ -20,7 +20,6 @@ class ServiceService
                     ->select([
                         'windows.id',
                         'windows.name',
-                        'windows.title',
                         'windows.city_title',
                         'windows.subcity_title',
                         'windows.woreda_title',
