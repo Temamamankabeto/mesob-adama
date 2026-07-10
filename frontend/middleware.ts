@@ -15,18 +15,21 @@ export function middleware(request: NextRequest) {
    * =========================
    */
   const publicRoutes = [
-    "/",
-    "/login",
-    "/register",
-    "/about",
-    "/service-provider",
-    "/service-providers",
-    "/resources",
-    "/resources/reports",
-    "/news",
-    "/services",
-    "/training/application-workflow",
-  ];
+  "/",
+  "/login",
+  "/register",
+
+  // Fayda callback
+  "/callback",
+
+  "/about",
+  "/service-provider",
+  "/service-providers",
+  "/resources",
+  "/resources/reports",
+  "/services",
+  "/training/application-workflow",
+];
 
   const isServiceDetail = /^\/services\/\d+$/.test(pathname);
   const isApplyPage = /^\/services\/\d+\/apply$/.test(pathname);

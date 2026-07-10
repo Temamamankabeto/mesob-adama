@@ -1,24 +1,18 @@
 "use client";
 
-import { ReactNode } from "react";
-
-import { Toaster } from "@/components/ui/sonner";
-import { ReactQueryProvider } from "@/providers/react-query-provider";
-import { ReduxProvider } from "@/providers/ReduxProvider";
-
-type AppProvidersProps = {
-  children: ReactNode;
-};
+import I18nProvider from "@/providers/I18nProvider";
+import ReactQueryProvider from "@/providers/react-query-provider";
 
 export default function Providers({
   children,
-}: AppProvidersProps) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <ReduxProvider>
-      <ReactQueryProvider>
+    <ReactQueryProvider>
+      <I18nProvider>
         {children}
-        <Toaster richColors position="top-right" />
-      </ReactQueryProvider>
-    </ReduxProvider>
+      </I18nProvider>
+    </ReactQueryProvider>
   );
 }

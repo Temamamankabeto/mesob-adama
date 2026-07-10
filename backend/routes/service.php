@@ -8,9 +8,11 @@ use App\Http\Controllers\Api\ServiceCriterionController;
 use App\Http\Controllers\Api\UserServiceAssignmentController;
 use App\Http\Controllers\Api\ServiceFormSectionController;
 use App\Http\Controllers\Api\ServiceFormFieldController;
+use App\Http\Controllers\SmsController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/services', [ServiceController::class, 'index']);
+    Route::get('/services-dropdown', [ServiceController::class, 'allServices']);
     Route::post('/services', [ServiceController::class, 'store']);
     Route::put('/services/{service}', [ServiceController::class, 'update']);
     Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
@@ -42,3 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'update']);
     Route::delete('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'destroy']);
 });
+
+    Route::post('/sms/send-phone', [SmsController::class, 'sendPhone']);
+    Route::post('/sms/send-otp', [SmsController::class, 'sendOtp']);
+    Route::post('/sms/send-bulk', [SmsController::class, 'sendBulk']);

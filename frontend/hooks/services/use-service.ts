@@ -41,6 +41,13 @@ export function useServices(page = 1) {
     queryFn: () => serviceService.getAll(page),
   });
 }
+export function useDropdownServices() {
+  return useQuery({
+    queryKey: ["services-dropdown"],
+    queryFn: () => serviceService.getDropdownServices(),
+    staleTime: 1000 * 60 * 5,
+  });
+}
 
 export function useCreateService() {
   const queryClient = useQueryClient();
@@ -50,6 +57,7 @@ export function useCreateService() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["services"] }),
   });
 }
+
 
 export function useUpdateService() {
   const queryClient = useQueryClient();

@@ -46,21 +46,33 @@ const cards: Array<{
   },
 ];
 
-
 function windowTitleForLevel(window: any, level: string) {
-  if (!window) return "Window";
-  if (window.display_name) return window.display_name;
+  const base = window.name || `Window ${window.id}`;
 
-  const title =
-    level === "city"
-      ? window.city_title || window.title
-      : level === "subcity"
-        ? window.subcity_title || window.title
-        : level === "woreda"
-          ? window.woreda_title || window.title
-          : window.title;
+  const subcity = window.subcity_name;
+  const woreda = window.woreda_name;
 
-  return `${window.name || "Window"}${title ? ` - ${title}` : ""}`;
+  let title = base;
+
+  if (
+    level === "subcity" &&
+    subcity &&
+    subcity !== base &&
+    !base.includes(subcity)
+  ) {
+    title = `${base} - ${subcity}`;
+  }
+
+  if (
+    level === "woreda" &&
+    woreda &&
+    woreda !== base &&
+    !base.includes(woreda)
+  ) {
+    title = `${base} - ${woreda}`;
+  }
+
+  return title;
 }
 
 export default function ServiceWindowPage() {

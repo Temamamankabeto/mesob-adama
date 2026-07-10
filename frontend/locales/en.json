@@ -1,0 +1,41 @@
+{
+  "common": {
+    "language": "Language",
+    "search": "Search",
+    "login": "Login",
+    "register": "Register",
+    "cancel": "Cancel",
+    "save": "Save",
+    "loading": "Loading..."
+  },
+  "chatbot": {
+    "title": "MESOB Assistant",
+    "subtitle": "Free rule-based support",
+    "welcome": "Hello! I am MESOB eService assistant. Ask me about services, criteria, reports, how to apply, tracking, appointments, payments, or resubmission.",
+    "placeholder": "Ask anything about MESOB...",
+    "typing": "Typing...",
+    "error": "Sorry, I could not answer right now. Please try again.",
+    "failed": "Chatbot failed to respond",
+    "suggestions": {
+      "services": "List services",
+      "criteria": "Service criteria",
+      "apply": "How to apply?",
+      "report": "Show my report"
+    }
+  },
+  "home": {
+    "brand": "Adama MESOB eService",
+    "services": "Services",
+    "resources": "Resources",
+    "contacts": "Contacts"
+  },
+  "services": {
+    "city_services": "City Services",
+    "sub_city_services": "Sub-City Services",
+    "woreda_services": "Woreda Services",
+    "city_services_desc": "Services provided at the city level",
+    "sub_city_services_desc": "Services provided at the sub-city level",
+    "woreda_services_desc": "Services provided at the woreda level",
+    "all_services": "All Services"
+   }
+}

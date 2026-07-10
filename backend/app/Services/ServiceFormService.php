@@ -25,7 +25,7 @@ class ServiceFormService
         }
 
         return $query->latest()->paginate(
-            min((int) ($request?->input('per_page', 10) ?? 10), 100)
+            min((int) ($request?->input('per_page', 250) ?? 250), 100)
         );
     }
 

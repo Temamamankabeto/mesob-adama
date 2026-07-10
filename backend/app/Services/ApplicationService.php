@@ -34,6 +34,7 @@ class ApplicationService
 
     public function create(array $data, User $user): Application
     {
+        
         return DB::transaction(function () use ($data, $user) {
             $data['application_number'] = $data['application_number'] ?? $this->generateApplicationNumber();
             $data['customer_id'] = $data['customer_id'] ?? $user->id;

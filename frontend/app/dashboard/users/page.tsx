@@ -93,15 +93,12 @@ function currentUserScope() {
 }
 
 
-function normalizeRoleName(value?: string | null) {
-  return String(value || "")
-    .toLowerCase()
-    .replaceAll("-", "_")
-    .replaceAll(" ", "_");
-}
+
 
 function getUserScope(user: any, role?: string | null) {
-  const normalizedRole = normalizeRoleName(role || user?.role || user?.roles?.[0]?.name);
+  const normalizedRole = normalizeRoleName(
+    role || user?.role || user?.roles?.[0]?.name
+  );
 
   if (normalizedRole.includes("woreda_admin") || user?.woreda_id) {
     return {
@@ -123,7 +120,11 @@ function getUserScope(user: any, role?: string | null) {
     };
   }
 
-  if (normalizedRole.includes("city_admin") || normalizedRole === "admin" || user?.city_id) {
+  if (
+    normalizedRole.includes("city_admin") ||
+    normalizedRole === "admin" ||
+    user?.city_id
+  ) {
     return {
       level: "city",
       city_id: user?.city_id,
@@ -275,7 +276,10 @@ export default function UsersPage() {
               </SelectContent>
             </Select>
 
-            <Select value={(scope.locked ? scope.cityId : cityId) || "all"} disabled={scope.locked} onValueChange={(value) => {
+           <Select
+  value={(scope.locked ? String(scope.city_id || "") : cityId) || "all"}
+  disabled={scope.locked}
+  onValueChange={(value) => {
               const selected = value === "all" ? "" : value;
               setCityId(selected);
               setSubcityId("");

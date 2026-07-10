@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\ServiceApplication;
+use App\Models\ApplicationQueue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,71 +60,171 @@ class CustomerServiceApplicationController extends Controller
         ],
     ];
 
-    public function index(Request $request): JsonResponse
-    {
-        $baseQuery = ServiceApplication::query()
-            ->where('customer_id', $request->user()->id);
+  public function index(Request $request): JsonResponse
+{
+    $baseQuery = ServiceApplication::query()
+        ->where('customer_id', $request->user()->id);
 
-        $this->applySearch($baseQuery, $request);
+    // Search filter
+    $this->applySearch($baseQuery, $request);
 
-        $statusCounts = $this->statusCounts(clone $baseQuery);
+    // Status counts (before filtering)
+    $statusCounts = $this->statusCounts(clone $baseQuery);
 
-        $applicationsQuery = (clone $baseQuery)
-            ->with(['service', 'city', 'subcity', 'woreda', 'appointments']);
-
-        $this->applyStatusFilter($applicationsQuery, $request->input('status'));
-
-        $applications = $applicationsQuery
-            ->latest('submitted_at')
-            ->paginate(min((int) $request->input('per_page', 10), 100));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Customer applications retrieved successfully',
-            'data' => $applications->items(),
-            'meta' => [
-                'current_page' => $applications->currentPage(),
-                'per_page' => $applications->perPage(),
-                'total' => $applications->total(),
-                'last_page' => $applications->lastPage(),
-                'status_counts' => $statusCounts,
-            ],
+    // Main query with relations INCLUDING QUEUE
+    $applicationsQuery = (clone $baseQuery)
+        ->with([
+            'service',
+            'city',
+            'subcity',
+            'woreda',
+            'appointments',
+            'queue',
         ]);
+
+    // Apply status filter
+    $this->applyStatusFilter($applicationsQuery, $request->input('status'));
+
+    // Pagination
+    $applications = $applicationsQuery
+        ->latest('submitted_at')
+        ->paginate(
+            min((int) $request->input('per_page', 10), 100)
+        );
+
+    // =========================================================
+    // ✅ FIXED QUEUE LOGIC (REAL-TIME ACCURATE)
+    // =========================================================
+    $data = collect($applications->items())->map(function ($app) {
+
+        $queue = $app->queue;
+
+        $applicationsAhead = null;
+        $isNext = false;
+
+        if ($queue) {
+
+            // ✅ CORRECT LOGIC:
+            // count ONLY waiting applications in SAME service
+            // ordered by created_at (NOT id, NOT service_id in queue table)
+
+            $applicationsAhead = ApplicationQueue::query()
+                ->where('status', 'waiting')
+                ->whereHas('application', function ($q) use ($app) {
+                    $q->where('service_id', $app->service_id);
+                })
+                ->where('created_at', '<', $queue->created_at)
+                ->count();
+
+            $isNext = $applicationsAhead === 0 && $queue->status === 'waiting';
+        }
+
+        return [
+            ...$app->toArray(),
+
+            'queue_info' => $queue ? [
+                'queue_number' => $queue->queue_number,
+                'status' => $queue->status,
+                'position' => $queue->position,
+
+                // ✅ REAL DYNAMIC VALUE (always correct)
+                'applications_ahead' => $applicationsAhead,
+
+                // 🔥 next in line flag
+                'is_next' => $isNext,
+            ] : null,
+        ];
+    });
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Customer applications retrieved successfully',
+
+        'data' => $data,
+
+        'meta' => [
+            'current_page' => $applications->currentPage(),
+            'per_page' => $applications->perPage(),
+            'total' => $applications->total(),
+            'last_page' => $applications->lastPage(),
+
+            'status_counts' => $statusCounts,
+        ],
+    ]);
+}
+ public function show(Request $request, ServiceApplication $application): JsonResponse
+{
+    abort_if(
+        (int) $application->customer_id !== (int) $request->user()->id,
+        403
+    );
+
+    $application->load([
+        'service',
+        'customer',
+        'city',
+        'subcity',
+        'woreda',
+        'currentWindow',
+        'currentOfficer',
+        'assignee',
+        'data',
+        'files.uploader',
+        'appointments.scheduler',
+        'workflows.window',
+        'workflows.officer',
+        'histories.actor',
+        'histories.sender',
+        'histories.receiver',
+        'histories.fromWindow',
+        'histories.toWindow',
+        'shares.sharedFromOfficer',
+        'shares.sharedToOfficer',
+        'shares.fromWindow',
+        'shares.toWindow',
+        'queue',
+    ]);
+
+    $queue = $application->queue;
+
+    $queueInfo = null;
+
+    if ($queue) {
+
+        $applicationsAhead = \App\Models\ApplicationQueue::query()
+            ->where('status', 'waiting')
+            ->where('position', '<', $queue->position)
+            ->whereHas('application', function ($query) use ($application) {
+                $query->where('service_id', $application->service_id);
+            })
+            ->count();
+
+        $totalWaiting = \App\Models\ApplicationQueue::query()
+            ->where('status', 'waiting')
+            ->whereHas('application', function ($query) use ($application) {
+                $query->where('service_id', $application->service_id);
+            })
+            ->count();
+
+        $queueInfo = [
+            'queue_number' => $queue->queue_number,
+            'status' => $queue->status,
+            'position' => $queue->position,
+            'applications_ahead' => $applicationsAhead,
+            'total_waiting' => $totalWaiting,
+            'message' => $applicationsAhead > 0
+                ? "{$applicationsAhead} applications are ahead of you."
+                : "Your application is next in queue.",
+        ];
     }
 
-    public function show(Request $request, ServiceApplication $application): JsonResponse
-    {
-        abort_if((int) $application->customer_id !== (int) $request->user()->id, 403);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Customer application retrieved successfully',
-            'data' => $application->load([
-                'service',
-                'customer',
-                'city',
-                'subcity',
-                'woreda',
-                'currentWindow',
-                'currentOfficer',
-                'assignee',
-                'data',
-                'files.uploader',
-                'appointments.scheduler',
-                'workflows.window',
-                'workflows.officer',
-                'histories.actor',
-                'histories.sender',
-                'histories.receiver',
-                'histories.fromWindow',
-                'histories.toWindow',
-                'shares.sharedFromOfficer',
-                'shares.sharedToOfficer',
-                'shares.fromWindow',
-                'shares.toWindow',
-            ]),
-        ]);
-    }
+    return response()->json([
+        'success' => true,
+        'message' => 'Customer application retrieved successfully',
+        'data' => $application,
+        'queue_info' => $queueInfo,
+    ]);
+}
 
 
     private function customerStatusGroup(string $status): array

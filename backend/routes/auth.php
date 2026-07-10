@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\FaydaController;
+
+
 use App\Http\Controllers\Api\RefreshTokenController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,3 +22,7 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
     });
 });
+Route::post(
+    '/auth/fayda/callback',
+    [FaydaController::class, 'callback']
+);
