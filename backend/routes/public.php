@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Public\PublicServiceController;
 use App\Http\Controllers\Api\Public\ApplicationTrackingController;
 use App\Http\Controllers\Api\Public\ContactController;
 use App\Http\Controllers\Api\Public\PublicReportController;
+use App\Http\Controllers\Api\Public\PublicNewsController;
 use App\Http\Controllers\Api\Chatbot\PublicChatbotController;
 
 Route::prefix('public')->group(function () {
@@ -21,4 +22,5 @@ Route::prefix('public')->group(function () {
     Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/chatbot/message', [PublicChatbotController::class, 'message']);
     Route::get('/reports/dashboard', [PublicReportController::class, 'dashboard']);
+    Route::get('/news', [PublicNewsController::class, 'index']);
 });

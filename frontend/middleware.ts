@@ -23,6 +23,7 @@ export function middleware(request: NextRequest) {
     "/service-providers",
     "/resources",
     "/resources/reports",
+    "/news",
     "/services",
     "/training/application-workflow",
   ];

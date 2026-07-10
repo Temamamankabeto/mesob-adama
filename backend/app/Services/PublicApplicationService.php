@@ -9,6 +9,7 @@ use App\Models\ServiceApplicationData;
 use App\Models\ServiceApplicationWorkflow;
 use App\Models\ServiceApplicationHistory;
 use App\Services\Concerns\ChecksServiceAvailability;
+use App\Support\AppRoles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -112,7 +113,17 @@ class PublicApplicationService
                 'actor_id' => $user->id,
             ]);
 
-            return $application->load([
+            $initialOfficer = $this->firstAssignedFrontOfficer($application);
+
+            if ($initialOfficer) {
+                $application->update([
+                    'current_officer_id' => $initialOfficer->id,
+                    'assigned_to' => $initialOfficer->id,
+                    'assigned_role' => AppRoles::FRONT_OFFICER,
+                ]);
+            }
+
+            return $application->fresh()->load([
                 'service',
                 'customer',
                 'city',
@@ -164,6 +175,58 @@ class PublicApplicationService
         if (!empty($errors)) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+
+    protected function firstAssignedFrontOfficer(ServiceApplication $application): ?User
+    {
+        $level = $application->administrative_level ?: AppRoles::LEVEL_CITY;
+
+        return User::query()
+            ->where('is_active', true)
+            ->whereHas('roles', fn ($query) => $query->where('name', AppRoles::FRONT_OFFICER))
+            ->whereExists(function ($query) use ($application, $level) {
+                $query->selectRaw('1')
+                    ->from('user_service_assignments')
+                    ->whereColumn('user_service_assignments.user_id', 'users.id')
+                    ->where('user_service_assignments.service_id', $application->service_id)
+                    ->where('user_service_assignments.assignment_level', $level)
+                    ->whereIn('user_service_assignments.officer_type', [
+                        AppRoles::FRONT_OFFICER,
+                        'front',
+                    ])
+                    ->where('user_service_assignments.is_active', true)
+                    ->where(function ($windowQuery) use ($application) {
+                        $windowQuery
+                            ->where('user_service_assignments.window_id', $application->current_window_id)
+                            ->orWhereNull('user_service_assignments.window_id')
+                            ->orWhereExists(function ($query) use ($application) {
+                                $query->selectRaw('1')
+                                    ->from('officer_window_assignments')
+                                    ->whereColumn('officer_window_assignments.officer_id', 'users.id')
+                                    ->where('officer_window_assignments.window_id', $application->current_window_id)
+                                    ->where('officer_window_assignments.assignment_level', $application->administrative_level)
+                                    ->where('officer_window_assignments.is_active', true);
+                            });
+                    });
+            })
+            ->when($level === AppRoles::LEVEL_CITY, function ($query) use ($application) {
+                $query->where('city_id', $application->city_id)
+                    ->whereNull('subcity_id')
+                    ->whereNull('woreda_id');
+            })
+            ->when($level === AppRoles::LEVEL_SUBCITY, function ($query) use ($application) {
+                $query->where('city_id', $application->city_id)
+                    ->where('subcity_id', $application->subcity_id)
+                    ->whereNull('woreda_id');
+            })
+            ->when($level === AppRoles::LEVEL_WOREDA, function ($query) use ($application) {
+                $query->where('city_id', $application->city_id)
+                    ->where('subcity_id', $application->subcity_id)
+                    ->where('woreda_id', $application->woreda_id);
+            })
+            ->orderBy('id')
+            ->first();
     }
 
     protected function generateTrackingNumber(): string

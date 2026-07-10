@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -86,6 +87,7 @@ const services = [
 ];
 
 export default function HomePage() {
+  const router = useRouter();
   const [applicationNumber, setApplicationNumber] = useState("");
   const [language, setLanguage] = useState("Afaan Oromoo");
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
@@ -172,6 +174,12 @@ export default function HomePage() {
                 <Link
                   key={group.label}
                   href={group.href}
+                  onMouseEnter={() => {
+                    if (group.label === "News") {
+                      router.prefetch("/news");
+                      router.push("/news");
+                    }
+                  }}
                   className="flex h-14 min-w-32 items-center justify-center gap-2 border-b-2 border-transparent px-4 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-600"
                 >
                   {GroupIcon && <GroupIcon className="h-5 w-5" />}

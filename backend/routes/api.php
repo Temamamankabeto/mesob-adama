@@ -2,8 +2,20 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Chatbot\CustomerChatbotController;
+use App\Http\Controllers\Api\Chatbot\ChatbotCategoryController;
+use App\Http\Controllers\Api\Chatbot\ChatbotTrainingQuestionController;
+use App\Http\Controllers\Api\NewsController;
 
 Route::middleware('auth:sanctum')->post('/chatbot/message', [CustomerChatbotController::class, 'message']);
+
+Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
+    Route::apiResource('news', NewsController::class)->parameters(['news' => 'news']);
+});
+
+Route::middleware('auth:sanctum')->prefix('admin/chatbot')->group(function () {
+    Route::apiResource('categories', ChatbotCategoryController::class);
+    Route::apiResource('training-questions', ChatbotTrainingQuestionController::class);
+});
 
 Route::get('/ping', function () {
     return response()->json([
