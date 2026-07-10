@@ -9,6 +9,7 @@ import {
   Users,
   Building2,
   Workflow,
+  Newspaper,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -138,6 +139,20 @@ const customerApplicationMenu: SidebarItem = {
   ],
 };
 
+const newsMenu: SidebarItem = {
+  label: "News Management",
+  icon: Newspaper,
+  scopes: cityOnly,
+  children: [
+    {
+      label: "News",
+      href: "/dashboard/news",
+      permission: "roles.read",
+      scopes: cityOnly,
+    },
+  ],
+};
+
 const systemMenu: SidebarItem = {
   label: "System",
   icon: Settings,
@@ -161,7 +176,7 @@ const systemMenu: SidebarItem = {
 
 const adminSections = (role: AppRoleKey): SidebarSection[] => [
   s("Main", [dashboardItem(role)]),
-  s("Management", [userManagementMenu, serviceManagementMenu, windowManagementMenu]),
+  s("Management", [userManagementMenu, serviceManagementMenu, windowManagementMenu, newsMenu]),
   s("Applications", [formBuilderMenu, applicationManagementMenu]),
   s("System", [systemMenu]),
 ];

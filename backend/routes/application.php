@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Admin\ServiceFormFieldConditionController;
 use App\Http\Controllers\Api\Admin\ServiceFormSectionController;
 use App\Http\Controllers\Api\Admin\ServiceFormStepController;
 use App\Http\Controllers\Api\Admin\ApplicationDashboardController;
+use App\Http\Controllers\Api\Admin\ReportingDashboardController;
 use App\Http\Controllers\Api\Customer\CustomerServiceApplicationController;
 use App\Http\Controllers\Api\Customer\CustomerNotificationController;
 use App\Http\Controllers\Api\OfficerApplicationShareController;
@@ -44,6 +45,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::put('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'update']);
     Route::delete('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'destroy']);
     Route::get('/applications/summary', [ApplicationDashboardController::class, 'summary']);
+    Route::get('/dashboard/reporting', [ReportingDashboardController::class, 'index']);
 });
 
 Route::prefix('public')->group(function () {

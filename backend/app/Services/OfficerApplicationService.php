@@ -59,6 +59,8 @@ class OfficerApplicationService
                             'back_officer_rejected',
                             'appointment_scheduled',
                         ])
+                            ->whereNull('assigned_to')
+                            ->whereNull('current_officer_id')
                             ->whereHas('service.assignedUsers', function ($assignment) use ($actor) {
                                 $assignment
                                     ->where('users.id', $actor->id)
@@ -84,6 +86,8 @@ class OfficerApplicationService
                             'back_officer_review',
                             'under_back_review',
                         ])
+                            ->whereNull('assigned_to')
+                            ->whereNull('current_officer_id')
                             ->whereHas('service.assignedUsers', function ($assignment) use ($actor) {
                                 $assignment
                                     ->where('users.id', $actor->id)
