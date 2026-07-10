@@ -164,7 +164,7 @@ export default function ReportsPage() {
                   <BarChart3 className="mx-auto h-16 w-16 text-[#0758a8]" />
                   <h2 className="mt-4 text-2xl font-black">Power BI URL is not configured</h2>
                   <p className="mt-2 text-slate-600">Add this to your frontend environment and redeploy:</p>
-                  <code className="mt-4 block rounded-xl bg-slate-100 p-4 text-left text-sm text-slate-800">NEXT_PUBLIC_POWER_BI_REPORT_URL=https://app.powerbi.com/view?r=YOUR_REPORT_ID</code>
+                  {/*<code className="mt-4 block rounded-xl bg-slate-100 p-4 text-left text-sm text-slate-800">NEXT_PUBLIC_POWER_BI_REPORT_URL=https://app.powerbi.com/view?r=YOUR_REPORT_ID</code>*/}
                 </div>
               </div>
             )}

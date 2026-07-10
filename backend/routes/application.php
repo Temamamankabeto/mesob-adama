@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\Public\PublicApplicationController;
 use App\Http\Controllers\Api\Public\ApplicationTrackingController;
 use App\Http\Controllers\Api\Officer\OfficerApplicationController;
 use App\Http\Controllers\Api\Officer\CertificateController;
+use App\Http\Controllers\Api\FeedbackController;
+use App\Http\Controllers\Api\WindowController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/applications', [ApplicationController::class, 'index']);
@@ -76,3 +78,10 @@ Route::middleware('auth:sanctum')->prefix('manager')->group(function () {
     Route::post('/applications/{application}/return-to-officer', [ManagerApplicationController::class, 'returnToOfficer']);
     Route::post('/applications/{application}/escalate-up', [ManagerApplicationController::class, 'escalateUp']);
 });
+
+
+Route::apiResource('feedback', FeedbackController::class);
+Route::get(
+    'windows/{window}/services',
+    [WindowController::class, 'services']
+);

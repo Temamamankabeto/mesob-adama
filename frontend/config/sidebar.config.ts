@@ -64,6 +64,7 @@ const userManagementMenu: SidebarItem = {
   icon: Users,
   children: [
     { label: "Users", href: "/dashboard/users", permission: "users.read" },
+     { label: "Customers", href: "/dashboard/users/customers", permission: "users.read" },
     { label: "Create User", href: "/dashboard/users/add", permission: "users.create" },
     { label: "Activation Requests", href: "/dashboard/user-activation-requests", permission: "users.activate" },
     { label: "Roles", href: "/dashboard/roles", permission: "roles.read", scopes: cityOnly },
@@ -148,6 +149,13 @@ const systemMenu: SidebarItem = {
       permission: "audit_logs.read",
       scopes: cityOnly,
     },
+    {
+      label: "Translations",
+      href: "dashboard/translations",
+      permission: "audit_logs.read",
+      scopes: cityOnly,
+    },
+
   ],
 };
 

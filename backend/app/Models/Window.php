@@ -28,7 +28,12 @@ class Window extends Model
 
     public function services()
     {
-        return $this->belongsToMany(Service::class, 'service_window')
+        return $this->belongsToMany(
+            Service::class,
+            'service_window',
+            'window_id',
+            'service_id'
+        )
             ->withPivot([
                 'assignment_level',
                 'step_order',
@@ -82,4 +87,5 @@ class Window extends Model
             default => $this->title,
         };
     }
+
 }

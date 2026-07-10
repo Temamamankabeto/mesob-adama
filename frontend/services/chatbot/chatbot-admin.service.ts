@@ -63,10 +63,21 @@ export const chatbotAdminService = {
     return unwrap(response);
   },
 
-  async trainingQuestions(params?: Record<string, unknown>) {
-    const response = await api.get("/admin/chatbot/training-questions", { params });
-    return unwrap<ListResponse<ChatbotTrainingQuestion>>(response);
-  },
+async trainingQuestions(params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  category_id?: number;
+}) {
+  const response = await api.get(
+    "/admin/chatbot/training-questions",
+    {
+      params,
+    }
+  );
+
+  return unwrap<ListResponse<ChatbotTrainingQuestion>>(response);
+},
 
   async createTrainingQuestion(payload: Partial<ChatbotTrainingQuestion>) {
     const response = await api.post("/admin/chatbot/training-questions", payload);

@@ -19,19 +19,22 @@ class ChatbotTrainingQuestionController extends Controller
                 ->orWhere('answer_template', 'like', '%' . $request->search . '%')))
             ->latest();
 
-        $items = $query->paginate(min((int) $request->integer('per_page', 20), 100));
+       $perPage = (int) $request->input('per_page', 2);
+$perPage = max(1, min($perPage, 100));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Chatbot training questions retrieved successfully',
-            'data' => $items->items(),
-            'meta' => [
-                'current_page' => $items->currentPage(),
-                'last_page' => $items->lastPage(),
-                'per_page' => $items->perPage(),
-                'total' => $items->total(),
-            ],
-        ]);
+$items = $query->paginate($perPage);
+
+       return response()->json([
+    'success' => true,
+    'message' => 'Chatbot training questions retrieved successfully',
+    'data' => $items->items(),
+    'meta' => [
+        'current_page' => $items->currentPage(),
+        'last_page' => $items->lastPage(),
+        'per_page' => $items->perPage(),
+        'total' => $items->total(),
+    ],
+]);
     }
 
     public function store(Request $request)

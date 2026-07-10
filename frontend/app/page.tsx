@@ -2,9 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { useLanguage } from "@/hooks/useLanguage";
+import {FormEvent, useState} from "react";
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -32,13 +30,18 @@ import {
   Youtube,
 } from "lucide-react";
 
-import { useSendContact, useTrackApplication } from "@/hooks/home/use-home";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {useLanguage} from "@/hooks/useLanguage";
+import i18n from "@/lib/i18n";
+
+import {useSendContact, useTrackApplication} from "@/hooks/home/use-home";
+
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Textarea} from "@/components/ui/textarea";
+
 import mesob from "@/app/mesob.jpg";
 import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
-import i18n from "@/lib/i18n";
+
 
 const navGroups = [
   {
@@ -46,56 +49,118 @@ const navGroups = [
     href: "/",
     icon: Home,
     items: [
-      { label: "about_us", href: "/about", icon: Users },
-      { label: "service_provider", href: "/service-providers", icon: Building2 },
+      {
+        label: "about_us",
+        href: "/about",
+        icon: Users,
+      },
+      {
+        label: "service_provider",
+        href: "/service-providers",
+        icon: Building2,
+      },
     ],
   },
+
   {
     label: "services",
     href: "/services",
     items: [
-      { label: "city", href: "/services?level=city", icon: Building2 },
-      { label: "sub_city", href: "/services?level=subcity", icon: Building2 },
-      { label: "woreda", href: "/services?level=woreda", icon: Building2 },
+      {
+        label: "city",
+        href: "/services?level=city",
+        icon: Building2,
+      },
+      {
+        label: "sub_city",
+        href: "/services?level=subcity",
+        icon: Building2,
+      },
+      {
+        label: "woreda",
+        href: "/services?level=woreda",
+        icon: Building2,
+      },
     ],
   },
+
   {
     label: "resources",
     href: "/resources",
     items: [
-      { label: "reports", href: "/resources/reports", icon: FileText },
-      { label: "guidelines", href: "/resources/guidelines", icon: ClipboardList },
-      { label: "policies", href: "/resources/policies", icon: FileText },
+      {
+        label: "reports",
+        href: "/resources/reports",
+        icon: FileText,
+      },
+      {
+        label: "guidelines",
+        href: "/resources/guidelines",
+        icon: ClipboardList,
+      },
+      {
+        label: "policies",
+        href: "/resources/policies",
+        icon: FileText,
+      },
     ],
   },
-  { label: "news", href: "/news" },
-  { label: "contacts", href: "/contact" },
+
+  {
+    label: "news",
+    href: "/news",
+  },
+
+  {
+    label: "contacts",
+    href: "/contact",
+  },
 ];
 
+
 const categories = [
-  { title: "Employment Services", icon: BriefcaseBusiness },
-  { title: "Personal Documents", icon: Users },
-  { title: "Certificates", icon: FileBadge },
-  { title: "Business Services", icon: Building2 },
-  { title: "Payments & Fines", icon: CreditCard },
+  {
+    title: "employment_services",
+    icon: BriefcaseBusiness,
+  },
+  {
+    title: "personal_documents",
+    icon: Users,
+  },
+  {
+    title: "certificates",
+    icon: FileBadge,
+  },
+  {
+    title: "business_services",
+    icon: Building2,
+  },
+  {
+    title: "payments_fines",
+    icon: CreditCard,
+  },
 ];
+
+
 const services = [
   {
     title: "city_services",
     text: "city_services_desc",
     icon: Building2,
   },
+
   {
     title: "sub_city_services",
     text: "sub_city_services_desc",
     icon: Users,
   },
+
   {
     title: "woreda_services",
     text: "woreda_services_desc",
     icon: FileText,
   },
-  
+
   {
     title: "all_services",
     text: "all_services_desc",
@@ -103,266 +168,1099 @@ const services = [
   },
 ];
 
-export default function HomePage() {
-  const [applicationNumber, setApplicationNumber] = useState("");
-  const { t, language, changeLanguage } = useLanguage();
 
-  const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
+export default function HomePage() {
+
+  const [applicationNumber, setApplicationNumber] = useState("");
+
+  const {
+    t,
+    changeLanguage,
+  } = useLanguage();
+
+
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+
+
   const trackMutation = useTrackApplication();
+
   const contactMutation = useSendContact();
 
+
   async function handleTrack() {
+
     if (!applicationNumber.trim()) return;
+
+
     try {
-      const res = await trackMutation.mutateAsync({ application_number: applicationNumber });
-      alert(`Status: ${res.data.status}`);
+
+      const res = await trackMutation.mutateAsync({
+        application_number: applicationNumber,
+      });
+
+
+      alert(
+          `${t("status")}: ${res.data.status}`
+      );
+
+
     } catch {
-      alert("Application not found");
+
+      alert(
+          t("application_not_found")
+      );
+
     }
+
   }
 
-  async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
+
+  async function handleContactSubmit(
+      event: FormEvent<HTMLFormElement>
+  ) {
+
     event.preventDefault();
 
+
     try {
-      await contactMutation.mutateAsync(contactForm);
-      setContactForm({ name: "", email: "", message: "" });
-      alert("Your message has been sent successfully.");
+
+      await contactMutation.mutateAsync(
+          contactForm
+      );
+
+
+      setContactForm({
+        name: "",
+        email: "",
+        message: "",
+      });
+
+
+      alert(
+          t("message_sent")
+      );
+
+
     } catch {
-      alert("Unable to send your message right now.");
+
+      alert(
+          t("message_failed")
+      );
+
     }
+
   }
 
+
   return (
-    <main className="min-h-screen bg-white text-slate-900">
-      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
-          <Link href="/" className="flex items-center gap-3">
-            <Image src={mesob} alt="Adama MESOB" width={70} height={70} className="h-10 w-10 rounded-full object-cover" />
-            <div className="leading-tight">
-              <h1 className="text-2xl font-black tracking-tight text-slate-950">Adama<span className="text-sky-500">.</span></h1>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">MESOB eService</p>
-            </div>
-          </Link>
+      <main className="min-h-screen bg-white text-slate-900">
 
-          <div className="hidden items-center gap-5 lg:flex">
-            <div className="group relative">
-              <Button variant="outline" className="h-9 min-w-28 justify-between border-0 bg-white px-3 text-xs font-bold shadow-none hover:bg-slate-50">
-                <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" />EN</span>
-                <ChevronDown className="h-4 w-4 transition group-hover:rotate-180" />
-              </Button>
-              <div className="invisible absolute right-0 top-full z-50 w-48 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
-                <div className="rounded-xl border bg-white p-2 shadow-xl">
-                 {["Afaan Oromoo", "English", "አማርኛ"].map((item) => {
-  const code =
-    item === "English"
-      ? "en"
-      : item === "Afaan Oromoo"
-  ? "om"
-  : "am";
-  return (
-    <button
-      key={item}
-      type="button"
-      onClick={() => changeLanguage(code)}
-      className="flex w-full items-center rounded-lg px-3 py-3 text-left text-sm font-semibold hover:bg-slate-100"
-    >
-      {item}
-      {i18n.language === code && (
-        <Check className="ml-auto h-4 w-4" />
-      )}
-    </button>
-  );
-})}
-                </div>
+
+        <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur">
+
+
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
+
+
+            <Link
+                href="/"
+                className="flex items-center gap-3"
+            >
+
+
+              <Image
+                  src={mesob}
+                  alt="Adama MESOB"
+                  width={70}
+                  height={70}
+                  className="h-10 w-10 rounded-full object-cover"
+              />
+
+
+              <div className="leading-tight">
+
+                <h1 className="text-2xl font-black tracking-tight text-slate-950">
+                  Adama<span className="text-sky-500">.</span>
+                </h1>
+
+
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+                  MESOB eService
+                </p>
+
+
               </div>
-            </div>
 
-            <div className="group relative">
-              <Button className="h-10 rounded-full bg-sky-500 px-7 text-xs font-black uppercase tracking-wide shadow-lg shadow-sky-100 hover:bg-sky-600">
-                Sign In <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <div className="invisible absolute right-0 top-full z-50 w-52 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
-                <div className="rounded-xl border bg-white p-3 text-[#08214a] shadow-xl">
-                  <Link href="/login" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100"><LockKeyhole className="h-4 w-4" />Sign In</Link>
-                  <Link href="/register" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100"><UserPlus className="h-4 w-4" />Create Account</Link>
-                </div>
-              </div>
-            </div>
-          </div>
-          <Button variant="ghost" size="icon" className="lg:hidden"><Menu /></Button>
-        </div>
+            </Link>
 
-        <nav className="mx-auto hidden h-14 max-w-7xl items-center bg-white px-4 md:px-6 lg:flex">
-          {navGroups.map((group) => {
-            const GroupIcon = group.icon;
 
-            if (!group.items) {
-              return (
-                <Link
-                  key={group.label}
-                  href={group.href}
-                  className="flex h-14 min-w-32 items-center justify-center gap-2 border-b-2 border-transparent px-4 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-600"
+            <div className="hidden items-center gap-5 lg:flex">
+
+
+              {/* Language */}
+
+              <div className="group relative">
+
+
+                <Button
+                    variant="outline"
+                    className="h-9 min-w-28 border-0 bg-white shadow-none"
                 >
-                  {GroupIcon && <GroupIcon className="h-5 w-5" />}
-                 {group.label}
-                </Link>
-              );
+
+
+<span className="flex items-center gap-2">
+
+<Globe2 className="h-4 w-4"/>
+
+  {i18n.language.toUpperCase()}
+
+</span>
+
+
+                  <ChevronDown className="h-4 w-4"/>
+
+
+                </Button>
+
+
+                <div
+                    className="invisible absolute right-0 top-full z-50 w-48 pt-3 opacity-0 transition group-hover:visible group-hover:opacity-100">
+
+
+                  <div className="rounded-xl border bg-white p-2 shadow-xl">
+
+
+                    {
+                      [
+                        {
+                          name: "Afaan Oromoo",
+                          code: "om"
+                        },
+                        {
+                          name: "English",
+                          code: "en"
+                        },
+                        {
+                          name: "አማርኛ",
+                          code: "am"
+                        }
+                      ].map(lang => (
+
+
+                          <button
+
+                              key={lang.code}
+
+                              onClick={() => changeLanguage(lang.code)}
+
+                              className="flex w-full items-center rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100"
+
+                          >
+
+
+                            {lang.name}
+
+
+                            {
+                                i18n.language === lang.code &&
+                                <Check className="ml-auto h-4 w-4"/>
+                            }
+
+
+                          </button>
+
+
+                      ))
+
+                    }
+
+
+                  </div>
+
+
+                </div>
+
+
+              </div>
+
+
+              {/* Login */}
+
+              <div className="group relative">
+
+
+                <Button
+                    className="rounded-full bg-sky-500 px-7"
+                >
+
+                  {t("login")}
+
+                  <ArrowRight className="ml-2 h-4 w-4"/>
+
+                </Button>
+
+
+                <div
+                    className="invisible absolute right-0 top-full z-50 w-52 pt-3 opacity-0 transition group-hover:visible group-hover:opacity-100">
+
+
+                  <div className="rounded-xl border bg-white p-3 shadow-xl">
+
+
+                    <Link
+                        href="/login"
+                        className="flex gap-3 rounded-lg px-3 py-3 hover:bg-slate-100"
+                    >
+
+                      <LockKeyhole className="h-4 w-4"/>
+
+                      {t("login")}
+
+                    </Link>
+
+
+                    <Link
+                        href="/register"
+                        className="flex gap-3 rounded-lg px-3 py-3 hover:bg-slate-100"
+                    >
+
+                      <UserPlus className="h-4 w-4"/>
+
+                      {t("register")}
+
+                    </Link>
+
+
+                  </div>
+
+
+                </div>
+
+
+              </div>
+
+
+            </div>
+
+
+            <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden"
+            >
+
+              <Menu/>
+
+            </Button>
+
+
+          </div>
+
+
+          <nav className="mx-auto hidden h-14 max-w-7xl items-center lg:flex">
+
+
+            {
+              navGroups.map(group => {
+
+                const GroupIcon = group.icon;
+
+
+                return (
+
+                    <div
+                        key={group.label}
+                        className="group relative"
+                    >
+
+
+                      <Link
+                          href={group.href}
+                          className="flex h-14 items-center gap-2 px-5 font-semibold"
+                      >
+
+
+                        {
+                            GroupIcon &&
+                            <GroupIcon className="h-5 w-5"/>
+                        }
+
+
+                        {t(group.label)}
+
+
+                        {
+                            group.items &&
+                            <ChevronDown className="h-4 w-4"/>
+                        }
+
+
+                      </Link>
+
+
+                      {
+                          group.items &&
+
+                          <div
+                              className="invisible absolute top-full z-50 w-56 rounded-xl border bg-white p-3 shadow-xl group-hover:visible">
+
+
+                            {
+                              group.items.map(item => {
+
+                                const Icon = item.icon;
+
+
+                                return (
+
+                                    <Link
+                                        key={item.label}
+                                        href={item.href}
+                                        className="flex gap-3 rounded-lg px-3 py-3 hover:bg-slate-100"
+                                    >
+
+                                      <Icon className="h-4 w-4"/>
+
+                                      {t(item.label)}
+
+                                    </Link>
+
+                                )
+
+                              })
+
+                            }
+
+
+                          </div>
+
+                      }
+
+
+                    </div>
+
+                )
+
+              })
+
             }
 
-            return (
-              <div key={group.label} className="group relative">
-                <Link
-                  href={group.href}
-                  className="flex h-14 min-w-36 items-center justify-center gap-2 border-b-2 border-transparent px-4 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-600"
-                >
-                  {GroupIcon && <GroupIcon className="h-5 w-5" />}
-                  {group.label}
-                  <ChevronDown className="h-4 w-4 transition group-hover:rotate-180" />
-                </Link>
-                <div className="invisible absolute left-0 top-full z-50 w-56 pt-2 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
-                  <div className="rounded-xl border bg-white p-3 shadow-xl">
-                    {group.items.map((item) => {
-                      const ItemIcon = item.icon;
 
-                      return (
-                        <Link key={item.label} href={item.href} className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100">
-                          <ItemIcon className="h-4 w-4" />
-                          {t(item.label)}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </nav>
-      </header>
+          </nav>
 
-      <section className="px-4 pb-8 pt-6 md:px-6">
-        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-slate-50 px-5 py-20 text-center md:px-10 md:py-32">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_55%,rgba(250,204,21,0.18),transparent_18%),radial-gradient(circle_at_40%_62%,rgba(14,165,233,0.18),transparent_30%),radial-gradient(circle_at_62%_48%,rgba(56,189,248,0.16),transparent_26%)]" />
-          <div className="relative mx-auto max-w-5xl">
-            <h2 className="mx-auto max-w-4xl text-3xl font-black leading-tight tracking-tight text-slate-950 md:text-5xl">
-              {t("hero_title")}
-               
-            </h2>
 
-            <div className="mx-auto mt-14 max-w-5xl">
-              <div className="relative rounded-full border border-slate-200 bg-white shadow-sm">
-                <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                <Input
-                  value={applicationNumber}
-                  onChange={(e) => setApplicationNumber(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleTrack();
-                  }}
-                  placeholder="Search"
-                  className="h-14 rounded-full border-0 bg-transparent pl-12 pr-28 text-sm shadow-none focus-visible:ring-0"
-                />
-                <Button
-                  onClick={handleTrack}
-                  disabled={trackMutation.isPending}
-                  className="absolute right-2 top-1/2 h-10 -translate-y-1/2 rounded-full bg-sky-500 px-6 text-sm font-bold hover:bg-sky-600"
-                >
-                  Search
-                </Button>
-              </div>
-{/* 
-              <div className="mt-5 flex flex-wrap items-center gap-3 text-left">
-                <span className="text-sm font-bold text-slate-400">#Top searches:</span>
-                {categories.map((category) => (
-                  <Link
-                    key={category.title}
-                    href="/services"
-                    className="rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-sky-200 hover:text-sky-600"
+        </header>
+
+        <section className="px-4 pb-8 pt-6 md:px-6">
+
+          <div
+              className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-slate-50 px-5 py-20 text-center md:px-10 md:py-32">
+
+
+            <div
+                className="absolute inset-0 bg-[radial-gradient(circle_at_50%_55%,rgba(250,204,21,0.18),transparent_18%),radial-gradient(circle_at_40%_62%,rgba(14,165,233,0.18),transparent_30%),radial-gradient(circle_at_62%_48%,rgba(56,189,248,0.16),transparent_26%)]"/>
+
+
+            <div className="relative mx-auto max-w-5xl">
+
+
+              <h2 className="mx-auto max-w-4xl text-3xl font-black leading-tight tracking-tight text-slate-950 md:text-5xl">
+
+                {t("hero_title")}
+
+              </h2>
+
+
+              <div className="mx-auto mt-14 max-w-5xl">
+
+
+                <div className="relative rounded-full border border-slate-200 bg-white shadow-sm">
+
+
+                  <Search
+                      className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                  />
+
+
+                  <Input
+
+                      value={applicationNumber}
+
+                      onChange={(e) =>
+                          setApplicationNumber(e.target.value)
+                      }
+
+                      onKeyDown={(e) => {
+
+                        if (e.key === "Enter")
+                          handleTrack();
+
+                      }}
+
+                      placeholder={t("search")}
+
+                      className="h-14 rounded-full border-0 bg-transparent pl-12 pr-28 shadow-none focus-visible:ring-0"
+
+                  />
+
+
+                  <Button
+
+                      onClick={handleTrack}
+
+                      disabled={trackMutation.isPending}
+
+                      className="absolute right-2 top-1/2 h-10 -translate-y-1/2 rounded-full bg-sky-500 px-6"
+
                   >
-                    {category.title}
-                  </Link>
-                ))}
-              </div> */}
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 md:grid-cols-[1fr_440px] md:px-8">
-        <div className="rounded-2xl bg-white p-7 shadow-lg">
-          <div className="mb-6 flex items-center justify-between"><h3 className="text-3xl font-black">Our Services</h3>
-          <Link href="/services" className="flex items-center gap-2 font-bold text-[#063d91]">View All <ArrowRight className="h-4 w-4" />
-          </Link>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {services.map((service, index) => 
-            <Link href="/services" key={service.title} className="rounded-xl border bg-white p-7 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-              <div className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full ${index % 3 === 0 ? "bg-emerald-100 text-emerald-700" : index % 3 === 1 ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
-                <service.icon className="h-8 w-8" />
+                    {
+                      trackMutation.isPending
+                          ? t("loading")
+                          : t("search")
+                    }
+
+
+                  </Button>
+
+
+                </div>
+
+
               </div>
-              <h4 className="font-black">{t(service.title)}</h4>
-              <p className="mt-2 text-sm leading-6 text-slate-700">
-                {t(service.text)}
-              </p>
-            </Link>)}
+
+
+            </div>
+
+
           </div>
-        </div>
 
-        <div className="rounded-2xl bg-white p-7 shadow-lg">
-          <h3 className="mb-6 text-3xl font-black">Contact Us</h3>
-          <form onSubmit={handleContactSubmit} className="space-y-4">
-            <div className="relative"><Users className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" /><Input value={contactForm.name} onChange={(e) => setContactForm((prev) => ({ ...prev, name: e.target.value }))} className="h-14 rounded-xl pl-12" placeholder="Name" required /></div>
-            <div className="relative"><Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" /><Input type="email" value={contactForm.email} onChange={(e) => setContactForm((prev) => ({ ...prev, email: e.target.value }))} className="h-14 rounded-xl pl-12" placeholder="Email" required /></div>
-            <div className="relative"><MessageSquare className="absolute left-4 top-5 h-5 w-5 text-slate-400" /><Textarea value={contactForm.message} onChange={(e) => setContactForm((prev) => ({ ...prev, message: e.target.value }))} className="min-h-40 rounded-xl pl-12 pt-4" placeholder="Message" required /></div>
-            <Button disabled={contactMutation.isPending} className="h-14 w-full rounded-xl bg-[#063d91] text-base font-bold"><Send className="mr-2 h-5 w-5" />{contactMutation.isPending ? "Sending..." : "Send Message"}</Button>
-          </form>
-        </div>
-      </section>
 
-      <footer className="bg-gradient-to-r from-[#06295a] to-[#04507f] text-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-5 md:px-8">
-          <div><div className="flex items-center gap-3"><Image src={mesob} alt="Adama MESOB" width={58} height={58} className="rounded-full" /><div className="text-xl font-black">Adama MESOB<br /><span className="text-emerald-400">eService</span></div></div><p className="mt-5 text-sm leading-7 text-white/85">Tajaajila elektiroonikaalaa bulchiinsa gaarii mirkaneessuuf hojjanna.</p></div>
-          <FooterLinks
-            title="About Us"
-            items={[
-              { label: "About Us", href: "/about" },
-              { label: "Service Provider", href: "/service-providers" },
-              { label: "Vision & Mission", href: "/about" },
-              { label: "Our Team", href: "/about" },
-            ]}
-          />
-          <FooterLinks
-  title={t("services")}
-  items={[
-    { label:  t("city_services"), href: "/services?level=city" },
-    { label: t("sub_city_services"), href: "/services?level=subcity" },
-    { label: t("woreda_services"), href: "/services?level=woreda" },
-    { label: t("all_services"), href: "/services" },
-  ]}
-/>
-          <div><h4 className="mb-4 font-black">Contact</h4><p className="flex gap-3 text-sm"><MapPin className="h-5 w-5" />Adama, Oromia, Ethiopia</p><p className="mt-4 flex gap-3 text-sm"><Phone className="h-5 w-5" />+251 9141</p></div>
-        </div>
-        <div className="border-t border-white/20"><div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm md:flex-row md:px-8"><p>© 2026 Adama MESOB eService. All Rights Reserved.</p><div className="flex items-center gap-4"><span>Follow Us</span><Facebook /><Send /><Youtube /><Linkedin /></div></div></div>
-      </footer>
-          <ChatbotWidget source="public-home" />
-    </main>
+        </section>
+
+
+        {/* SERVICES */}
+
+        <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 md:grid-cols-[1fr_440px] md:px-8">
+
+
+          <div className="rounded-2xl bg-white p-7 shadow-lg">
+
+
+            <div className="mb-6 flex items-center justify-between">
+
+
+              <h3 className="text-3xl font-black">
+
+                {t("our_services")}
+
+              </h3>
+
+
+              <Link
+                  href="/services"
+                  className="flex items-center gap-2 font-bold text-[#063d91]"
+              >
+
+                {t("view_all")}
+
+                <ArrowRight className="h-4 w-4"/>
+
+              </Link>
+
+
+            </div>
+
+
+            <div className="grid gap-4 md:grid-cols-3">
+
+
+              {
+                services.map((service, index) => {
+
+
+                  return (
+
+                      <Link
+
+                          key={service.title}
+
+                          href="/services"
+
+                          className="rounded-xl border bg-white p-7 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+
+                      >
+
+
+                        <div
+
+                            className={`
+mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full
+
+${
+                                index % 3 === 0
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : index % 3 === 1
+                                        ? "bg-blue-100 text-blue-700"
+                                        : "bg-amber-100 text-amber-700"
+                            }
+
+`}
+
+                        >
+
+
+                          <service.icon
+                              className="h-8 w-8"
+                          />
+
+
+                        </div>
+
+
+                        <h4 className="font-black">
+
+                          {t(service.title)}
+
+                        </h4>
+
+
+                        <p className="mt-2 text-sm leading-6 text-slate-700">
+
+                          {t(service.text)}
+
+                        </p>
+
+
+                      </Link>
+
+
+                  )
+
+
+                })
+
+              }
+
+
+            </div>
+
+
+          </div>
+
+
+          {/* CONTACT FORM */}
+
+          <div className="rounded-2xl bg-white p-7 shadow-lg">
+
+
+            <h3 className="mb-6 text-3xl font-black">
+
+              {t("contact_us")}
+
+            </h3>
+
+
+            <form
+
+                onSubmit={handleContactSubmit}
+
+                className="space-y-4"
+
+            >
+
+
+              <div className="relative">
+
+
+                <Users
+
+                    className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+
+                />
+
+
+                <Input
+
+                    value={contactForm.name}
+
+                    onChange={(e) =>
+                        setContactForm(prev => ({
+                          ...prev,
+                          name: e.target.value
+                        }))
+                    }
+
+
+                    placeholder={t("name")}
+
+                    className="h-14 rounded-xl pl-12"
+
+                    required
+
+                />
+
+
+              </div>
+
+
+              <div className="relative">
+
+
+                <Mail
+
+                    className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+
+                />
+
+
+                <Input
+
+
+                    type="email"
+
+
+                    value={contactForm.email}
+
+
+                    onChange={(e) =>
+                        setContactForm(prev => ({
+                          ...prev,
+                          email: e.target.value
+                        }))
+                    }
+
+
+                    placeholder={t("email")}
+
+
+                    className="h-14 rounded-xl pl-12"
+
+
+                    required
+
+
+                />
+
+
+              </div>
+
+
+              <div className="relative">
+
+
+                <MessageSquare
+
+                    className="absolute left-4 top-5 h-5 w-5 text-slate-400"
+
+                />
+
+
+                <Textarea
+
+
+                    value={contactForm.message}
+
+
+                    onChange={(e) =>
+                        setContactForm(prev => ({
+                          ...prev,
+                          message: e.target.value
+                        }))
+                    }
+
+
+                    placeholder={t("message")}
+
+
+                    className="min-h-40 rounded-xl pl-12 pt-4"
+
+
+                    required
+
+
+                />
+
+
+              </div>
+
+
+              <Button
+
+                  disabled={contactMutation.isPending}
+
+                  className="h-14 w-full rounded-xl bg-[#063d91] text-base font-bold"
+
+              >
+
+
+                <Send className="mr-2 h-5 w-5"/>
+
+
+                {
+
+                  contactMutation.isPending
+
+                      ?
+
+                      t("sending")
+
+                      :
+
+                      t("send_message")
+
+                }
+
+
+              </Button>
+
+
+            </form>
+
+
+          </div>
+
+
+        </section>
+
+        <footer className="bg-gradient-to-r from-[#06295a] to-[#04507f] text-white">
+
+
+          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-5 md:px-8">
+
+
+            {/* Logo */}
+
+            <div>
+
+
+              <div className="flex items-center gap-3">
+
+
+                <Image
+
+                    src={mesob}
+
+                    alt="Adama MESOB"
+
+                    width={58}
+
+                    height={58}
+
+                    className="rounded-full"
+
+                />
+
+
+                <div className="text-xl font-black">
+
+                  Adama MESOB
+
+                  <br />
+
+                  <span className="text-emerald-400">
+                  eService
+                </span>
+
+
+                </div>
+
+
+              </div>
+
+
+
+              <p className="mt-5 text-sm leading-7 text-white/85">
+
+                {t("footer_description")}
+
+              </p>
+
+
+            </div>
+
+
+
+
+
+            {/* About */}
+
+            <FooterLinks
+
+                title={t("about_us")}
+
+                items={[
+
+                  {
+                    label:t("about_us"),
+                    href:"/about"
+                  },
+
+                  {
+                    label:t("service_provider"),
+                    href:"/service-providers"
+                  },
+
+                  {
+                    label:t("vision_mission"),
+                    href:"/about"
+                  },
+
+                  {
+                    label:t("our_team"),
+                    href:"/about"
+                  },
+
+                ]}
+
+            />
+
+
+
+
+
+
+            {/* Services */}
+
+            <FooterLinks
+
+                title={t("services")}
+
+                items={[
+
+                  {
+                    label:t("city_services"),
+                    href:"/services?level=city"
+                  },
+
+                  {
+                    label:t("sub_city_services"),
+                    href:"/services?level=subcity"
+                  },
+
+
+                  {
+                    label:t("woreda_services"),
+                    href:"/services?level=woreda"
+                  },
+
+
+                  {
+                    label:t("all_services"),
+                    href:"/services"
+                  },
+
+                ]}
+
+            />
+
+
+
+
+
+
+
+            {/* Contact */}
+
+            <div>
+
+
+              <h4 className="mb-4 font-black">
+
+                {t("contact_us")}
+
+              </h4>
+
+
+
+              <p className="flex gap-3 text-sm">
+
+                <MapPin className="h-5 w-5"/>
+
+                Adama, Oromia, Ethiopia
+
+              </p>
+
+
+
+
+              <p className="mt-4 flex gap-3 text-sm">
+
+
+                <Phone className="h-5 w-5"/>
+
+                +251 9141
+
+
+              </p>
+
+
+
+            </div>
+
+
+
+          </div>
+
+
+
+
+
+
+
+
+          <div className="border-t border-white/20">
+
+
+            <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm md:flex-row md:px-8">
+
+
+              <p>
+
+                © 2026 {t("app_name")}. {t("all_rights_reserved")}
+
+              </p>
+
+
+
+
+
+              <div className="flex items-center gap-4">
+
+
+              <span>
+
+                {t("follow_us")}
+
+              </span>
+
+
+                <Facebook className="h-5 w-5"/>
+
+                <Youtube className="h-5 w-5"/>
+
+                <Linkedin className="h-5 w-5"/>
+
+
+              </div>
+
+
+
+            </div>
+
+
+          </div>
+
+
+
+        </footer>
+
+
+
+
+
+        <ChatbotWidget source="public-home"/>
+
+
+      </main>
+
   );
+
 }
 
-type FooterLinkItem = { label: string; href: string };
 
-function FooterLinks({ title, items }: { title: string; items: FooterLinkItem[] }) {
+
+
+
+type FooterLinkItem = {
+
+  label:string;
+
+  href:string;
+
+};
+
+
+
+
+
+
+function FooterLinks({
+
+                       title,
+
+                       items,
+
+                     }:{
+
+  title:string;
+
+  items:FooterLinkItem[];
+
+}){
+
+
   return (
-    <div>
-      <h4 className="mb-4 font-black">{title}</h4>
-      <ul className="space-y-3 text-sm text-white/85">
-        {items.map((item) => (
-          <li key={item.label}>
-            <Link href={item.href} className="hover:text-white">
-              {item.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+
+      <div>
+
+
+        <h4 className="mb-4 font-black">
+
+          {title}
+
+        </h4>
+
+
+
+
+        <ul className="space-y-3 text-sm text-white/85">
+
+
+          {
+
+            items.map(item=>(
+
+
+                <li key={item.label}>
+
+
+                  <Link
+
+                      href={item.href}
+
+                      className="hover:text-white"
+
+                  >
+
+
+                    {item.label}
+
+
+                  </Link>
+
+
+                </li>
+
+
+            ))
+
+
+          }
+
+
+
+        </ul>
+
+
+
+      </div>
+
   );
+
+
 }

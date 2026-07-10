@@ -55,8 +55,6 @@ function canToggleUsers() {
     (user?.city_id && !user?.subcity_id && !user?.woreda_id)
   );
 }
-
-
 function currentUserScope() {
   const user = authService.getStoredUser() as any;
 
