@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::delete('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'destroy']);
     Route::get('/applications/summary', [ApplicationDashboardController::class, 'summary']);
     Route::get('/dashboard/reporting', [ReportingDashboardController::class, 'index']);
+    Route::get('/dashboard/reporting/report', [ReportingDashboardController::class, 'report']);
 });
 
 Route::prefix('public')->group(function () {
