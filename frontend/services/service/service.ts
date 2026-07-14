@@ -18,7 +18,10 @@ export const serviceService = {
     const response = await api.get(`/services?page=${page}`);
     return unwrap<PaginatedServiceResponse>(response);
   },
-
+ async getDropdownServices() {
+    const response = await api.get("/services-dropdown");
+    return response.data;
+  },
   async create(payload: ServicePayload): Promise<Service> {
     const response = await api.post("/services", payload);
     const data = unwrap<{ success: boolean; message: string; data: Service }>(response);

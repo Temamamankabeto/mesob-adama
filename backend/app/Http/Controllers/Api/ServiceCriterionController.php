@@ -39,7 +39,7 @@ class ServiceCriterionController extends Controller
             ->orderBy('sort_order')
             ->orderByDesc('id');
 
-        $perPage = min((int) $request->integer('per_page', 15), 100);
+        $perPage = min((int) $request->integer('per_page', 4), 1000);
         $criteria = $query->paginate($perPage);
 
         return response()->json([

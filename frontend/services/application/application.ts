@@ -9,7 +9,7 @@ function appendApplicationData(
     city_id: number;
     subcity_id?: number | null;
     woreda_id?: number | null;
-  }
+  }   
 ) {
   payload.append("administrative_level", selection.administrative_level);
   payload.append("city_id", String(selection.city_id));

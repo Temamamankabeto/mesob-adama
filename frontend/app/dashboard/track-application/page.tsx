@@ -108,20 +108,15 @@ export default function DashboardTrackApplicationPage() {
       toast.error("Enter tracking number");
       return;
     }
-
     setLoading(true);
-
     try {
       const response = await api.post("/public/track-application", {
         tracking_number: tracking,
       });
-
       const found = extractApplication(response);
-
       if (!found?.id && !found?.tracking_number) {
         throw new Error("Application not found");
       }
-
       setApplication(found);
     } catch (error: any) {
       const message =
@@ -129,14 +124,12 @@ export default function DashboardTrackApplicationPage() {
         Object.values(error?.response?.data?.errors || {})?.flat()?.[0] ||
         error?.message ||
         "Application not found";
-
       setApplication(null);
       toast.error(String(message));
     } finally {
       setLoading(false);
     }
   }
-
   useEffect(() => {
     if (initialTracking) {
       void submit();
@@ -145,7 +138,6 @@ export default function DashboardTrackApplicationPage() {
   }, [initialTracking]);
 
   const appointment = latestAppointment(application);
-
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-3 sm:p-6">
       <Card className="rounded-3xl">

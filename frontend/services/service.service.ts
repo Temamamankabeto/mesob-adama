@@ -5,4 +5,9 @@ export const serviceService = {
     const response = await api.get("/admin/services");
     return response.data;
   },
+    async getDropdownServices() {
+    const response = await api.get("/admin/services/dropdown");
+    return response.data;
+  },
 };
+

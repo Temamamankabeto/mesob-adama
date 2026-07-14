@@ -10,8 +10,7 @@ import {
   useUpdateServiceForm,
   useDeleteServiceForm,
 } from "@/hooks/services/useServiceForms";
-import { useServices } from "@/hooks/services/use-service";
-
+import { useDropdownServices } from "@/hooks/services/use-service";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,20 +47,17 @@ import {
 
 export default function ServiceFormsPage() {
   const { data, isLoading } = useServiceForms();
-  const { data: servicesData } = useServices();
 
   const create = useCreateServiceForm();
   const update = useUpdateServiceForm();
   const remove = useDeleteServiceForm();
 
-const services: any[] = Array.isArray(servicesData)
-  ? servicesData
-  : Array.isArray((servicesData as any)?.data?.data)
-    ? (servicesData as any).data.data
-    : Array.isArray((servicesData as any)?.data)
-      ? (servicesData as any).data
-      : [];
+const { data: servicesResponse } = useDropdownServices();
 
+const services = useMemo(
+  () => normalizeServices(servicesResponse),
+  [servicesResponse]
+);
   const forms: any[] = Array.isArray(data)
   ? data
   : Array.isArray((data as any)?.data?.data)
@@ -79,7 +75,9 @@ const services: any[] = Array.isArray(servicesData)
     title: "",
     description: "",
     is_active: true,
-  });
+  });  const [currentPage, setCurrentPage] = useState(1);
+const itemsPerPage = 30;
+
 
   const filteredForms = useMemo(() => {
     const keyword = search.toLowerCase();
@@ -97,8 +95,16 @@ const services: any[] = Array.isArray(servicesData)
       );
     });
   }, [forms, search, services]);
+const totalPages = Math.ceil(
+  filteredForms.length / itemsPerPage
+);
 
-  function reset() {
+const paginatedForms = filteredForms.slice(
+  (currentPage - 1) * itemsPerPage,
+  currentPage * itemsPerPage
+);
+
+function reset() {
     setForm({
       id: null,
       service_id: "",
@@ -143,6 +149,16 @@ const services: any[] = Array.isArray(servicesData)
     reset();
   }
 
+  function normalizeServices(response: any) {
+  const value = response?.data ?? response;
+
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+
+  return [];
+}
+
   if (isLoading) return <div className="p-6">Loading...</div>;
 
   return (
@@ -176,56 +192,134 @@ const services: any[] = Array.isArray(servicesData)
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredForms.length ? (
-                  filteredForms.map((item: any, index: number) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                         
-                          <Badge variant="outline"> {index + 1}</Badge>
-                        </div>
-                      </TableCell>
+  {paginatedForms.length ? (
+    paginatedForms.map((item: any, index: number) => (
+      <TableRow key={item.id}>
+        <TableCell>
+          <Badge variant="outline">
+            {(currentPage - 1) * itemsPerPage + index + 1}
+          </Badge>
+        </TableCell>
 
-                      <TableCell>
-                        <div className="font-medium">{item.title}</div>
-                        <div className="text-xs text-muted-foreground">{item.description || "No description"}</div>
-                      </TableCell>
+        <TableCell>
+         {services.find(
+  (service: any) =>
+    String(service.id) === String(item.service_id)
+)?.name ??
+  item.service?.name ??
+  "-"}
+        </TableCell>
 
-                      <TableCell>
-                        <Badge variant={item.is_active === false ? "secondary" : "default"}>
-                          {item.is_active === false ? "Inactive" : "Active"}
-                        </Badge>
-                      </TableCell>
+        <TableCell>
+          <div className="font-medium">{item.title}</div>
+          <div className="text-xs text-muted-foreground">
+            {item.description || "No description"}
+          </div>
+        </TableCell>
 
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          <Button asChild variant="outline" size="sm">
-                            <Link href={`/dashboard/service-forms/${item.id}/builder`}>
-                              <LayoutTemplate className="mr-2 h-4 w-4" />
-                              Builder
-                            </Link>
-                          </Button>
+        <TableCell>
+          <Badge
+            variant={
+              item.is_active === false
+                ? "secondary"
+                : "default"
+            }
+          >
+            {item.is_active === false
+              ? "Inactive"
+              : "Active"}
+          </Badge>
+        </TableCell>
 
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+        <TableCell>
+          <div className="flex justify-end gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link
+                href={`/dashboard/service-forms/${item.id}/builder`}
+              >
+                <LayoutTemplate className="mr-2 h-4 w-4" />
+                Builder
+              </Link>
+            </Button>
 
-                          <Button variant="ghost" size="icon" onClick={() => remove.mutate(item.id)}>
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                      No service forms found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => openEdit(item)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => remove.mutate(item.id)}
+            >
+              <Trash2 className="h-4 w-4 text-red-600" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    ))
+  ) : (
+    <TableRow>
+      <TableCell
+        colSpan={5}
+        className="py-10 text-center text-muted-foreground"
+      >
+        No service forms found.
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
             </Table>
+
+            <div className="flex items-center justify-between border-t px-4 py-4">
+  <div className="text-sm text-muted-foreground">
+    Showing{" "}
+    {filteredForms.length === 0
+      ? 0
+      : (currentPage - 1) * itemsPerPage + 1}
+    {" - "}
+    {Math.min(
+      currentPage * itemsPerPage,
+      filteredForms.length
+    )}
+    {" of "}
+    {filteredForms.length}
+  </div>
+
+  <div className="flex items-center gap-2">
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={currentPage === 1}
+      onClick={() =>
+        setCurrentPage((prev) => prev - 1)
+      }
+    >
+      Previous
+    </Button>
+
+    <span className="text-sm font-medium">
+      Page {currentPage} of {totalPages || 1}
+    </span>
+
+    <Button
+      size="sm"
+      variant="outline"
+      disabled={
+        currentPage >= totalPages ||
+        totalPages === 0
+      }
+      onClick={() =>
+        setCurrentPage((prev) => prev + 1)
+      }
+    >
+      Next
+    </Button>
+  </div>
+</div>
           </div>
         </CardContent>
       </Card>
@@ -237,19 +331,30 @@ const services: any[] = Array.isArray(servicesData)
           </DialogHeader>
 
           <div className="space-y-4">
-            <Select value={form.service_id} onValueChange={(value) => setForm({ ...form, service_id: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select service" />
-              </SelectTrigger>
+          <Select
+  value={form.service_id}
+  onValueChange={(value) =>
+    setForm({
+      ...form,
+      service_id: value,
+    })
+  }
+>
+  <SelectTrigger>
+    <SelectValue placeholder="Select service" />
+  </SelectTrigger>
 
-              <SelectContent>
-                {services.map((service: any) => (
-                  <SelectItem key={service.id} value={String(service.id)}>
-                    {service.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+  <SelectContent>
+    {services.map((service: any) => (
+      <SelectItem
+        key={service.id}
+        value={String(service.id)}
+      >
+        {service.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
 
             <Input placeholder="Title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
 

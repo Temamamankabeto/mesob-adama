@@ -14,11 +14,14 @@ export function useCustomerApplications(params: {
     queryFn: () => customerApplicationService.list(params),
   });
 }
-
 export function useCustomerApplication(id: number) {
   return useQuery({
-    queryKey: ["customer-service-application", id],
+    queryKey: ["customer-application", id],
     queryFn: () => customerApplicationService.show(id),
-    enabled: Number.isFinite(id) && id > 0,
+    enabled: !!id && id > 0,
+
+    // 👇 CRITICAL for queue tracking screen
+    refetchInterval: 5000,
+    staleTime: 1000 * 10,
   });
 }

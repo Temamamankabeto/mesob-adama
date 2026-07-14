@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/hooks/useLanguage";
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -37,37 +38,38 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import mesob from "@/app/mesob.jpg";
 import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
+import i18n from "@/lib/i18n";
 
 const navGroups = [
   {
-    label: "Home Page",
+    label: "home_page",
     href: "/",
     icon: Home,
     items: [
-      { label: "About Us", href: "/about", icon: Users },
-      { label: "Service Provider", href: "/service-providers", icon: Building2 },
+      { label: "about_us", href: "/about", icon: Users },
+      { label: "service_provider", href: "/service-providers", icon: Building2 },
     ],
   },
   {
-    label: "Services",
+    label: "services",
     href: "/services",
     items: [
-      { label: "City", href: "/services?level=city", icon: Building2 },
-      { label: "Sub City", href: "/services?level=subcity", icon: Building2 },
-      { label: "Woreda", href: "/services?level=woreda", icon: Building2 },
+      { label: "city", href: "/services?level=city", icon: Building2 },
+      { label: "sub_city", href: "/services?level=subcity", icon: Building2 },
+      { label: "woreda", href: "/services?level=woreda", icon: Building2 },
     ],
   },
   {
-    label: "Resource",
+    label: "resources",
     href: "/resources",
     items: [
-      { label: "Reports", href: "/resources/reports", icon: FileText },
-      { label: "Guidelines", href: "/resources/guidelines", icon: ClipboardList },
-      { label: "Policies", href: "/resources/policies", icon: FileText },
+      { label: "reports", href: "/resources/reports", icon: FileText },
+      { label: "guidelines", href: "/resources/guidelines", icon: ClipboardList },
+      { label: "policies", href: "/resources/policies", icon: FileText },
     ],
   },
-  { label: "News", href: "/news" },
-  { label: "Contacts", href: "/contact" },
+  { label: "news", href: "/news" },
+  { label: "contacts", href: "/contact" },
 ];
 
 const categories = [
@@ -77,19 +79,35 @@ const categories = [
   { title: "Business Services", icon: Building2 },
   { title: "Payments & Fines", icon: CreditCard },
 ];
-
 const services = [
-  { title: "City Services", text: "Services provided at city administration", icon: Building2 },
-  { title: "Sub City Services", text: "Services provided at sub city level", icon: Users },
-  { title: "Woreda Services", text: "Services provided at woreda level", icon: FileText },
-   
-   
+  {
+    title: "city_services",
+    text: "city_services_desc",
+    icon: Building2,
+  },
+  {
+    title: "sub_city_services",
+    text: "sub_city_services_desc",
+    icon: Users,
+  },
+  {
+    title: "woreda_services",
+    text: "woreda_services_desc",
+    icon: FileText,
+  },
+  
+  {
+    title: "all_services",
+    text: "all_services_desc",
+    icon: FileText,
+  },
 ];
 
 export default function HomePage() {
   const router = useRouter();
   const [applicationNumber, setApplicationNumber] = useState("");
-  const [language, setLanguage] = useState("Afaan Oromoo");
+  const { t, language, changeLanguage } = useLanguage();
+
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
   const trackMutation = useTrackApplication();
   const contactMutation = useSendContact();
@@ -136,16 +154,27 @@ export default function HomePage() {
               </Button>
               <div className="invisible absolute right-0 top-full z-50 w-48 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
                 <div className="rounded-xl border bg-white p-2 shadow-xl">
-                  {["Afaan Oromoo", "English", "አማርኛ"].map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => setLanguage(item)}
-                      className="flex w-full items-center rounded-lg px-3 py-3 text-left text-sm font-semibold hover:bg-slate-100"
-                    >
-                      {item}{language === item && <Check className="ml-auto h-4 w-4" />}
-                    </button>
-                  ))}
+                 {["Afaan Oromoo", "English", "አማርኛ"].map((item) => {
+  const code =
+    item === "English"
+      ? "en"
+      : item === "Afaan Oromoo"
+  ? "om"
+  : "am";
+  return (
+    <button
+      key={item}
+      type="button"
+      onClick={() => changeLanguage(code)}
+      className="flex w-full items-center rounded-lg px-3 py-3 text-left text-sm font-semibold hover:bg-slate-100"
+    >
+      {item}
+      {i18n.language === code && (
+        <Check className="ml-auto h-4 w-4" />
+      )}
+    </button>
+  );
+})}
                 </div>
               </div>
             </div>
@@ -183,7 +212,7 @@ export default function HomePage() {
                   className="flex h-14 min-w-32 items-center justify-center gap-2 border-b-2 border-transparent px-4 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-600"
                 >
                   {GroupIcon && <GroupIcon className="h-5 w-5" />}
-                  {group.label}
+                 {group.label}
                 </Link>
               );
             }
@@ -206,7 +235,7 @@ export default function HomePage() {
                       return (
                         <Link key={item.label} href={item.href} className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100">
                           <ItemIcon className="h-4 w-4" />
-                          {item.label}
+                          {t(item.label)}
                         </Link>
                       );
                     })}
@@ -223,7 +252,7 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_55%,rgba(250,204,21,0.18),transparent_18%),radial-gradient(circle_at_40%_62%,rgba(14,165,233,0.18),transparent_30%),radial-gradient(circle_at_62%_48%,rgba(56,189,248,0.16),transparent_26%)]" />
           <div className="relative mx-auto max-w-5xl">
             <h2 className="mx-auto max-w-4xl text-3xl font-black leading-tight tracking-tight text-slate-950 md:text-5xl">
-              eService for ensuring good governance
+              {t("hero_title")}
                
             </h2>
 
@@ -267,9 +296,21 @@ export default function HomePage() {
 
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 md:grid-cols-[1fr_440px] md:px-8">
         <div className="rounded-2xl bg-white p-7 shadow-lg">
-          <div className="mb-6 flex items-center justify-between"><h3 className="text-3xl font-black">Our Services</h3><Link href="/services" className="flex items-center gap-2 font-bold text-[#063d91]">View All <ArrowRight className="h-4 w-4" /></Link></div>
+          <div className="mb-6 flex items-center justify-between"><h3 className="text-3xl font-black">Our Services</h3>
+          <Link href="/services" className="flex items-center gap-2 font-bold text-[#063d91]">View All <ArrowRight className="h-4 w-4" />
+          </Link>
+          </div>
           <div className="grid gap-4 md:grid-cols-3">
-            {services.map((service, index) => <Link href="/services" key={service.title} className="rounded-xl border bg-white p-7 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg"><div className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full ${index % 3 === 0 ? "bg-emerald-100 text-emerald-700" : index % 3 === 1 ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}><service.icon className="h-8 w-8" /></div><h4 className="font-black">{service.title}</h4><p className="mt-2 text-sm leading-6 text-slate-700">{service.text}</p></Link>)}
+            {services.map((service, index) => 
+            <Link href="/services" key={service.title} className="rounded-xl border bg-white p-7 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+              <div className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full ${index % 3 === 0 ? "bg-emerald-100 text-emerald-700" : index % 3 === 1 ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
+                <service.icon className="h-8 w-8" />
+              </div>
+              <h4 className="font-black">{t(service.title)}</h4>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                {t(service.text)}
+              </p>
+            </Link>)}
           </div>
         </div>
 
@@ -297,23 +338,14 @@ export default function HomePage() {
             ]}
           />
           <FooterLinks
-            title="Services"
-            items={[
-              { label: "City Services", href: "/services?level=city" },
-              { label: "Sub City Services", href: "/services?level=subcity" },
-              { label: "Woreda Services", href: "/services?level=woreda" },
-              { label: "All Services", href: "/services" },
-            ]}
-          />
-          <FooterLinks
-            title="Resources"
-            items={[
-              { label: "Reports", href: "/resources/reports" },
-              { label: "Guidelines", href: "/resources/guidelines" },
-              { label: "Policies", href: "/resources/policies" },
-              { label: "Latest News", href: "/news" },
-            ]}
-          />
+  title={t("services")}
+  items={[
+    { label:  t("city_services"), href: "/services?level=city" },
+    { label: t("sub_city_services"), href: "/services?level=subcity" },
+    { label: t("woreda_services"), href: "/services?level=woreda" },
+    { label: t("all_services"), href: "/services" },
+  ]}
+/>
           <div><h4 className="mb-4 font-black">Contact</h4><p className="flex gap-3 text-sm"><MapPin className="h-5 w-5" />Adama, Oromia, Ethiopia</p><p className="mt-4 flex gap-3 text-sm"><Phone className="h-5 w-5" />+251 9141</p></div>
         </div>
         <div className="border-t border-white/20"><div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 text-sm md:flex-row md:px-8"><p>© 2026 Adama MESOB eService. All Rights Reserved.</p><div className="flex items-center gap-4"><span>Follow Us</span><Facebook /><Send /><Youtube /><Linkedin /></div></div></div>

@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\SubcityController;
 use App\Http\Controllers\Api\WoredaController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\UserActivationRequestController;
+use App\Http\Controllers\SmsController;
+use App\Http\Controllers\FeedbackController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -73,3 +75,17 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::put('/audit-logs/{id}', [AuditLogController::class, 'update']);
     Route::delete('/audit-logs/{id}', [AuditLogController::class, 'destroy']);
 });
+
+Route::post('/sms/send-phone', [SmsController::class, 'sendPhone']);
+Route::post('/sms/send-otp', [SmsController::class, 'sendOtp']);
+Route::post('/sms/send-bulk', [SmsController::class, 'sendBulk']);
+
+Route::get(
+    '/feedback/{token}',
+    [FeedbackController::class, 'show']
+);
+
+Route::post(
+    '/feedback/{token}',
+    [FeedbackController::class, 'store']
+);

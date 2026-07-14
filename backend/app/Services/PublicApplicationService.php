@@ -37,105 +37,197 @@ class PublicApplicationService
     }
 
     public function apply(Service $service, ?User $user, array $payload)
-    {
-        if (!$user) {
-            throw ValidationException::withMessages([
-                'user' => ['Authenticated user is required to submit an application.'],
-            ]);
-        }
-
-        $this->assertServiceAvailableForSelection($service, $payload);
-
-        $form = $this->getForm($service);
-
-        if (!$form) {
-            throw ValidationException::withMessages([
-                'service_id' => ['No active form found for this service.'],
-            ]);
-        }
-
-        $this->validateRequiredFields(
-            $form->fields->where('is_active', true),
-            $payload['data'] ?? [],
-            $payload['files'] ?? []
-        );
-
-        return DB::transaction(function () use ($service, $user, $payload) {
-            $firstWindow = $service->windows()
-                ->orderBy('service_window.step_order')
-                ->first();
-
-            $application = ServiceApplication::create([
-                'tracking_number' => $this->generateTrackingNumber(),
-                'service_id' => $service->id,
-                'administrative_level' => $payload['administrative_level'],
-                'city_id' => $payload['city_id'],
-                'subcity_id' => $payload['subcity_id'] ?? null,
-                'woreda_id' => $payload['woreda_id'] ?? null,
-                'customer_id' => $user->id,
-                'current_window_id' => $firstWindow?->id,
-                'current_officer_id' => null,
-                'status' => 'submitted',
-                'current_stage' => 'submitted',
-                'priority' => 'normal',
-                'submitted_at' => now(),
-            ]);
-
-            foreach (($payload['data'] ?? []) as $field => $value) {
-                ServiceApplicationData::create([
-                    'application_id' => $application->id,
-                    'field_name' => (string) $field,
-                    'field_value' => is_array($value) ? json_encode($value) : $value,
-                ]);
-            }
-
-            if (!empty($payload['files'])) {
-                $this->fileService->storeFiles($application, $payload['files'], $user);
-            }
-
-            foreach ($service->windows()->orderBy('service_window.step_order')->get() as $window) {
-                ServiceApplicationWorkflow::create([
-                    'application_id' => $application->id,
-                    'window_id' => $window->id,
-                    'from_stage' => null,
-                    'to_stage' => $window->name ?? null,
-                    'status' => $window->id === $firstWindow?->id ? 'processing' : 'pending',
-                ]);
-            }
-
-            ServiceApplicationHistory::create([
-                'application_id' => $application->id,
-                'from_status' => null,
-                'to_status' => 'submitted',
-                'action' => 'submitted',
-                'action_type' => 'submitted',
-                'remark' => 'Application submitted for ' . $payload['administrative_level'] . ' level',
-                'actor_id' => $user->id,
-            ]);
-
-            $initialOfficer = $this->firstAssignedFrontOfficer($application);
-
-            if ($initialOfficer) {
-                $application->update([
-                    'current_officer_id' => $initialOfficer->id,
-                    'assigned_to' => $initialOfficer->id,
-                    'assigned_role' => AppRoles::FRONT_OFFICER,
-                ]);
-            }
-
-            return $application->fresh()->load([
-                'service',
-                'customer',
-                'city',
-                'subcity',
-                'woreda',
-                'data',
-                'files',
-                'workflows.window',
-                'histories.actor',
-            ]);
-        });
+{
+    if (!$user) {
+        throw ValidationException::withMessages([
+            'user' => ['Authenticated user is required to submit an application.'],
+        ]);
     }
+
+    $this->assertServiceAvailableForSelection($service, $payload);
+
+    $form = $this->getForm($service);
+
+    if (!$form) {
+        throw ValidationException::withMessages([
+            'service_id' => ['No active form found for this service.'],
+        ]);
+    }
+
+    $this->validateRequiredFields(
+        $form->fields->where('is_active', true),
+        $payload['data'] ?? [],
+        $payload['files'] ?? []
+    );
+
+    return DB::transaction(function () use ($service, $user, $payload) {
+
+        $firstWindow = $service->windows()
+            ->orderBy('service_window.step_order')
+            ->first();
+
+        $application = ServiceApplication::create([
+            'tracking_number'      => $this->generateTrackingNumber(),
+            'service_id'           => $service->id,
+            'administrative_level' => $payload['administrative_level'],
+            'city_id'              => $payload['city_id'],
+            'subcity_id'           => $payload['subcity_id'] ?? null,
+            'woreda_id'            => $payload['woreda_id'] ?? null,
+            'customer_id'          => $user->id,
+            'current_window_id'    => $firstWindow?->id,
+            'current_officer_id'   => null,
+            'status'               => 'submitted',
+            'current_stage'        => 'submitted',
+            'priority'             => 'normal',
+            'submitted_at'         => now(),
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create Queue
+        |--------------------------------------------------------------------------
+        */
+
+        $queueCount = \App\Models\ApplicationQueue::whereDate(
+            'created_at',
+            today()
+        )->count();
+
+        $prefix = strtoupper(substr(
+            preg_replace('/[^A-Za-z]/', '', $service->name),
+            0,
+            2
+        ));
+
+        if (empty($prefix)) {
+            $prefix = 'SV';
+        }
+
+        $queue = \App\Models\ApplicationQueue::create([
+            'service_application_id' => $application->id,
+            'queue_number'           => sprintf(
+                '%s-%04d',
+                $prefix,
+                $queueCount + 1
+            ),
+            'position'               => $queueCount + 1,
+            'status'                 => 'waiting',
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Application Data
+        |--------------------------------------------------------------------------
+        */
+
+        foreach (($payload['data'] ?? []) as $field => $value) {
+            ServiceApplicationData::create([
+                'application_id' => $application->id,
+                'field_name'     => (string) $field,
+                'field_value'    => is_array($value)
+                    ? json_encode($value)
+                    : $value,
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Files
+        |--------------------------------------------------------------------------
+        */
+
+        if (!empty($payload['files'])) {
+            $this->fileService->storeFiles(
+                $application,
+                $payload['files'],
+                $user
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Workflows
+        |--------------------------------------------------------------------------
+        */
+
+        foreach (
+            $service->windows()
+                ->orderBy('service_window.step_order')
+                ->get() as $window
+        ) {
+            ServiceApplicationWorkflow::create([
+                'application_id' => $application->id,
+                'window_id'      => $window->id,
+                'from_stage'     => null,
+                'to_stage'       => $window->name ?? null,
+                'status'         => $window->id === $firstWindow?->id
+                    ? 'processing'
+                    : 'pending',
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | History
+        |--------------------------------------------------------------------------
+        */
+
+        ServiceApplicationHistory::create([
+            'application_id' => $application->id,
+            'from_status'    => null,
+            'to_status'      => 'submitted',
+            'action'         => 'submitted',
+            'action_type'    => 'submitted',
+            'remark'         => 'Application submitted for '
+                . $payload['administrative_level']
+                . ' level',
+            'actor_id'       => $user->id,
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | SMS Notification
+        |--------------------------------------------------------------------------
+        */
+
+        try {
+
+            if (!empty($user->phone)) {
+
+                $message = sprintf(
+                    "Dear %s, your application has been submitted successfully. Tracking No: %s. Queue No: %s. Position: %d.",
+                    $user->name,
+                    $application->tracking_number,
+                    $queue->queue_number,
+                    $queue->position
+                );
+
+                app(\App\Services\SmsService::class)
+                    ->send($user->phone, $message);
+            }
+
+        } catch (\Throwable $e) {
+
+            \Log::error('Queue SMS failed', [
+                'application_id' => $application->id,
+                'error'          => $e->getMessage(),
+            ]);
+        }
+
+        return $application->load([
+            'service',
+            'customer',
+            'city',
+            'subcity',
+            'woreda',
+            'data',
+            'files',
+            'workflows.window',
+            'histories.actor',
+            'queue',
+        ]);
+    });
+}
 
     protected function assertServiceAvailableForSelection(Service $service, array $payload): void
     {

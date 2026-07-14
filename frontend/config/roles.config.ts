@@ -80,6 +80,7 @@ export function getRoleOption(role?: string | null): RoleOption {
   return ROLE_OPTIONS.find((item) => item.name === normalizeRoleName(role)) ?? ROLE_OPTIONS[0];
 }
 
+
 export function roleLabel(role?: string | null) {
   return getRoleOption(role).label;
 }

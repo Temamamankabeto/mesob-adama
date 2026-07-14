@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -32,6 +33,7 @@ import SectionForm from "@/components/service-form-sections/SectionForm";
 
 import {
   useCreateServiceFormSection,
+  useUpdateServiceFormSection,
   useServiceFormSections,
 } from "@/hooks/service-form-section/use-service-form-section";
 
@@ -43,6 +45,9 @@ import {
 export default function ServiceFormSectionsPage() {
   const [open, setOpen] = useState(false);
 
+  const [editingId, setEditingId] =
+    useState<number | null>(null);
+
   const [formData, setFormData] =
     useState<ServiceFormSectionPayload>({
       service_form_id: 0,
@@ -52,12 +57,6 @@ export default function ServiceFormSectionsPage() {
       is_active: true,
     });
 
-  /*
-  |--------------------------------------------------------------------------
-  | HOOKS
-  |--------------------------------------------------------------------------
-  */
-
   const {
     data: sections = [],
     isLoading,
@@ -66,26 +65,11 @@ export default function ServiceFormSectionsPage() {
   const createMutation =
     useCreateServiceFormSection();
 
-  /*
-  |--------------------------------------------------------------------------
-  | CREATE
-  |--------------------------------------------------------------------------
-  */
+  const updateMutation =
+    useUpdateServiceFormSection();
 
-  async function handleCreate() {
-    await createMutation.mutateAsync({
-      ...formData,
-
-      service_form_id: Number(
-        formData.service_form_id
-      ),
-
-      sort_order: Number(
-        formData.sort_order
-      ),
-    });
-
-    setOpen(false);
+  function resetForm() {
+    setEditingId(null);
 
     setFormData({
       service_form_id: 0,
@@ -94,6 +78,61 @@ export default function ServiceFormSectionsPage() {
       sort_order: 0,
       is_active: true,
     });
+  }
+
+  function openCreate() {
+    resetForm();
+    setOpen(true);
+  }
+
+  function handleEdit(
+    section: ServiceFormSection
+  ) {
+    setEditingId(section.id);
+
+    setFormData({
+      service_form_id:
+        section.service_form_id,
+      title: section.title,
+      description:
+        section.description || "",
+      sort_order:
+        section.sort_order || 0,
+      is_active:
+        section.is_active ?? true,
+    });
+
+    setOpen(true);
+  }
+
+  async function handleSave() {
+    const payload = {
+      ...formData,
+      service_form_id: Number(
+        formData.service_form_id
+      ),
+      sort_order: Number(
+        formData.sort_order
+      ),
+    };
+
+    try {
+      if (editingId) {
+        await updateMutation.mutateAsync({
+          id: editingId,
+          payload,
+        });
+      } else {
+        await createMutation.mutateAsync(
+          payload
+        );
+      }
+
+      setOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   return (
@@ -109,34 +148,41 @@ export default function ServiceFormSectionsPage() {
           </p>
         </div>
 
-        <Dialog
-          open={open}
-          onOpenChange={setOpen}
-        >
-          <DialogTrigger asChild>
-            <Button>
-              Create Section
-            </Button>
-          </DialogTrigger>
-
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                Create Section
-              </DialogTitle>
-            </DialogHeader>
-
-            <SectionForm
-              formData={formData}
-              setFormData={setFormData}
-              onSubmit={handleCreate}
-              loading={
-                createMutation.isPending
-              }
-            />
-          </DialogContent>
-        </Dialog>
+        <Button onClick={openCreate}>
+          Create Section
+        </Button>
       </div>
+
+      <Dialog
+        open={open}
+        onOpenChange={(value) => {
+          setOpen(value);
+
+          if (!value) {
+            resetForm();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingId
+                ? "Edit Section"
+                : "Create Section"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <SectionForm
+            formData={formData}
+            setFormData={setFormData}
+            onSubmit={handleSave}
+            loading={
+              createMutation.isPending ||
+              updateMutation.isPending
+            }
+          />
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>
@@ -166,6 +212,14 @@ export default function ServiceFormSectionsPage() {
                 <TableHead>
                   Sort Order
                 </TableHead>
+
+                <TableHead>
+                  Status
+                </TableHead>
+
+                <TableHead className="text-right">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
 
@@ -173,7 +227,7 @@ export default function ServiceFormSectionsPage() {
               {isLoading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={7}
                     className="text-center"
                   >
                     Loading...
@@ -209,13 +263,33 @@ export default function ServiceFormSectionsPage() {
                       <TableCell>
                         {section.sort_order}
                       </TableCell>
+
+                      <TableCell>
+                        {section.is_active
+                          ? "Active"
+                          : "Inactive"}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() =>
+                            handleEdit(
+                              section
+                            )
+                          }
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   )
                 )
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={7}
                     className="text-center"
                   >
                     No sections found

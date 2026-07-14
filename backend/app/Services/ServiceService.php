@@ -11,31 +11,41 @@ class ServiceService
         protected ServiceAvailabilityScopeService $scopeService
     ) {}
 
-    public function getAll(?User $actor = null)
-    {
-        $query = Service::query()
-            ->with([
-                'windows' => function ($query) {
-                    $query
-                        ->select([
-                            'windows.id',
-                            'windows.name',
-                            'windows.title',
-                            'windows.city_title',
-                            'windows.subcity_title',
-                            'windows.woreda_title',
-                            'windows.administrative_level',
-                            'windows.availability',
-                        ])
-                        ->orderBy('windows.name');
-                },
-            ])
-            ->orderBy('id', 'asc');
+    public function getAll(?User $actor = null, int $perPage = 10)
+{
+    $query = Service::query()
+        ->with([
+            'windows' => function ($query) {
+                $query
+                    ->select([
+                        'windows.id',
+                        'windows.name',
+                        'windows.city_title',
+                        'windows.subcity_title',
+                        'windows.woreda_title',
+                        'windows.administrative_level',
+                        'windows.availability',
+                    ])
+                    ->orderBy('windows.name');
+            },
+        ])
+        ->orderBy('id', 'asc');
 
-        $this->scopeService->applyServiceScope($query, $actor);
+    $this->scopeService->applyServiceScope($query, $actor);
 
-        return $query->paginate(200);
-    }
+    return $query->paginate($perPage);
+}
+
+public function getAllServices(?User $actor = null)
+{
+    $query = Service::query()
+        ->select('id', 'name')
+        ->orderBy('name');
+
+    $this->scopeService->applyServiceScope($query, $actor);
+
+    return $query->get();
+}
 
     public function create(array $data): Service
     {
