@@ -9,7 +9,7 @@ import {
   Users,
   Building2,
   Workflow,
-  Newspaper,
+  BarChart3,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -117,6 +117,18 @@ const applicationManagementMenu: SidebarItem = {
   ],
 };
 
+const reportMenu: SidebarItem = {
+  label: "Reports",
+  icon: BarChart3,
+  children: [
+    {
+      label: "Service & Feedback Report",
+      href: "/dashboard/reports",
+      permission: "applications.summary",
+    },
+  ],
+};
+
 const officerApplicationMenu: SidebarItem = {
   label: "Officer Applications",
   icon: ClipboardCheck,
@@ -138,20 +150,6 @@ const customerApplicationMenu: SidebarItem = {
   ],
 };
 
-const newsMenu: SidebarItem = {
-  label: "News Management",
-  icon: Newspaper,
-  scopes: cityOnly,
-  children: [
-    {
-      label: "News",
-      href: "/dashboard/news",
-      permission: "roles.read",
-      scopes: cityOnly,
-    },
-  ],
-};
-
 const systemMenu: SidebarItem = {
   label: "System",
   icon: Settings,
@@ -168,14 +166,16 @@ const systemMenu: SidebarItem = {
 
 const adminSections = (role: AppRoleKey): SidebarSection[] => [
   s("Main", [dashboardItem(role)]),
-  s("Management", [userManagementMenu, serviceManagementMenu, windowManagementMenu, newsMenu]),
+  s("Management", [userManagementMenu, serviceManagementMenu, windowManagementMenu]),
   s("Applications", [formBuilderMenu, applicationManagementMenu]),
+  s("Reports", [reportMenu]),
   s("System", [systemMenu]),
 ];
 
 const managerSections = (role: AppRoleKey): SidebarSection[] => [
   s("Main", [dashboardItem(role)]),
   s("Applications", [applicationManagementMenu]),
+  s("Reports", [reportMenu]),
 ];
 
 const officerSections = (role: AppRoleKey): SidebarSection[] => [

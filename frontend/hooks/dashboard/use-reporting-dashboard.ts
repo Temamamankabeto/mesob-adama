@@ -1,15 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { reportingDashboardService, type ReportingDashboardParams } from "@/services/dashboard/reporting-dashboard.service";
 
-import {
-  reportingDashboardService,
-  type ReportingDashboardParams,
-} from "@/services/dashboard/reporting-dashboard.service";
+export function useReportingDashboardCards() {
+  return useQuery({ queryKey: ["reporting-dashboard-cards"], queryFn: () => reportingDashboardService.dashboard() });
+}
 
-export function useReportingDashboard(params: ReportingDashboardParams) {
-  return useQuery({
-    queryKey: ["reporting-dashboard", params],
-    queryFn: () => reportingDashboardService.get(params),
-  });
+export function useReportingDashboardReport(params: ReportingDashboardParams) {
+  return useQuery({ queryKey: ["reporting-dashboard-report", params], queryFn: () => reportingDashboardService.report(params) });
 }
