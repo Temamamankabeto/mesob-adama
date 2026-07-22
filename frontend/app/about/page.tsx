@@ -192,27 +192,7 @@ export default async function AboutPage() {
       value: `${displayedServices.length}+`,
     },
   ];
-  return (
-      <>
-        <HeroSection />
 
-        <VisionMissionSection />
-
-          <CoverageSection
-              cityName={cityName}
-              subcities={displayedSubcities}
-              woredas={displayedWoredas}
-          />
-
-        <ServicesSection />
-
-        <WorkflowSection />
-
-        <FeatureSection />
-
-        <ContactSection />
-      </>
-  );
   return (
       <main className="min-h-screen bg-background">
         <HeroSection

@@ -216,7 +216,7 @@ export default function UsersPage() {
     <div className="space-y-6 p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Users( {data?.total_users ?? 0})</h1>
           <p className="text-sm text-muted-foreground">
             Manage users by role and location hierarchy.
           </p>

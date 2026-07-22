@@ -13,14 +13,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-const empty = { title: "", description: "", status: "active" as const };
+type NewsFormState = {
+  title: string;
+  description: string;
+  status: "active" | "inactive";
+};
+
+const empty: NewsFormState = { title: "", description: "", status: "active" };
 
 export default function NewsManagementPage() {
   const client = useQueryClient();
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<NewsItem | null>(null);
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState<NewsFormState>(empty);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-news", search],
@@ -29,7 +35,7 @@ export default function NewsManagementPage() {
 
   const refresh = () => client.invalidateQueries({ queryKey: ["admin-news"] });
   const create = useMutation({ mutationFn: newsService.create, onSuccess: refresh });
-  const update = useMutation({ mutationFn: ({ id, payload }: { id: number; payload: typeof empty }) => newsService.update(id, payload), onSuccess: refresh });
+  const update = useMutation({ mutationFn: ({ id, payload }: { id: number; payload: NewsFormState }) => newsService.update(id, payload), onSuccess: refresh });
   const remove = useMutation({ mutationFn: newsService.remove, onSuccess: refresh });
 
   function openCreate() {

@@ -3,64 +3,64 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { submitFeedback } from "@/services/feedback";
+import { useCreateFeedback } from "@/hooks/use-feedback";
+import type { FeedbackPayload } from "@/types/feedback";
 
 export default function FeedbackForm() {
 
     const router = useRouter();
 
-    const [loading,setLoading]=useState(false);
+    const createFeedback = useCreateFeedback();
 
-    const [form,setForm]=useState({
+    const [loading, setLoading] = useState(false);
 
-        service_id:"",
+    const [form, setForm] = useState({
 
-        overall_rating:5,
+        service_id: "",
 
-        staff_behavior:5,
+        overall_rating: 5,
 
-        waiting_time:5,
+        staff_behavior: 5,
 
-        service_quality:5,
+        waiting_time: 5,
 
-        cleanliness:5,
+        service_quality: 5,
 
-        satisfaction:"highly_satisfied",
+        cleanliness: 5,
 
-        comment:"",
+        satisfaction: "highly_satisfied",
 
-        gender:"",
+        comment: "",
 
-        age:""
+        gender: "",
+
+        age: ""
 
     });
 
-
-
-
-    async function handleSubmit(e:any){
+    async function handleSubmit(e: any) {
 
         e.preventDefault();
 
         setLoading(true);
 
-        try{
+        try {
 
-            await submitFeedback({
+            await createFeedback.mutateAsync({
 
                 ...form,
 
-                service_id:Number(form.service_id),
+                service_id: Number(form.service_id),
 
-                age:Number(form.age)
+                age: Number(form.age)
 
-            });
+            } as FeedbackPayload);
 
             router.push("/feedback/success");
 
         }
 
-        finally{
+        finally {
 
             setLoading(false);
 
@@ -68,10 +68,7 @@ export default function FeedbackForm() {
 
     }
 
-
-
-
-    return(
+    return (
 
         <form
             onSubmit={handleSubmit}
@@ -82,13 +79,13 @@ export default function FeedbackForm() {
 
                 value={form.service_id}
 
-                onChange={(e)=>
+                onChange={(e) =>
 
                     setForm({
 
                         ...form,
 
-                        service_id:e.target.value
+                        service_id: e.target.value
 
                     })
 
@@ -104,8 +101,6 @@ export default function FeedbackForm() {
 
             </select>
 
-
-
             <input
 
                 type="number"
@@ -116,13 +111,13 @@ export default function FeedbackForm() {
 
                 value={form.overall_rating}
 
-                onChange={(e)=>
+                onChange={(e) =>
 
                     setForm({
 
                         ...form,
 
-                        overall_rating:Number(e.target.value)
+                        overall_rating: Number(e.target.value)
 
                     })
 
@@ -130,19 +125,17 @@ export default function FeedbackForm() {
 
             />
 
-
-
             <select
 
                 value={form.satisfaction}
 
-                onChange={(e)=>
+                onChange={(e) =>
 
                     setForm({
 
                         ...form,
 
-                        satisfaction:e.target.value
+                        satisfaction: e.target.value
 
                     })
 
@@ -170,19 +163,17 @@ export default function FeedbackForm() {
 
             </select>
 
-
-
             <textarea
 
                 value={form.comment}
 
-                onChange={(e)=>
+                onChange={(e) =>
 
                     setForm({
 
                         ...form,
 
-                        comment:e.target.value
+                        comment: e.target.value
 
                     })
 
@@ -190,11 +181,9 @@ export default function FeedbackForm() {
 
             />
 
+            <button disabled={loading || createFeedback.isPending}>
 
-
-            <button>
-
-                {loading?
+                {loading || createFeedback.isPending ?
 
                     "Submitting..."
 

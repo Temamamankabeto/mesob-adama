@@ -216,25 +216,6 @@ class FeedbackController extends Controller
             'service_id' => $service->id,
 
 
-            'overall_rating'
-            => $validated['overall_rating'],
-
-
-            'staff_behavior'
-            => $validated['staff_behavior'] ?? null,
-
-
-            'waiting_time'
-            => $validated['waiting_time'] ?? null,
-
-
-            'service_quality'
-            => $validated['service_quality'] ?? null,
-
-
-            'cleanliness'
-            => $validated['cleanliness'] ?? null,
-
 
             'satisfaction'
             => $validated['satisfaction'],
@@ -247,9 +228,6 @@ class FeedbackController extends Controller
             'gender'
             => $validated['gender'] ?? null,
 
-
-            'age'
-            => $validated['age'] ?? null,
 
 
             'ip_address'
@@ -266,13 +244,6 @@ class FeedbackController extends Controller
             ),
 
         ]);
-
-
-
-
-
-
-
         return (new FeedbackResource(
 
             $feedback->load([
