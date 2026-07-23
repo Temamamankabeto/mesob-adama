@@ -6,22 +6,45 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\FeedbackResource;
 use App\Models\Feedback;
 use App\Models\Service;
+use App\Support\AccessScope;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class FeedbackController extends Controller
 {
+    public function __construct(
+        protected AccessScope $scope
+    ) {}
 
 
     /**
-     * Display feedback list (Admin)
+     * Display feedback list, scoped to the authenticated agent's
+     * city / subcity / woreda. A super_admin sees everything; a
+     * city/subcity/woreda-level agent only sees feedback left at a
+     * window inside their own jurisdiction.
      */
     public function index(Request $request)
     {
 
         $feedbacks = Feedback::with([
-            'service.windows'
+            'service.windows',
+            'window.city',
+            'window.subcity',
+            'window.woreda',
         ])
+
+            ->when(
+                $request->user(),
+                function ($query) use ($request) {
+
+                    $this->scope->applyFeedbackScope(
+                        $query,
+                        $request->user()
+                    );
+
+                }
+            )
+
 
             ->when(
                 $request->service_id,
@@ -30,6 +53,58 @@ class FeedbackController extends Controller
                     $query->where(
                         'service_id',
                         $request->service_id
+                    );
+
+                }
+            )
+
+
+            ->when(
+                $request->window_id,
+                function ($query) use ($request) {
+
+                    $query->where(
+                        'window_id',
+                        $request->window_id
+                    );
+
+                }
+            )
+
+
+            ->when(
+                $request->city_id,
+                function ($query) use ($request) {
+
+                    $query->whereHas(
+                        'window',
+                        fn ($window) => $window->where('city_id', $request->city_id)
+                    );
+
+                }
+            )
+
+
+            ->when(
+                $request->subcity_id,
+                function ($query) use ($request) {
+
+                    $query->whereHas(
+                        'window',
+                        fn ($window) => $window->where('subcity_id', $request->subcity_id)
+                    );
+
+                }
+            )
+
+
+            ->when(
+                $request->woreda_id,
+                function ($query) use ($request) {
+
+                    $query->whereHas(
+                        'window',
+                        fn ($window) => $window->where('woreda_id', $request->woreda_id)
                     );
 
                 }
@@ -102,6 +177,12 @@ class FeedbackController extends Controller
             'service_id' => [
                 'required',
                 'exists:services,id'
+            ],
+
+
+            'window_id' => [
+                'nullable',
+                'exists:windows,id'
             ],
 
 
@@ -216,6 +297,9 @@ class FeedbackController extends Controller
             'service_id' => $service->id,
 
 
+            'window_id'
+            => $validated['window_id'] ?? null,
+
 
             'satisfaction'
             => $validated['satisfaction'],
@@ -247,7 +331,10 @@ class FeedbackController extends Controller
         return (new FeedbackResource(
 
             $feedback->load([
-                'service.windows'
+                'service.windows',
+                'window.city',
+                'window.subcity',
+                'window.woreda',
             ])
 
         ))
@@ -276,13 +363,20 @@ class FeedbackController extends Controller
     /**
      * Display single feedback
      */
-    public function show(Feedback $feedback)
+    public function show(Request $request, Feedback $feedback)
     {
+
+        if ($request->user()) {
+            $this->authorizeFeedbackAccess($request->user(), $feedback);
+        }
 
         return new FeedbackResource(
 
             $feedback->load([
-                'service.windows'
+                'service.windows',
+                'window.city',
+                'window.subcity',
+                'window.woreda',
             ])
 
         );
@@ -297,10 +391,60 @@ class FeedbackController extends Controller
 
 
     /**
+     * Update feedback (e.g. correcting satisfaction/comment).
+     */
+    public function update(Request $request, Feedback $feedback)
+    {
+
+        if ($request->user()) {
+            $this->authorizeFeedbackAccess($request->user(), $feedback);
+        }
+
+        $validated = $request->validate([
+
+            'satisfaction' => [
+                'sometimes',
+                Rule::in([
+                    'highly_satisfied',
+                    'satisfied',
+                    'not_satisfied'
+                ])
+            ],
+
+            'comment' => [
+                'nullable',
+                'string',
+                'max:1000'
+            ],
+
+        ]);
+
+        $feedback->update($validated);
+
+        return new FeedbackResource(
+
+            $feedback->fresh()->load([
+                'service.windows',
+                'window.city',
+                'window.subcity',
+                'window.woreda',
+            ])
+
+        );
+
+    }
+
+
+
+    /**
      * Delete feedback
      */
-    public function destroy(Feedback $feedback)
+    public function destroy(Request $request, Feedback $feedback)
     {
+
+        if ($request->user()) {
+            $this->authorizeFeedbackAccess($request->user(), $feedback);
+        }
 
         $feedback->delete();
 
@@ -313,6 +457,26 @@ class FeedbackController extends Controller
                 'Feedback deleted successfully.'
 
         ]);
+
+    }
+
+
+
+    /**
+     * Abort with 403 if the feedback's window falls outside the
+     * actor's city / subcity / woreda jurisdiction.
+     */
+    private function authorizeFeedbackAccess($actor, Feedback $feedback): void
+    {
+
+        $allowed = Feedback::whereKey($feedback->id)
+            ->when(
+                true,
+                fn ($query) => $this->scope->applyFeedbackScope($query, $actor)
+            )
+            ->exists();
+
+        abort_unless($allowed, 403, 'You do not have access to this feedback.');
 
     }
 

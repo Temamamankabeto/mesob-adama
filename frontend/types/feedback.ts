@@ -20,6 +20,22 @@ export type Gender =
 export interface Window {
     id: number;
     name: string;
+    city_id?: number | null;
+    subcity_id?: number | null;
+    woreda_id?: number | null;
+}
+
+export interface LocationRef {
+    id: number;
+    name: string;
+}
+
+export interface FeedbackWindow {
+    id: number;
+    name: string;
+    city: LocationRef | null;
+    subcity: LocationRef | null;
+    woreda: LocationRef | null;
 }
 
 /* ============================================================
@@ -42,6 +58,10 @@ export interface Feedback {
     service_id: number;
 
     service?: Service;
+
+    window_id?: number | null;
+
+    window?: FeedbackWindow | null;
 
     overall_rating: number;
 
@@ -79,6 +99,8 @@ export interface Feedback {
 export interface FeedbackPayload {
     service_id: number;
 
+    window_id?: number;
+
     overall_rating: number;
 
     staff_behavior?: number;
@@ -111,6 +133,14 @@ export interface UpdateFeedbackPayload
 
 export interface FeedbackFilters {
     service_id?: number;
+
+    window_id?: number;
+
+    city_id?: number;
+
+    subcity_id?: number;
+
+    woreda_id?: number;
 
     rating?: number;
 

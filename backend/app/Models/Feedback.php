@@ -10,6 +10,8 @@ class Feedback extends Model
 
         'service_id',
 
+        'window_id',
+
         'overall_rating',
 
         'staff_behavior',
@@ -51,5 +53,10 @@ class Feedback extends Model
     public function service()
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function window()
+    {
+        return $this->belongsTo(Window::class);
     }
 }
