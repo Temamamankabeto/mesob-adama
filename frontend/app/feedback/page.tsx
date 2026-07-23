@@ -321,10 +321,21 @@ function FeedbackFormModal({
         form.setValue("service_id", serviceId);
     }, [windowId, serviceId, form]);
 
+    const satisfactionToRating: Record<
+        FeedbackFormValues["satisfaction"],
+        number
+    > = {
+        highly_satisfied: 5,
+        satisfied: 3,
+        not_satisfied: 1,
+    };
+
     const onSubmit = async (values: FeedbackFormValues) => {
         try {
-            const { window_id, ...payload } = values;
-            await createFeedback.mutateAsync(payload as FeedbackPayload);
+            await createFeedback.mutateAsync({
+                ...values,
+                overall_rating: satisfactionToRating[values.satisfaction],
+            } as FeedbackPayload);
             toast.success("Thank you for your feedback! 🎉");
             form.reset({
                 window_id: undefined,

@@ -46,6 +46,29 @@ class AccessScope
         return $this->applyApplicationLocationColumns($query, $actor);
     }
 
+    /**
+     * Scope feedback to the window(s) that belong to the agent's
+     * city / subcity / woreda. Feedback itself has no location columns —
+     * it is given at a window, so the location lives on the related window.
+     */
+    public function applyFeedbackScope(Builder $query, User $actor): Builder
+    {
+        if ($actor->hasRole(AppRoles::SUPER_ADMIN)) {
+            return $query;
+        }
+
+        $level = AppRoles::userLevel($actor);
+
+        if (!$level) {
+            // Unscoped, non-super-admin roles (e.g. customer) see nothing here.
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereHas('window', function (Builder $window) use ($actor) {
+            $this->applyLocationColumns($window, $actor);
+        });
+    }
+
     public function applyLocationColumns(Builder $query, User $actor): Builder
     {
         $level = AppRoles::userLevel($actor);

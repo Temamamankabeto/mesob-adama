@@ -127,6 +127,11 @@ const reportMenu: SidebarItem = {
       href: "/dashboard/reports",
       permission: "applications.summary",
     },
+    {
+      label: "Customer Feedback",
+      href: "/dashboard/feedback",
+      permission: "applications.summary",
+    },
   ],
 };
 
