@@ -240,6 +240,34 @@ function generateDashboardData(role: string) {
         activities: recentActivities,
       };
 
+    case "feedback":
+      return {
+        widgets: [
+          {
+            title: "Total Feedback",
+            value: random(100, 5000),
+            icon: FileText,
+          },
+          {
+            title: "Highly Satisfied",
+            value: random(50, 3000),
+            icon: CheckCircle2,
+          },
+          {
+            title: "Not Satisfied",
+            value: random(1, 500),
+            icon: XCircle,
+          },
+          {
+            title: "This Week",
+            value: random(10, 500),
+            icon: Clock3,
+          },
+        ],
+        charts: commonCharts,
+        activities: recentActivities,
+      };
+
     default:
       return {
         widgets: [

@@ -130,7 +130,7 @@ const reportMenu: SidebarItem = {
     {
       label: "Customer Feedback",
       href: "/dashboard/feedback",
-      permission: "applications.summary",
+      permission: "feedback.read",
     },
   ],
 };
@@ -153,6 +153,14 @@ const customerApplicationMenu: SidebarItem = {
   children: [
     { label: "Total Application", href: "/dashboard/my-applications", permission: "applications.own" },
     { label: "Track Application", href: "/dashboard/track-application", permission: "applications.track" },
+  ],
+};
+
+const feedbackMenu: SidebarItem = {
+  label: "Customer Feedback",
+  icon: BarChart3,
+  children: [
+    { label: "Feedback List", href: "/dashboard/feedback", permission: "feedback.read" },
   ],
 };
 
@@ -201,12 +209,18 @@ const customerSections = (role: AppRoleKey): SidebarSection[] => [
   s("Applications", [customerApplicationMenu]),
 ];
 
+const feedbackSections = (role: AppRoleKey): SidebarSection[] => [
+  s("Main", [dashboardItem(role)]),
+  s("Feedback", [feedbackMenu]),
+];
+
 export const sidebarConfig: Record<AppRoleKey, RoleSidebar> = {
   "super-admin": { title: "Super Admin", icon: ShieldCheck, sections: adminSections("super-admin") },
   manager: { title: "Manager", icon: ShieldCheck, sections: managerSections("manager") },
   admin: { title: "Admin", icon: ShieldCheck, sections: adminSections("admin") },
   "front-officer": { title: "Front Officer", icon: UserCheck, sections: officerSections("front-officer") },
   "back-officer": { title: "Back Officer", icon: UserCheck, sections: officerSections("back-officer") },
+  feedback: { title: "Feedback Officer", icon: BarChart3, sections: feedbackSections("feedback") },
   customer: { title: "Customer", icon: UserCheck, sections: customerSections("customer") },
 };
 
