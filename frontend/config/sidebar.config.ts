@@ -10,6 +10,7 @@ import {
   Building2,
   Workflow,
   BarChart3,
+  Contact,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -65,11 +66,19 @@ const userManagementMenu: SidebarItem = {
   icon: Users,
   children: [
     { label: "Users", href: "/dashboard/users", permission: "users.read" },
-     { label: "Customers", href: "/dashboard/users/customers", permission: "users.read" },
     { label: "Create User", href: "/dashboard/users/add", permission: "users.create" },
     { label: "Activation Requests", href: "/dashboard/user-activation-requests", permission: "users.activate" },
     { label: "Roles", href: "/dashboard/roles", permission: "roles.read", scopes: cityOnly },
     { label: "Chatbot Training", href: "/dashboard/chatbot-training", permission: "roles.read", scopes: cityOnly },
+  ],
+};
+
+const customerManagementMenu: SidebarItem = {
+  label: "Customers",
+  icon: Contact,
+  children: [
+    { label: "Customers", href: "/dashboard/users/customers", permission: "users.read" },
+    { label: "Add Customer", href: "/dashboard/users/customers/add", permission: "users.create" },
   ],
 };
 
@@ -187,7 +196,7 @@ const systemMenu: SidebarItem = {
 
 const adminSections = (role: AppRoleKey): SidebarSection[] => [
   s("Main", [dashboardItem(role)]),
-  s("Management", [userManagementMenu, serviceManagementMenu, windowManagementMenu]),
+  s("Management", [userManagementMenu, customerManagementMenu, serviceManagementMenu, windowManagementMenu]),
   s("Applications", [formBuilderMenu, applicationManagementMenu]),
   s("Reports", [reportMenu]),
   s("System", [systemMenu]),
