@@ -33,9 +33,6 @@ export interface LocationRef {
 export interface FeedbackWindow {
     id: number;
     name: string;
-    city: LocationRef | null;
-    subcity: LocationRef | null;
-    woreda: LocationRef | null;
 }
 
 /* ============================================================
@@ -62,6 +59,12 @@ export interface Feedback {
     window_id?: number | null;
 
     window?: FeedbackWindow | null;
+
+    city?: LocationRef | null;
+
+    subcity?: LocationRef | null;
+
+    woreda?: LocationRef | null;
 
     overall_rating: number;
 
