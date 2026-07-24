@@ -29,6 +29,9 @@ export function middleware(request: NextRequest) {
   "/resources/reports",
   "/services",
   "/training/application-workflow",
+
+  // Public kiosk feedback form — no login required at the service window.
+  "/feedback",
 ];
 
   const isServiceDetail = /^\/services\/\d+$/.test(pathname);
