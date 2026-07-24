@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/services/auth/auth.service";
+import { normalizeRoleName } from "@/config/roles.config";
+import { getDashboardForRole } from "@/config/dashboard.config";
 
 import mesob from "@/app/mesob.jpg";
 
@@ -31,6 +33,30 @@ function getUserRole(user: any): string {
   if (typeof user?.role === "string") return user.role;
 
   return "customer";
+}
+
+/**
+ * A `redirect` query param is only safe to honor if it actually points
+ * somewhere inside the authenticated app. Otherwise a staff member who
+ * followed a public link (e.g. the kiosk feedback form) while logged out
+ * would get bounced right back to that public page after logging in,
+ * instead of landing on their own dashboard.
+ */
+function resolvePostLoginDestination(
+  role: string,
+  redirectParam: string | null
+): string {
+  if (redirectParam && redirectParam.startsWith("/dashboard")) {
+    return redirectParam;
+  }
+
+  const normalized = normalizeRoleName(role);
+
+  if (normalized === "customer" && redirectParam) {
+    return redirectParam;
+  }
+
+  return getDashboardForRole(role).route;
 }
 
 function LoginContent() {
@@ -63,9 +89,10 @@ function LoginContent() {
 
       toast.success("Logged in successfully");
 
-      const redirect =
-        searchParams.get("redirect") ||
-        "/dashboard";
+      const redirect = resolvePostLoginDestination(
+        role,
+        searchParams.get("redirect")
+      );
 
       router.replace(redirect);
     } catch (error) {
