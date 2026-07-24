@@ -40,7 +40,7 @@ class ReportingDashboardService
         $filters = $this->filters($request, $user);
 
         if (! $this->hasRequiredSelection($request)) {
-            return ['summary' => $this->emptySummary(), 'report' => [], 'feedback' => [], 'filters' => $filters, 'scope' => $this->scope($user), 'requires_filter' => true];
+            return ['summary' => $this->emptySummary(), 'report' => [], 'feedback' => [], 'feedback_by_location' => [], 'filters' => $filters, 'scope' => $this->scope($user), 'requires_filter' => true];
         }
 
         $filtered = $this->applyReportFilters($this->scopedApplicationQuery($user), $request);
@@ -49,6 +49,7 @@ class ReportingDashboardService
             'summary' => $this->summary(clone $filtered),
             'report' => $this->applicationReport(clone $filtered),
             'feedback' => $this->feedbackReport($request, $user),
+            'feedback_by_location' => $this->feedbackByLocation($request, $user),
             'filters' => $filters,
             'scope' => $this->scope($user),
             'requires_filter' => false,
@@ -151,18 +152,35 @@ class ReportingDashboardService
 
     protected function applicationReport(Builder $query): array
     {
-        return $query->limit(5000)->get()->groupBy(fn ($a) => implode('|', [$a->currentWindow?->name ?: 'Unassigned Window', $a->service?->name ?: 'Unassigned Service', $a->currentOfficer?->name ?: $a->assignee?->name ?: 'Unassigned Officer']))->map(function ($items) {
+        return $query->limit(5000)->get()->groupBy(fn ($a) => implode('|', [$a->city?->name ?: 'Unassigned City', $a->subcity?->name ?: 'Unassigned Subcity', $a->woreda?->name ?: 'Unassigned Woreda', $a->currentWindow?->name ?: 'Unassigned Window', $a->service?->name ?: 'Unassigned Service', $a->currentOfficer?->name ?: $a->assignee?->name ?: 'Unassigned Officer']))->map(function ($items) {
             $first = $items->first();
             $approvedRejected = $items->whereIn('status', array_merge($this->completedStatuses, $this->rejectedStatuses))->count();
             $total = $items->count();
-            return ['window' => $first->currentWindow?->name ?: 'Unassigned Window', 'service' => $first->service?->name ?: 'Unassigned Service', 'officer' => $first->currentOfficer?->name ?: $first->assignee?->name ?: 'Unassigned Officer', 'total' => $total, 'approved_rejected' => $approvedRejected, 'on_progress' => max($total - $approvedRejected, 0), 'percent' => $total > 0 ? round(($approvedRejected / $total) * 100, 2) : 0];
-        })->sortBy('window')->values()->all();
+            return [
+                'city' => $first->city?->name ?: 'Unassigned City',
+                'subcity' => $first->subcity?->name ?: 'Unassigned Subcity',
+                'woreda' => $first->woreda?->name ?: 'Unassigned Woreda',
+                'window' => $first->currentWindow?->name ?: 'Unassigned Window',
+                'service' => $first->service?->name ?: 'Unassigned Service',
+                'officer' => $first->currentOfficer?->name ?: $first->assignee?->name ?: 'Unassigned Officer',
+                'total' => $total,
+                'approved_rejected' => $approvedRejected,
+                'on_progress' => max($total - $approvedRejected, 0),
+                'percent' => $total > 0 ? round(($approvedRejected / $total) * 100, 2) : 0,
+            ];
+        })->sortBy(fn ($row) => implode('|', [$row['city'], $row['subcity'], $row['woreda'], $row['window']]))->values()->all();
     }
 
     protected function feedbackReport(Request $request, User $user): array
     {
         $query = $this->scope->applyFeedbackScope(
-            Feedback::query()->with(['service:id,name', 'window:id,name,city_id,subcity_id,woreda_id']),
+            Feedback::query()->with([
+                'service:id,name',
+                'window:id,name,city_id,subcity_id,woreda_id',
+                'window.city:id,name',
+                'window.subcity:id,name',
+                'window.woreda:id,name',
+            ]),
             $user
         );
 
@@ -174,7 +192,13 @@ class ReportingDashboardService
             ->when($request->filled('time'), fn ($q) => $this->applyFeedbackTimeFilter($q, (string) $request->string('time'), $request));
 
         return $query->limit(5000)->get()
-            ->groupBy(fn ($f) => implode('|', [$f->window?->name ?: 'Unassigned Window', $f->service?->name ?: 'Unassigned Service']))
+            ->groupBy(fn ($f) => implode('|', [
+                $f->window?->city?->name ?: 'Unassigned City',
+                $f->window?->subcity?->name ?: 'Unassigned Subcity',
+                $f->window?->woreda?->name ?: 'Unassigned Woreda',
+                $f->window?->name ?: 'Unassigned Window',
+                $f->service?->name ?: 'Unassigned Service',
+            ]))
             ->map(function ($items) {
                 $first = $items->first();
                 $total = $items->count();
@@ -182,6 +206,9 @@ class ReportingDashboardService
                 $satisfied = $items->where('satisfaction', 'satisfied')->count();
                 $dissatisfied = $items->where('satisfaction', 'not_satisfied')->count();
                 return [
+                    'city' => $first->window?->city?->name ?: 'Unassigned City',
+                    'subcity' => $first->window?->subcity?->name ?: 'Unassigned Subcity',
+                    'woreda' => $first->window?->woreda?->name ?: 'Unassigned Woreda',
                     'window' => $first->window?->name ?: 'Unassigned Window',
                     'service' => $first->service?->name ?: 'Unassigned Service',
                     'highly_satisfied' => $high,
@@ -190,7 +217,54 @@ class ReportingDashboardService
                     'total' => $total,
                     'percent' => $total > 0 ? round((($high + $satisfied) / $total) * 100, 2) : 0,
                 ];
-            })->sortBy('window')->values()->all();
+            })->sortBy(fn ($row) => implode('|', [$row['city'], $row['subcity'], $row['woreda'], $row['window']]))->values()->all();
+    }
+
+    /**
+     * Pure city / subcity / woreda rollup of feedback — independent of
+     * window/service, so an agent can see "how is my whole city doing"
+     * at a glance, not just per-window numbers.
+     */
+    protected function feedbackByLocation(Request $request, User $user): array
+    {
+        $query = $this->scope->applyFeedbackScope(
+            Feedback::query()->with([
+                'window:id,city_id,subcity_id,woreda_id',
+                'window.city:id,name',
+                'window.subcity:id,name',
+                'window.woreda:id,name',
+            ]),
+            $user
+        );
+
+        $query
+            ->when($request->filled('subcity_id'), fn ($q) => $q->whereHas('window', fn ($w) => $w->where('subcity_id', $request->integer('subcity_id'))))
+            ->when($request->filled('woreda_id'), fn ($q) => $q->whereHas('window', fn ($w) => $w->where('woreda_id', $request->integer('woreda_id'))))
+            ->when($request->filled('time'), fn ($q) => $this->applyFeedbackTimeFilter($q, (string) $request->string('time'), $request));
+
+        return $query->limit(5000)->get()
+            ->groupBy(fn ($f) => implode('|', [
+                $f->window?->city?->name ?: 'Unassigned City',
+                $f->window?->subcity?->name ?: 'Unassigned Subcity',
+                $f->window?->woreda?->name ?: 'Unassigned Woreda',
+            ]))
+            ->map(function ($items) {
+                $first = $items->first();
+                $total = $items->count();
+                $high = $items->where('satisfaction', 'highly_satisfied')->count();
+                $satisfied = $items->where('satisfaction', 'satisfied')->count();
+                $dissatisfied = $items->where('satisfaction', 'not_satisfied')->count();
+                return [
+                    'city' => $first->window?->city?->name ?: 'Unassigned City',
+                    'subcity' => $first->window?->subcity?->name ?: 'Unassigned Subcity',
+                    'woreda' => $first->window?->woreda?->name ?: 'Unassigned Woreda',
+                    'highly_satisfied' => $high,
+                    'satisfied' => $satisfied,
+                    'not_satisfied' => $dissatisfied,
+                    'total' => $total,
+                    'percent' => $total > 0 ? round((($high + $satisfied) / $total) * 100, 2) : 0,
+                ];
+            })->sortBy(fn ($row) => implode('|', [$row['city'], $row['subcity'], $row['woreda']]))->values()->all();
     }
 
     protected function applyFeedbackTimeFilter(Builder $query, string $time, Request $request): Builder
