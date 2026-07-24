@@ -3,6 +3,8 @@ import api, { unwrap } from "@/lib/api";
 export type DashboardCardsResponse = {
   service_cards: { total_applications: number; on_progress_applications: number; completed_applications: number };
   feedback_cards: { highly_satisfied: number; satisfied: number; dissatisfied: number };
+  feedback_by_location: FeedbackLocationRow[];
+  feedback_by_window: FeedbackRow[];
   scope: { role: string; level?: string | null; label: string };
 };
 
