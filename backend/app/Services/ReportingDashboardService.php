@@ -30,6 +30,8 @@ class ReportingDashboardService
         return [
             'service_cards' => $this->serviceCards(clone $query),
             'feedback_cards' => $this->feedbackCards($user),
+            'feedback_by_location' => $this->feedbackByLocation($request, $user),
+            'feedback_by_window' => $this->feedbackReport($request, $user),
             'scope' => $this->scope($user),
         ];
     }

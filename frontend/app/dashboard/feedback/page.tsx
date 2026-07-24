@@ -28,7 +28,12 @@ import {
 } from "@/components/ui/select";
 
 import { useFeedback } from "@/hooks/use-feedback";
+import { useReportingDashboardCards } from "@/hooks/dashboard/use-reporting-dashboard";
 import type { Feedback, FeedbackFilters, Satisfaction } from "@/types/feedback";
+import type {
+    FeedbackLocationRow,
+    FeedbackRow,
+} from "@/services/dashboard/reporting-dashboard.service";
 
 /* ==========================================================
  * Helpers
@@ -66,6 +71,128 @@ function locationLabel(feedback: Feedback): string {
     return parts.length > 0 ? parts.join(" / ") : window.name;
 }
 
+const percent = (value: number) => `${Number(value || 0).toFixed(0)}%`;
+
+/* ==========================================================
+ * Location / window report tables
+ * ========================================================== */
+
+function ByLocationReport({ rows }: { rows: FeedbackLocationRow[] }) {
+    if (rows.length === 0) {
+        return (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+                No feedback yet for your city, subcity, or woreda.
+            </p>
+        );
+    }
+
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>City</TableHead>
+                    <TableHead>Subcity</TableHead>
+                    <TableHead>Woreda</TableHead>
+                    <TableHead className="text-center">
+                        Highly Satisfied
+                    </TableHead>
+                    <TableHead className="text-center">Satisfied</TableHead>
+                    <TableHead className="text-center">
+                        Dissatisfied
+                    </TableHead>
+                    <TableHead className="text-center">Total</TableHead>
+                    <TableHead className="text-right">%</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {rows.map((row, i) => (
+                    <TableRow key={`${row.city}-${row.subcity}-${row.woreda}-${i}`}>
+                        <TableCell>{row.city}</TableCell>
+                        <TableCell>{row.subcity}</TableCell>
+                        <TableCell>{row.woreda}</TableCell>
+                        <TableCell className="text-center">
+                            {row.highly_satisfied}
+                        </TableCell>
+                        <TableCell className="text-center">
+                            {row.satisfied}
+                        </TableCell>
+                        <TableCell className="text-center">
+                            {row.not_satisfied}
+                        </TableCell>
+                        <TableCell className="text-center font-medium">
+                            {row.total}
+                        </TableCell>
+                        <TableCell className="text-right">
+                            {percent(row.percent)}
+                        </TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    );
+}
+
+function ByWindowReport({ rows }: { rows: FeedbackRow[] }) {
+    if (rows.length === 0) {
+        return (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+                No feedback yet for your windows/services.
+            </p>
+        );
+    }
+
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>City</TableHead>
+                    <TableHead>Subcity</TableHead>
+                    <TableHead>Woreda</TableHead>
+                    <TableHead>Window</TableHead>
+                    <TableHead>Service</TableHead>
+                    <TableHead className="text-center">
+                        Highly Satisfied
+                    </TableHead>
+                    <TableHead className="text-center">Satisfied</TableHead>
+                    <TableHead className="text-center">
+                        Dissatisfied
+                    </TableHead>
+                    <TableHead className="text-center">Total</TableHead>
+                    <TableHead className="text-right">%</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {rows.map((row, i) => (
+                    <TableRow
+                        key={`${row.city}-${row.subcity}-${row.woreda}-${row.window}-${row.service}-${i}`}
+                    >
+                        <TableCell>{row.city}</TableCell>
+                        <TableCell>{row.subcity}</TableCell>
+                        <TableCell>{row.woreda}</TableCell>
+                        <TableCell>{row.window}</TableCell>
+                        <TableCell>{row.service}</TableCell>
+                        <TableCell className="text-center">
+                            {row.highly_satisfied}
+                        </TableCell>
+                        <TableCell className="text-center">
+                            {row.satisfied}
+                        </TableCell>
+                        <TableCell className="text-center">
+                            {row.not_satisfied}
+                        </TableCell>
+                        <TableCell className="text-center font-medium">
+                            {row.total}
+                        </TableCell>
+                        <TableCell className="text-right">
+                            {percent(row.percent)}
+                        </TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    );
+}
+
 /* ==========================================================
  * Page
  * ========================================================== */
@@ -88,6 +215,11 @@ export default function AgentFeedbackPage() {
 
     const { data, isLoading, isError } = useFeedback(filters);
 
+    const {
+        data: dashboardData,
+        isLoading: isDashboardLoading,
+    } = useReportingDashboardCards();
+
     const feedbacks = data?.data ?? [];
     const meta = data?.meta;
 
@@ -101,6 +233,53 @@ export default function AgentFeedbackPage() {
                     jurisdiction.
                 </p>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-base">
+                        By City / Subcity / Woreda
+                    </CardTitle>
+                    <CardDescription>
+                        Satisfaction totals rolled up by location.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isDashboardLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading location report...
+                        </div>
+                    ) : (
+                        <ByLocationReport
+                            rows={dashboardData?.feedback_by_location ?? []}
+                        />
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-base">
+                        By Window / Service (all)
+                    </CardTitle>
+                    <CardDescription>
+                        Every window and service, with its location and
+                        satisfaction breakdown.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isDashboardLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading report...
+                        </div>
+                    ) : (
+                        <ByWindowReport
+                            rows={dashboardData?.feedback_by_window ?? []}
+                        />
+                    )}
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between gap-4">
