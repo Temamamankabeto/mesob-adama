@@ -301,6 +301,30 @@ class FeedbackController extends Controller
             => $validated['window_id'] ?? null,
 
 
+            'overall_rating'
+            => $validated['overall_rating'],
+
+
+            'staff_behavior'
+            => $validated['staff_behavior'] ?? null,
+
+
+            'waiting_time'
+            => $validated['waiting_time'] ?? null,
+
+
+            'service_quality'
+            => $validated['service_quality'] ?? null,
+
+
+            'cleanliness'
+            => $validated['cleanliness'] ?? null,
+
+
+            'age'
+            => $validated['age'] ?? null,
+
+
             'satisfaction'
             => $validated['satisfaction'],
 
