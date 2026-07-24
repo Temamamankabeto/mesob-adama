@@ -28,9 +28,10 @@ class FeedbackController extends Controller
 
         $feedbacks = Feedback::with([
             'service.windows',
-            'window.city',
-            'window.subcity',
-            'window.woreda',
+            'window',
+            'city',
+            'subcity',
+            'woreda',
         ])
 
             ->when(
@@ -76,10 +77,7 @@ class FeedbackController extends Controller
                 $request->city_id,
                 function ($query) use ($request) {
 
-                    $query->whereHas(
-                        'window',
-                        fn ($window) => $window->where('city_id', $request->city_id)
-                    );
+                    $query->where('city_id', $request->city_id);
 
                 }
             )
@@ -89,10 +87,7 @@ class FeedbackController extends Controller
                 $request->subcity_id,
                 function ($query) use ($request) {
 
-                    $query->whereHas(
-                        'window',
-                        fn ($window) => $window->where('subcity_id', $request->subcity_id)
-                    );
+                    $query->where('subcity_id', $request->subcity_id);
 
                 }
             )
@@ -102,10 +97,7 @@ class FeedbackController extends Controller
                 $request->woreda_id,
                 function ($query) use ($request) {
 
-                    $query->whereHas(
-                        'window',
-                        fn ($window) => $window->where('woreda_id', $request->woreda_id)
-                    );
+                    $query->where('woreda_id', $request->woreda_id);
 
                 }
             )
@@ -286,6 +278,43 @@ class FeedbackController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Resolve Location
+        |--------------------------------------------------------------------------
+        | If a feedback officer (or any logged-in staff) is submitting this,
+        | the feedback belongs to their own city/subcity/woreda. Otherwise
+        | (anonymous kiosk customer) it's copied from the selected window.
+        */
+
+
+        $actor = $request->user();
+
+        if ($actor) {
+
+            $cityId = $actor->city_id;
+            $subcityId = $actor->subcity_id;
+            $woredaId = $actor->woreda_id;
+
+        } elseif (! empty($validated['window_id'])) {
+
+            $window = \App\Models\Window::find($validated['window_id']);
+
+            $cityId = $window?->city_id;
+            $subcityId = $window?->subcity_id;
+            $woredaId = $window?->woreda_id;
+
+        } else {
+
+            $cityId = null;
+            $subcityId = null;
+            $woredaId = null;
+
+        }
+
+
+
+
+        /*
+        |--------------------------------------------------------------------------
         | Create Feedback
         |--------------------------------------------------------------------------
         */
@@ -299,6 +328,18 @@ class FeedbackController extends Controller
 
             'window_id'
             => $validated['window_id'] ?? null,
+
+
+            'city_id'
+            => $cityId,
+
+
+            'subcity_id'
+            => $subcityId,
+
+
+            'woreda_id'
+            => $woredaId,
 
 
             'overall_rating'
@@ -356,9 +397,10 @@ class FeedbackController extends Controller
 
             $feedback->load([
                 'service.windows',
-                'window.city',
-                'window.subcity',
-                'window.woreda',
+                'window',
+                'city',
+                'subcity',
+                'woreda',
             ])
 
         ))
@@ -398,9 +440,10 @@ class FeedbackController extends Controller
 
             $feedback->load([
                 'service.windows',
-                'window.city',
-                'window.subcity',
-                'window.woreda',
+                'window',
+                'city',
+                'subcity',
+                'woreda',
             ])
 
         );
@@ -449,9 +492,10 @@ class FeedbackController extends Controller
 
             $feedback->fresh()->load([
                 'service.windows',
-                'window.city',
-                'window.subcity',
-                'window.woreda',
+                'window',
+                'city',
+                'subcity',
+                'woreda',
             ])
 
         );

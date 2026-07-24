@@ -58,17 +58,17 @@ const satisfactionBadge: Record<
 };
 
 function locationLabel(feedback: Feedback): string {
-    const window = feedback.window;
+    const parts = [
+        feedback.city?.name,
+        feedback.subcity?.name,
+        feedback.woreda?.name,
+    ].filter(Boolean);
 
-    if (!window) {
-        return "Unspecified location";
+    if (parts.length > 0) {
+        return parts.join(" / ");
     }
 
-    const parts = [window.city?.name, window.subcity?.name, window.woreda?.name].filter(
-        Boolean
-    );
-
-    return parts.length > 0 ? parts.join(" / ") : window.name;
+    return feedback.window?.name ?? "Unspecified location";
 }
 
 const percent = (value: number) => `${Number(value || 0).toFixed(0)}%`;

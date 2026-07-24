@@ -24,18 +24,21 @@ class FeedbackResource extends JsonResource
             'window' => $this->window ? [
                 'id' => $this->window->id,
                 'name' => $this->window->name,
-                'city' => $this->window->city ? [
-                    'id' => $this->window->city->id,
-                    'name' => $this->window->city_title ?? $this->window->city->name,
-                ] : null,
-                'subcity' => $this->window->subcity ? [
-                    'id' => $this->window->subcity->id,
-                    'name' => $this->window->subcity_title ?? $this->window->subcity->name,
-                ] : null,
-                'woreda' => $this->window->woreda ? [
-                    'id' => $this->window->woreda->id,
-                    'name' => $this->window->woreda_title ?? $this->window->woreda->name,
-                ] : null,
+            ] : null,
+
+            'city' => $this->city ? [
+                'id' => $this->city->id,
+                'name' => $this->city->name,
+            ] : null,
+
+            'subcity' => $this->subcity ? [
+                'id' => $this->subcity->id,
+                'name' => $this->subcity->name,
+            ] : null,
+
+            'woreda' => $this->woreda ? [
+                'id' => $this->woreda->id,
+                'name' => $this->woreda->name,
             ] : null,
 
             'satisfaction' => $this->satisfaction,

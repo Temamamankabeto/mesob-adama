@@ -178,26 +178,26 @@ class ReportingDashboardService
         $query = $this->scope->applyFeedbackScope(
             Feedback::query()->with([
                 'service:id,name',
-                'window:id,name,city_id,subcity_id,woreda_id',
-                'window.city:id,name',
-                'window.subcity:id,name',
-                'window.woreda:id,name',
+                'window:id,name',
+                'city:id,name',
+                'subcity:id,name',
+                'woreda:id,name',
             ]),
             $user
         );
 
         $query
-            ->when($request->filled('subcity_id'), fn ($q) => $q->whereHas('window', fn ($w) => $w->where('subcity_id', $request->integer('subcity_id'))))
-            ->when($request->filled('woreda_id'), fn ($q) => $q->whereHas('window', fn ($w) => $w->where('woreda_id', $request->integer('woreda_id'))))
+            ->when($request->filled('subcity_id'), fn ($q) => $q->where('subcity_id', $request->integer('subcity_id')))
+            ->when($request->filled('woreda_id'), fn ($q) => $q->where('woreda_id', $request->integer('woreda_id')))
             ->when($request->filled('window_id'), fn ($q) => $q->where('window_id', $request->integer('window_id')))
             ->when($request->filled('service_id'), fn ($q) => $q->where('service_id', $request->integer('service_id')))
             ->when($request->filled('time'), fn ($q) => $this->applyFeedbackTimeFilter($q, (string) $request->string('time'), $request));
 
         return $query->limit(5000)->get()
             ->groupBy(fn ($f) => implode('|', [
-                $f->window?->city?->name ?: 'Unassigned City',
-                $f->window?->subcity?->name ?: 'Unassigned Subcity',
-                $f->window?->woreda?->name ?: 'Unassigned Woreda',
+                $f->city?->name ?: 'Unassigned City',
+                $f->subcity?->name ?: 'Unassigned Subcity',
+                $f->woreda?->name ?: 'Unassigned Woreda',
                 $f->window?->name ?: 'Unassigned Window',
                 $f->service?->name ?: 'Unassigned Service',
             ]))
@@ -208,9 +208,9 @@ class ReportingDashboardService
                 $satisfied = $items->where('satisfaction', 'satisfied')->count();
                 $dissatisfied = $items->where('satisfaction', 'not_satisfied')->count();
                 return [
-                    'city' => $first->window?->city?->name ?: 'Unassigned City',
-                    'subcity' => $first->window?->subcity?->name ?: 'Unassigned Subcity',
-                    'woreda' => $first->window?->woreda?->name ?: 'Unassigned Woreda',
+                    'city' => $first->city?->name ?: 'Unassigned City',
+                    'subcity' => $first->subcity?->name ?: 'Unassigned Subcity',
+                    'woreda' => $first->woreda?->name ?: 'Unassigned Woreda',
                     'window' => $first->window?->name ?: 'Unassigned Window',
                     'service' => $first->service?->name ?: 'Unassigned Service',
                     'highly_satisfied' => $high,
@@ -231,24 +231,23 @@ class ReportingDashboardService
     {
         $query = $this->scope->applyFeedbackScope(
             Feedback::query()->with([
-                'window:id,city_id,subcity_id,woreda_id',
-                'window.city:id,name',
-                'window.subcity:id,name',
-                'window.woreda:id,name',
+                'city:id,name',
+                'subcity:id,name',
+                'woreda:id,name',
             ]),
             $user
         );
 
         $query
-            ->when($request->filled('subcity_id'), fn ($q) => $q->whereHas('window', fn ($w) => $w->where('subcity_id', $request->integer('subcity_id'))))
-            ->when($request->filled('woreda_id'), fn ($q) => $q->whereHas('window', fn ($w) => $w->where('woreda_id', $request->integer('woreda_id'))))
+            ->when($request->filled('subcity_id'), fn ($q) => $q->where('subcity_id', $request->integer('subcity_id')))
+            ->when($request->filled('woreda_id'), fn ($q) => $q->where('woreda_id', $request->integer('woreda_id')))
             ->when($request->filled('time'), fn ($q) => $this->applyFeedbackTimeFilter($q, (string) $request->string('time'), $request));
 
         return $query->limit(5000)->get()
             ->groupBy(fn ($f) => implode('|', [
-                $f->window?->city?->name ?: 'Unassigned City',
-                $f->window?->subcity?->name ?: 'Unassigned Subcity',
-                $f->window?->woreda?->name ?: 'Unassigned Woreda',
+                $f->city?->name ?: 'Unassigned City',
+                $f->subcity?->name ?: 'Unassigned Subcity',
+                $f->woreda?->name ?: 'Unassigned Woreda',
             ]))
             ->map(function ($items) {
                 $first = $items->first();
@@ -257,9 +256,9 @@ class ReportingDashboardService
                 $satisfied = $items->where('satisfaction', 'satisfied')->count();
                 $dissatisfied = $items->where('satisfaction', 'not_satisfied')->count();
                 return [
-                    'city' => $first->window?->city?->name ?: 'Unassigned City',
-                    'subcity' => $first->window?->subcity?->name ?: 'Unassigned Subcity',
-                    'woreda' => $first->window?->woreda?->name ?: 'Unassigned Woreda',
+                    'city' => $first->city?->name ?: 'Unassigned City',
+                    'subcity' => $first->subcity?->name ?: 'Unassigned Subcity',
+                    'woreda' => $first->woreda?->name ?: 'Unassigned Woreda',
                     'highly_satisfied' => $high,
                     'satisfied' => $satisfied,
                     'not_satisfied' => $dissatisfied,

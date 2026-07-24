@@ -12,6 +12,12 @@ class Feedback extends Model
 
         'window_id',
 
+        'city_id',
+
+        'subcity_id',
+
+        'woreda_id',
+
         'overall_rating',
 
         'staff_behavior',
@@ -58,5 +64,20 @@ class Feedback extends Model
     public function window()
     {
         return $this->belongsTo(Window::class);
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function subcity()
+    {
+        return $this->belongsTo(Subcity::class);
+    }
+
+    public function woreda()
+    {
+        return $this->belongsTo(Woreda::class);
     }
 }

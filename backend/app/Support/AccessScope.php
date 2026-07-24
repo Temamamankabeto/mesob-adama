@@ -47,9 +47,10 @@ class AccessScope
     }
 
     /**
-     * Scope feedback to the window(s) that belong to the agent's
-     * city / subcity / woreda. Feedback itself has no location columns —
-     * it is given at a window, so the location lives on the related window.
+     * Scope feedback to the agent's own city / subcity / woreda, using the
+     * columns stored directly on the feedback row (populated at submission
+     * time from the submitting agent, or from the window for anonymous
+     * kiosk submissions).
      */
     public function applyFeedbackScope(Builder $query, User $actor): Builder
     {
@@ -64,9 +65,7 @@ class AccessScope
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->whereHas('window', function (Builder $window) use ($actor) {
-            $this->applyLocationColumns($window, $actor);
-        });
+        return $this->applyLocationColumns($query, $actor);
     }
 
     public function applyLocationColumns(Builder $query, User $actor): Builder
