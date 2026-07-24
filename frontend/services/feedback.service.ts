@@ -17,13 +17,16 @@ import type {
 class FeedbackService {
     private readonly feedbackUrl = "/feedback";
     private readonly windowsUrl = "/windows";
+    private readonly publicWindowsUrl = "/public/feedback-windows";
 
     /* ==========================================================
      * WINDOWS
+     * Public kiosk endpoint — no login required, matches how the
+     * feedback form itself is submitted anonymously at a window.
      * ========================================================== */
 
     async getWindows(): Promise<Window[]> {
-        const response = await api.get(this.windowsUrl);
+        const response = await api.get(this.publicWindowsUrl);
 
         return unwrap<WindowResponse>(response).data;
     }
