@@ -53,7 +53,11 @@ interface ReportDashboardResponse {
   meta: null;
 }
 
-const powerBiUrl = process.env.NEXT_PUBLIC_POWER_BI_REPORT_URL || "";
+const configuredPowerBiUrl = process.env.NEXT_PUBLIC_POWER_BI_REPORT_URL?.trim() ?? "";
+const powerBiUrl =
+  configuredPowerBiUrl && !configuredPowerBiUrl.includes("YOUR_REPORT_ID")
+    ? configuredPowerBiUrl
+    : "";
 
 export default function ReportsPage() {
   const [dashboard, setDashboard] = useState<ReportDashboardData | null>(null);
@@ -108,7 +112,7 @@ export default function ReportsPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#f4f8fc] px-4 py-8 text-[#08214a] md:px-8">
+    <main className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
       <section className="mx-auto max-w-7xl space-y-6">
         <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#06295a] via-[#0758a8] to-[#059669] p-8 text-white shadow-xl">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
@@ -141,35 +145,45 @@ export default function ReportsPage() {
           <ReportList title="Applications by Woreda" icon={MapPinned} items={dashboard?.applications_by_woreda ?? []} loading={loading} />
         </div>
 
-        <Card className="overflow-hidden rounded-3xl border-0 shadow-xl">
-          <CardHeader className="flex flex-col gap-4 bg-white md:flex-row md:items-center md:justify-between">
+        <section className="space-y-5 py-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <CardTitle className="text-2xl font-black">Power BI Dashboard</CardTitle>
-              <p className="mt-2 text-sm text-slate-600">Embed your published Microsoft Power BI report here for full visual analytics.</p>
+              <h2 className="text-2xl font-black">Power BI Dashboard</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                View the published Microsoft Power BI report for full visual analytics.
+              </p>
             </div>
             {powerBiUrl ? (
-              <Button asChild className="bg-[#063d91]">
+              <Button asChild>
                 <a href={powerBiUrl} target="_blank" rel="noreferrer">
                   <ExternalLink className="mr-2 h-4 w-4" /> Open in Power BI
                 </a>
               </Button>
             ) : null}
-          </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            {powerBiUrl ? (
-              <iframe title="Adama MESOB Power BI Report" src={powerBiUrl} className="h-[760px] w-full rounded-2xl border bg-white" allowFullScreen />
-            ) : (
-              <div className="flex min-h-[520px] items-center justify-center rounded-2xl border border-dashed bg-white text-center">
-                <div className="max-w-lg p-6">
-                  <BarChart3 className="mx-auto h-16 w-16 text-[#0758a8]" />
-                  <h2 className="mt-4 text-2xl font-black">Power BI URL is not configured</h2>
-                  <p className="mt-2 text-slate-600">Add this to your frontend environment and redeploy:</p>
-                  <code className="mt-4 block rounded-xl bg-slate-100 p-4 text-left text-sm text-slate-800">NEXT_PUBLIC_POWER_BI_REPORT_URL=https://app.powerbi.com/view?r=YOUR_REPORT_ID</code>
-                </div>
+          </div>
+
+          {powerBiUrl ? (
+            <iframe
+              title="Adama MESOB Power BI Report"
+              src={powerBiUrl}
+              className="h-[760px] w-full rounded-xl border bg-background"
+              allowFullScreen
+            />
+          ) : (
+            <div className="flex min-h-[420px] items-center justify-center border-y border-dashed bg-background text-center">
+              <div className="max-w-lg px-6 py-12">
+                <BarChart3 className="mx-auto h-16 w-16 text-primary" />
+                <h3 className="mt-4 text-2xl font-black">Power BI URL is not configured</h3>
+                <p className="mt-2 text-muted-foreground">
+                  Replace <strong>YOUR_REPORT_ID</strong> with the real published report ID in the frontend environment, then rebuild and redeploy.
+                </p>
+                <code className="mt-4 block overflow-x-auto rounded-lg bg-muted p-4 text-left text-sm text-foreground">
+                  NEXT_PUBLIC_POWER_BI_REPORT_URL=https://app.powerbi.com/view?r=YOUR_REPORT_ID
+                </code>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </section>
       </section>
     </main>
   );

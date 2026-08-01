@@ -1,9 +1,7 @@
 "use client";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/hooks/useLanguage";
 import {
   ArrowRight,
@@ -24,6 +22,7 @@ import {
   MapPin,
   Menu,
   MessageSquare,
+  Newspaper,
   Phone,
   Search,
   Send,
@@ -40,36 +39,36 @@ import mesob from "@/app/mesob.jpg";
 import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
 import i18n from "@/lib/i18n";
 
-const navGroups = [
+const navigationItems = [
   {
-    label: "home_page",
+    label: "Home",
     href: "/",
     icon: Home,
-    items: [
-      { label: "about_us", href: "/about", icon: Users },
-      { label: "service_provider", href: "/service-providers", icon: Building2 },
+    children: [
+      { label: "About us", href: "/about", icon: Users },
+      { label: "Contact", href: "/#contact", icon: Mail },
     ],
   },
   {
-    label: "services",
+    label: "Service",
     href: "/services",
-    items: [
-      { label: "city", href: "/services?level=city", icon: Building2 },
-      { label: "sub_city", href: "/services?level=subcity", icon: Building2 },
-      { label: "woreda", href: "/services?level=woreda", icon: Building2 },
+    icon: BriefcaseBusiness,
+    children: [
+      { label: "City", href: "/services?level=city", icon: Building2 },
+      { label: "Sub city", href: "/services?level=subcity", icon: Building2 },
+      { label: "Woreda", href: "/services?level=woreda", icon: Building2 },
     ],
   },
   {
-    label: "resources",
-    href: "/resources",
-    items: [
-      { label: "reports", href: "/resources/reports", icon: FileText },
-      { label: "guidelines", href: "/resources/guidelines", icon: ClipboardList },
-      { label: "policies", href: "/resources/policies", icon: FileText },
+    label: "Resource",
+    href: "/resources/reports",
+    icon: FileText,
+    children: [
+      { label: "Report", href: "/resources/reports", icon: FileText },
+      { label: "Guideline", href: "/resources/guidelines", icon: ClipboardList },
     ],
   },
-  { label: "news", href: "/news" },
-  { label: "contacts", href: "/contact" },
+  { label: "News", href: "/news", icon: Newspaper },
 ];
 
 const categories = [
@@ -104,9 +103,8 @@ const services = [
 ];
 
 export default function HomePage() {
-  const router = useRouter();
   const [applicationNumber, setApplicationNumber] = useState("");
-  const { t, language, changeLanguage } = useLanguage();
+  const { t, changeLanguage } = useLanguage();
 
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
   const trackMutation = useTrackApplication();
@@ -162,17 +160,18 @@ export default function HomePage() {
   ? "om"
   : "am";
   return (
-    <button
+    <Button
       key={item}
       type="button"
+      variant="ghost"
       onClick={() => changeLanguage(code)}
-      className="flex w-full items-center rounded-lg px-3 py-3 text-left text-sm font-semibold hover:bg-slate-100"
+      className="h-auto w-full justify-start rounded-lg px-3 py-3 text-left text-sm font-semibold"
     >
       {item}
       {i18n.language === code && (
         <Check className="ml-auto h-4 w-4" />
       )}
-    </button>
+    </Button>
   );
 })}
                 </div>
@@ -185,8 +184,12 @@ export default function HomePage() {
               </Button>
               <div className="invisible absolute right-0 top-full z-50 w-52 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
                 <div className="rounded-xl border bg-white p-3 text-[#08214a] shadow-xl">
-                  <Link href="/login" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100"><LockKeyhole className="h-4 w-4" />Sign In</Link>
-                  <Link href="/register" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100"><UserPlus className="h-4 w-4" />Create Account</Link>
+                  <Button asChild variant="ghost" className="h-auto w-full justify-start rounded-lg px-3 py-3 text-sm font-semibold">
+                    <Link href="/login"><LockKeyhole className="h-4 w-4" />Sign In</Link>
+                  </Button>
+                  <Button asChild variant="ghost" className="h-auto w-full justify-start rounded-lg px-3 py-3 text-sm font-semibold">
+                    <Link href="/register"><UserPlus className="h-4 w-4" />Create Account</Link>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -194,49 +197,57 @@ export default function HomePage() {
           <Button variant="ghost" size="icon" className="lg:hidden"><Menu /></Button>
         </div>
 
-        <nav className="mx-auto hidden h-14 max-w-7xl items-center bg-white px-4 md:px-6 lg:flex">
-          {navGroups.map((group) => {
-            const GroupIcon = group.icon;
+        <nav className="mx-auto hidden min-h-14 max-w-7xl items-center justify-center bg-white px-4 md:px-6 lg:flex">
+          {navigationItems.map((item) => {
+            const ItemIcon = item.icon;
 
-            if (!group.items) {
+            if (!item.children) {
               return (
-                <Link
-                  key={group.label}
-                  href={group.href}
-                  onMouseEnter={() => {
-                    if (group.label === "News") {
-                      router.prefetch("/news");
-                      router.push("/news");
-                    }
-                  }}
-                  className="flex h-14 min-w-32 items-center justify-center gap-2 border-b-2 border-transparent px-4 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-600"
+                <Button
+                  key={item.label}
+                  asChild
+                  variant="ghost"
+                  className="h-14 rounded-none border-b-2 border-transparent px-5 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:bg-sky-50 hover:text-sky-600"
                 >
-                  {GroupIcon && <GroupIcon className="h-5 w-5" />}
-                 {group.label}
-                </Link>
+                  <Link href={item.href}>
+                    <ItemIcon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                </Button>
               );
             }
 
             return (
-              <div key={group.label} className="group relative">
-                <Link
-                  href={group.href}
-                  className="flex h-14 min-w-36 items-center justify-center gap-2 border-b-2 border-transparent px-4 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-600"
+              <div key={item.label} className="group relative">
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="h-14 rounded-none border-b-2 border-transparent px-5 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:bg-sky-50 hover:text-sky-600"
                 >
-                  {GroupIcon && <GroupIcon className="h-5 w-5" />}
-                  {group.label}
-                  <ChevronDown className="h-4 w-4 transition group-hover:rotate-180" />
-                </Link>
-                <div className="invisible absolute left-0 top-full z-50 w-56 pt-2 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
-                  <div className="rounded-xl border bg-white p-3 shadow-xl">
-                    {group.items.map((item) => {
-                      const ItemIcon = item.icon;
+                  <Link href={item.href}>
+                    <ItemIcon className="h-4 w-4" />
+                    {item.label}
+                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
+                  </Link>
+                </Button>
+
+                <div className="invisible absolute left-1/2 top-full z-50 w-56 -translate-x-1/2 pt-2 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
+                  <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                    {item.children.map((child) => {
+                      const ChildIcon = child.icon;
 
                       return (
-                        <Link key={item.label} href={item.href} className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold hover:bg-slate-100">
-                          <ItemIcon className="h-4 w-4" />
-                          {t(item.label)}
-                        </Link>
+                        <Button
+                          key={child.label}
+                          asChild
+                          variant="ghost"
+                          className="h-auto w-full justify-start rounded-lg px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-600"
+                        >
+                          <Link href={child.href}>
+                            <ChildIcon className="h-4 w-4" />
+                            {child.label}
+                          </Link>
+                        </Button>
                       );
                     })}
                   </div>
@@ -294,7 +305,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 md:grid-cols-[1fr_440px] md:px-8">
+      <section id="contact" className="mx-auto grid scroll-mt-32 max-w-7xl gap-6 px-4 py-8 md:grid-cols-[1fr_440px] md:px-8">
         <div className="rounded-2xl bg-white p-7 shadow-lg">
           <div className="mb-6 flex items-center justify-between"><h3 className="text-3xl font-black">Our Services</h3>
           <Link href="/services" className="flex items-center gap-2 font-bold text-[#063d91]">View All <ArrowRight className="h-4 w-4" />
@@ -320,7 +331,7 @@ export default function HomePage() {
             <div className="relative"><Users className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" /><Input value={contactForm.name} onChange={(e) => setContactForm((prev) => ({ ...prev, name: e.target.value }))} className="h-14 rounded-xl pl-12" placeholder="Name" required /></div>
             <div className="relative"><Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" /><Input type="email" value={contactForm.email} onChange={(e) => setContactForm((prev) => ({ ...prev, email: e.target.value }))} className="h-14 rounded-xl pl-12" placeholder="Email" required /></div>
             <div className="relative"><MessageSquare className="absolute left-4 top-5 h-5 w-5 text-slate-400" /><Textarea value={contactForm.message} onChange={(e) => setContactForm((prev) => ({ ...prev, message: e.target.value }))} className="min-h-40 rounded-xl pl-12 pt-4" placeholder="Message" required /></div>
-            <Button disabled={contactMutation.isPending} className="h-14 w-full rounded-xl bg-[#063d91] text-base font-bold"><Send className="mr-2 h-5 w-5" />{contactMutation.isPending ? "Sending..." : "Send Message"}</Button>
+            <Button disabled={contactMutation.isPending} className="h-14 w-full rounded-xl bg-sky-500 text-base font-bold hover:bg-sky-600"><Send className="mr-2 h-5 w-5" />{contactMutation.isPending ? "Sending..." : "Send Message"}</Button>
           </form>
         </div>
       </section>

@@ -23,6 +23,7 @@ export function middleware(request: NextRequest) {
   "/callback",
 
   "/about",
+  "/news",
   "/service-provider",
   "/service-providers",
   "/resources",
