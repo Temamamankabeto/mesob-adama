@@ -63,13 +63,33 @@ const fallbackServices = [
   "Document Verification",
 ];
 
+const objectives = [
+  "Improve public service delivery and processing time.",
+  "Reduce paperwork, manual movement, and unnecessary office visits.",
+  "Increase transparency, accountability, and service traceability.",
+  "Provide accessible online services at any time and from any device.",
+  "Strengthen communication between citizens and government offices.",
+  "Support accurate reporting and data-driven decision making.",
+];
+
+const portalFeatures = [
+  { title: "Secure authentication", icon: LockKeyhole },
+  { title: "Online applications", icon: FileCheck2 },
+  { title: "Application tracking", icon: ClipboardCheck },
+  { title: "Digital documents", icon: FileText },
+  { title: "Role-based workflows", icon: Network },
+  { title: "Public news and resources", icon: Globe2 },
+  { title: "Citizen feedback", icon: MessageSquare },
+  { title: "Responsive access", icon: MonitorSmartphone },
+];
+
 const workflow = [
-  "Apply Online",
-  "Upload Documents",
-  "Officer Review",
-  "Approval",
-  "Payment",
-  "Service Delivery",
+  "Citizen submits an application",
+  "Front Office receives the request",
+  "Back Office reviews and verifies",
+  "Application is approved or returned",
+  "Citizen receives a status update",
+  "Service is completed and delivered",
 ];
 
 function apiBaseUrl() {
@@ -149,6 +169,7 @@ export default async function AboutPage() {
       cities[0]?.name ??
       "Adama City Administration";
 
+  const cityName = cities[0]?.name || "Adama City Administration";
   const displayedSubcities =
       subcities.length
           ? subcities
