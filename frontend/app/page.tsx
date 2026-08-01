@@ -160,94 +160,45 @@ export default function HomePage() {
   ? "om"
   : "am";
   return (
-    <Button
-      key={item}
-      type="button"
-      variant="ghost"
-      onClick={() => changeLanguage(code)}
-      className="h-auto w-full justify-start rounded-lg px-3 py-3 text-left text-sm font-semibold"
-    >
-      {item}
-      {i18n.language === code && (
-        <Check className="ml-auto h-4 w-4" />
-      )}
-    </Button>
-  );
-})}
-                </div>
+      <main className="min-h-screen bg-white text-slate-900">
+        <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
+            <Link href="/" className="flex items-center gap-3">
+              <Image src={mesob} alt="Adama MESOB" width={70} height={70} className="h-10 w-10 rounded-full object-cover" />
+              <div className="leading-tight">
+                <h1 className="text-2xl font-black tracking-tight text-slate-950">Adama<span className="text-sky-500">.</span></h1>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">MESOB eService</p>
               </div>
-            </div>
+            </Link>
 
-            <div className="group relative">
-              <Button className="h-10 rounded-full bg-sky-500 px-7 text-xs font-black uppercase tracking-wide shadow-lg shadow-sky-100 hover:bg-sky-600">
-                Sign In <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <div className="invisible absolute right-0 top-full z-50 w-52 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
-                <div className="rounded-xl border bg-white p-3 text-[#08214a] shadow-xl">
-                  <Button asChild variant="ghost" className="h-auto w-full justify-start rounded-lg px-3 py-3 text-sm font-semibold">
-                    <Link href="/login"><LockKeyhole className="h-4 w-4" />Sign In</Link>
-                  </Button>
-                  <Button asChild variant="ghost" className="h-auto w-full justify-start rounded-lg px-3 py-3 text-sm font-semibold">
-                    <Link href="/register"><UserPlus className="h-4 w-4" />Create Account</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <Button variant="ghost" size="icon" className="lg:hidden"><Menu /></Button>
-        </div>
-
-        <nav className="mx-auto hidden min-h-14 max-w-7xl items-center justify-center bg-white px-4 md:px-6 lg:flex">
-          {navigationItems.map((item) => {
-            const ItemIcon = item.icon;
-
-            if (!item.children) {
-              return (
-                <Button
-                  key={item.label}
-                  asChild
-                  variant="ghost"
-                  className="h-14 rounded-none border-b-2 border-transparent px-5 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:bg-sky-50 hover:text-sky-600"
-                >
-                  <Link href={item.href}>
-                    <ItemIcon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
+            <div className="hidden items-center gap-5 lg:flex">
+              <div className="group relative">
+                <Button variant="outline" className="h-9 min-w-28 justify-between border-0 bg-white px-3 text-xs font-bold shadow-none hover:bg-slate-50">
+                  <span className="flex items-center gap-2"><Globe2 className="h-4 w-4" />EN</span>
+                  <ChevronDown className="h-4 w-4 transition group-hover:rotate-180" />
                 </Button>
-              );
-            }
-
-            return (
-              <div key={item.label} className="group relative">
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="h-14 rounded-none border-b-2 border-transparent px-5 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:bg-sky-50 hover:text-sky-600"
-                >
-                  <Link href={item.href}>
-                    <ItemIcon className="h-4 w-4" />
-                    {item.label}
-                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180" />
-                  </Link>
-                </Button>
-
-                <div className="invisible absolute left-1/2 top-full z-50 w-56 -translate-x-1/2 pt-2 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
-                  <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
-                    {item.children.map((child) => {
-                      const ChildIcon = child.icon;
-
+                <div className="invisible absolute right-0 top-full z-50 w-48 pt-3 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
+                  <div className="rounded-xl border bg-white p-2 shadow-xl">
+                    {["Afaan Oromoo", "English", "አማርኛ"].map((item) => {
+                      const code =
+                          item === "English"
+                              ? "en"
+                              : item === "Afaan Oromoo"
+                                  ? "om"
+                                  : "am";
                       return (
-                        <Button
-                          key={child.label}
-                          asChild
-                          variant="ghost"
-                          className="h-auto w-full justify-start rounded-lg px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-600"
-                        >
-                          <Link href={child.href}>
-                            <ChildIcon className="h-4 w-4" />
-                            {child.label}
-                          </Link>
-                        </Button>
+                          <Button
+                              key={item}
+                              type="button"
+                              variant="ghost"
+                              onClick={() => changeLanguage(code)}
+                              className="h-auto w-full justify-start rounded-lg px-3 py-3 text-left text-sm font-semibold"
+                          >
+                            {item}
+                            {i18n.language === code && (
+                                <Check className="ml-auto h-4 w-4" />
+                            )}
+                          </Button>
                       );
                     })}
                   </div>
