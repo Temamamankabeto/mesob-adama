@@ -1,4 +1,15 @@
 import {
+  ClipboardCheck,
+  FileCheck2,
+  FileText,
+  Globe2,
+  LockKeyhole,
+  MessageSquare,
+  MonitorSmartphone,
+  Network,
+} from "lucide-react";
+
+import {
   HeroSection,
   CoverageSection,
   ServicesSection,
@@ -169,7 +180,6 @@ export default async function AboutPage() {
       cities[0]?.name ??
       "Adama City Administration";
 
-  const cityName = cities[0]?.name || "Adama City Administration";
   const displayedSubcities =
       subcities.length
           ? subcities
