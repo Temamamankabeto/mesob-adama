@@ -12,7 +12,7 @@ use App\Services\Concerns\ChecksServiceAvailability;
 use App\Support\AppRoles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-
+use App\Models\ApplicationQueue;
 class PublicApplicationService
 {
     use ChecksServiceAvailability;
@@ -88,32 +88,45 @@ class PublicApplicationService
         |--------------------------------------------------------------------------
         */
 
-        $queueCount = \App\Models\ApplicationQueue::whereDate(
-            'created_at',
-            today()
-        )->count();
+       $prefix = strtoupper(substr(
+    preg_replace('/[^A-Za-z]/', '', $service->name),
+    0,
+    2
+));
 
-        $prefix = strtoupper(substr(
-            preg_replace('/[^A-Za-z]/', '', $service->name),
-            0,
-            2
-        ));
+if (empty($prefix)) {
+    $prefix = 'SV';
+}
 
-        if (empty($prefix)) {
-            $prefix = 'SV';
-        }
 
-        $queue = \App\Models\ApplicationQueue::create([
-            'service_application_id' => $application->id,
-            'queue_number'           => sprintf(
-                '%s-%04d',
-                $prefix,
-                $queueCount + 1
-            ),
-            'position'               => $queueCount + 1,
-            'status'                 => 'waiting',
-        ]);
+$lastQueue = ApplicationQueue::where(
+        'queue_number',
+        'like',
+        $prefix . '-%'
+    )
+    ->lockForUpdate()
+    ->latest('id')
+    ->first();
 
+
+$nextNumber = $lastQueue
+    ? ((int) substr($lastQueue->queue_number, 3)) + 1
+    : 1;
+
+
+$queueNumber = sprintf(
+    '%s-%04d',
+    $prefix,
+    $nextNumber
+);
+
+
+$queue = ApplicationQueue::create([
+    'service_application_id' => $application->id,
+    'queue_number'           => $queueNumber,
+    'position'               => $nextNumber,
+    'status'                 => 'waiting',
+]);
         /*
         |--------------------------------------------------------------------------
         | Application Data

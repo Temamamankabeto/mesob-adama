@@ -84,13 +84,17 @@ export default function ChatbotTrainingPage() {
     action_type: "static_answer",
     is_active: true,
   });
-
+const [page, setPage] = useState(1);
   const { data: categoriesData, isLoading: loadingCategories } = useChatbotCategories({ search });
-  const { data: questionsData, isLoading: loadingQuestions } = useChatbotTrainingQuestions({ search });
-
+  const { data: questionsData, isLoading: loadingQuestions } =
+  useChatbotTrainingQuestions({
+    search,
+    page,
+    per_page: 20,
+  });
   const categories = categoriesData?.data || [];
   const questions = questionsData?.data || [];
-
+const meta = questionsData?.meta;
   const createCategory = useCreateChatbotCategory();
   const updateCategory = useUpdateChatbotCategory();
   const deleteCategory = useDeleteChatbotCategory();
@@ -243,7 +247,8 @@ export default function ChatbotTrainingPage() {
               <table className="w-full min-w-[900px] text-sm">
                 <thead className="border-b bg-muted/50">
                   <tr>
-                    <th className="p-4 text-left">Name</th>
+                    <th className="p-4 text-left">No</th>
+                     <th className="p-4 text-left">Name</th>
                     <th className="p-4 text-left">Code</th>
                     <th className="p-4 text-left">Allowed Roles</th>
                     <th className="p-4 text-left">Blocked Roles</th>
@@ -256,9 +261,11 @@ export default function ChatbotTrainingPage() {
                   {loadingCategories ? (
                     <tr><td colSpan={7} className="p-8 text-center">Loading...</td></tr>
                   ) : categories.length ? (
-                    categories.map((item) => (
-                      <tr key={item.id} className="border-b">
+                   categories.map((item, index) => (
+  <tr key={item.id} className="border-b">
+    <td className="p-4 font-medium">{index + 1}</td>
                         <td className="p-4 font-medium">{item.name}</td>
+
                         <td className="p-4">{item.code}</td>
                         <td className="p-4">{item.allowed_roles?.join(", ") || "*"}</td>
                         <td className="p-4">{item.blocked_roles?.join(", ") || "-"}</td>
@@ -280,6 +287,30 @@ export default function ChatbotTrainingPage() {
                   )}
                 </tbody>
               </table>
+              <div className="flex items-center justify-between p-4">
+  <div className="text-sm text-muted-foreground">
+    Showing page {meta?.current_page || 1} of{" "}
+    {meta?.last_page || 1}
+  </div>
+
+  <div className="flex gap-2">
+    <Button
+      variant="outline"
+      disabled={!meta || meta.current_page <= 1}
+      onClick={() => setPage((p) => p - 1)}
+    >
+      Previous
+    </Button>
+
+    <Button
+      variant="outline"
+      disabled={!meta || meta.current_page >= meta.last_page}
+      onClick={() => setPage((p) => p + 1)}
+    >
+      Next
+    </Button>
+  </div>
+</div>
             </div>
           </CardContent>
         </Card>
@@ -303,8 +334,9 @@ export default function ChatbotTrainingPage() {
                   {loadingQuestions ? (
                     <tr><td colSpan={7} className="p-8 text-center">Loading...</td></tr>
                   ) : questions.length ? (
-                    questions.map((item) => (
-                      <tr key={item.id} className="border-b align-top">
+                 questions.map((item, index) => (
+  <tr key={item.id} className="border-b align-top">
+    <td className="p-4">{index + 1}</td>
                         <td className="p-4 font-medium">{item.question}</td>
                         <td className="p-4">{item.category?.name || item.category_id}</td>
                         <td className="p-4 max-w-md">{item.keywords?.join(", ") || "-"}</td>
@@ -327,6 +359,30 @@ export default function ChatbotTrainingPage() {
                   )}
                 </tbody>
               </table>
+              <div className="flex items-center justify-between p-4">
+  <div className="text-sm text-muted-foreground">
+    Showing page {meta?.current_page || 1} of{" "}
+    {meta?.last_page || 1}
+  </div>
+
+  <div className="flex gap-2">
+    <Button
+      variant="outline"
+      disabled={!meta || meta.current_page <= 1}
+      onClick={() => setPage((p) => p - 1)}
+    >
+      Previous
+    </Button>
+
+    <Button
+      variant="outline"
+      disabled={!meta || meta.current_page >= meta.last_page}
+      onClick={() => setPage((p) => p + 1)}
+    >
+      Next
+    </Button>
+  </div>
+</div>
             </div>
           </CardContent>
         </Card>

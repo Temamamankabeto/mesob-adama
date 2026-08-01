@@ -160,26 +160,18 @@ export default function ReportsPage() {
                 </a>
               </Button>
             ) : null}
-          </div>
-
-          {powerBiUrl ? (
-            <iframe
-              title="Adama MESOB Power BI Report"
-              src={powerBiUrl}
-              className="h-[760px] w-full rounded-xl border bg-background"
-              allowFullScreen
-            />
-          ) : (
-            <div className="flex min-h-[420px] items-center justify-center border-y border-dashed bg-background text-center">
-              <div className="max-w-lg px-6 py-12">
-                <BarChart3 className="mx-auto h-16 w-16 text-primary" />
-                <h3 className="mt-4 text-2xl font-black">Power BI URL is not configured</h3>
-                <p className="mt-2 text-muted-foreground">
-                  Replace <strong>YOUR_REPORT_ID</strong> with the real published report ID in the frontend environment, then rebuild and redeploy.
-                </p>
-                <code className="mt-4 block overflow-x-auto rounded-lg bg-muted p-4 text-left text-sm text-foreground">
-                  NEXT_PUBLIC_POWER_BI_REPORT_URL=https://app.powerbi.com/view?r=YOUR_REPORT_ID
-                </code>
+          </CardHeader>
+          <CardContent className="p-4 md:p-6">
+            {powerBiUrl ? (
+              <iframe title="Adama MESOB Power BI Report" src={powerBiUrl} className="h-[760px] w-full rounded-2xl border bg-white" allowFullScreen />
+            ) : (
+              <div className="flex min-h-[520px] items-center justify-center rounded-2xl border border-dashed bg-white text-center">
+                <div className="max-w-lg p-6">
+                  <BarChart3 className="mx-auto h-16 w-16 text-[#0758a8]" />
+                  <h2 className="mt-4 text-2xl font-black">Power BI URL is not configured</h2>
+                  <p className="mt-2 text-slate-600">Add this to your frontend environment and redeploy:</p>
+                  {/*<code className="mt-4 block rounded-xl bg-slate-100 p-4 text-left text-sm text-slate-800">NEXT_PUBLIC_POWER_BI_REPORT_URL=https://app.powerbi.com/view?r=YOUR_REPORT_ID</code>*/}
+                </div>
               </div>
             </div>
           )}

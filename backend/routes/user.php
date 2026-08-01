@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\ServiceProviderController;
 use App\Http\Controllers\Api\CityController;
 use App\Http\Controllers\Api\SubcityController;
 use App\Http\Controllers\Api\WoredaController;
+use App\Http\Controllers\Api\CustomerController;
+
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\UserActivationRequestController;
 use App\Http\Controllers\SmsController;
@@ -89,3 +91,6 @@ Route::post(
     '/feedback/{token}',
     [FeedbackController::class, 'store']
 );
+
+Route::get('/customers', [CustomerController::class, 'customerlist']);
+  Route::get('/customers/{id}',[ CustomerController::class,'show']);
