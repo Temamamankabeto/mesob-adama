@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\ServiceApplication;
-use App\Models\ServiceApplicationAppointment;
 use App\Models\ServiceApplicationHistory;
 use App\Models\ServiceApplicationShare;
 use App\Models\User;
@@ -15,7 +14,6 @@ use Illuminate\Validation\ValidationException;
 
 class OfficerApplicationService
 {
-
     public function __construct(
         protected AccessScope $scope,
         protected ApplicationFileService $fileService
@@ -143,18 +141,7 @@ class OfficerApplicationService
     ) {
         return DB::transaction(function () use ($application, $actor, $payload) {
 
-            $appointmentAt = $payload['appointment_at']
-                ?? (!empty($payload['appointment_date']) && !empty($payload['appointment_time'])
-                    ? trim($payload['appointment_date']) . ' ' . trim($payload['appointment_time'])
-                    : null);
-
-            if (!$appointmentAt) {
-                throw ValidationException::withMessages([
-                    'appointment_at' => ['Please provide an appointment date and time.'],
-                ]);
-            }
-
-            $appointmentMessage = $payload['appointment_message'] ?? $payload['message'] ?? $payload['remark'] ?? null;
+            $appointmentAt = $payload['appointment_at'];
 
             $application->update([
                 'status' => 'appointment_scheduled',
@@ -162,7 +149,7 @@ class OfficerApplicationService
 
                 'appointment_at' => $appointmentAt,
                 'appointment_location' => $payload['appointment_location'] ?? null,
-                'appointment_message' => $appointmentMessage,
+                'appointment_message' => $payload['appointment_message'] ?? null,
                 'appointment_status' => 'scheduled',
 
                 'sla_started_at' => now(),
@@ -173,7 +160,7 @@ class OfficerApplicationService
                 'scheduled_by' => $actor->id,
                 'appointment_at' => $appointmentAt,
                 'location' => $payload['appointment_location'] ?? null,
-                'message' => $appointmentMessage,
+                'message' => $payload['appointment_message'] ?? null,
                 'status' => 'scheduled',
             ]);
 
@@ -183,8 +170,8 @@ class OfficerApplicationService
                 'to_status' => 'appointment_scheduled',
                 'action' => 'appointment_scheduled',
                 'action_type' => 'workflow_action',
-                'remark' => $appointmentMessage,
-                'comment' => $appointmentMessage,
+                'remark' => $payload['appointment_message'] ?? null,
+                'comment' => $payload['appointment_message'] ?? null,
                 'actor_id' => $actor->id,
                 'sender_id' => $actor->id,
                 'receiver_id' => $application->customer_id,
