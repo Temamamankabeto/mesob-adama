@@ -6,6 +6,7 @@ export type AppRoleName =
   | "admin"
   | "back_officer"
   | "front_officer"
+  | "feedback"
   | "customer";
 
 export type RoleOption = {
@@ -26,6 +27,7 @@ export const ROLE_OPTIONS: RoleOption[] = [
   { name: "admin", label: "Admin", isScoped: true },
   { name: "back_officer", label: "Back Officer", isScoped: true },
   { name: "front_officer", label: "Front Officer", isScoped: true },
+  { name: "feedback", label: "Feedback Officer", isScoped: true },
   { name: "customer", label: "Customer", isScoped: false },
 ];
 
@@ -72,6 +74,15 @@ export function normalizeRoleName(role?: string | null): AppRoleName {
   ) return "front_officer";
 
   if (value === "customer") return "customer";
+
+  if (
+    value === "feedback" ||
+    value === "feedback_officer" ||
+    value === "feedbackofficer" ||
+    value === "city_feedback" ||
+    value === "subcity_feedback" ||
+    value === "woreda_feedback"
+  ) return "feedback";
 
   return "super_admin";
 }

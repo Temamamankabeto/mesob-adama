@@ -26,7 +26,12 @@ class Service extends Model
 
     public function windows()
     {
-        return $this->belongsToMany(Window::class, 'service_window')
+        return $this->belongsToMany(
+            Window::class,
+            'service_window',
+            'service_id',
+            'window_id'
+        )
             ->withPivot([
                 'assignment_level',
                 'step_order',
@@ -86,4 +91,13 @@ class Service extends Model
     {
         return $this->hasMany(ServiceCriterion::class)->orderBy('sort_order');
     }
+
+    public function feedbacks()
+    {
+        return $this->hasMany(
+            Feedback::class
+        );
+    }
+
+
 }

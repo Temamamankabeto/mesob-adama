@@ -93,10 +93,10 @@ class User extends Authenticatable
         return $this->hasMany(AuditLog::class);
     }
 
-    public function customer()
-    {
-        return $this->hasOne(Customer::class);
-    }
+    // public function customer()
+    // {
+    //     return $this->hasOne(Customer::class);
+    // }
 
     public function getProfileImageUrlAttribute(): ?string
     {

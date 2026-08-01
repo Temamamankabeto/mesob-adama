@@ -2,6 +2,7 @@ import {
   ClipboardCheck,
   FileCheck2,
   LayoutDashboard,
+  MessageSquareText,
   ShieldCheck,
   UserCheck,
   Users,
@@ -15,6 +16,7 @@ export type AppRoleKey =
   | "admin"
   | "front-officer"
   | "back-officer"
+  | "feedback"
   | "customer";
 
 export type DashboardDefinition = {
@@ -32,6 +34,7 @@ export const roleHome: Record<AppRoleKey, string> = {
   admin: "/dashboard",
   "front-officer": "/dashboard",
   "back-officer": "/dashboard",
+  feedback: "/dashboard/feedback",
   customer: "/dashboard",
 };
 
@@ -84,6 +87,14 @@ export const dashboardConfig: Record<AppRoleKey, DashboardDefinition> = {
     route: roleHome.customer,
     icon: UserCheck,
   },
+  feedback: {
+    key: "feedback",
+    roleName: "Feedback Officer",
+    title: "Feedback Dashboard",
+    subtitle: "Review and manage customer feedback for your city, subcity, or woreda.",
+    route: roleHome.feedback,
+    icon: MessageSquareText,
+  },
 };
 
 export const dashboardList = Object.values(dashboardConfig);
@@ -97,6 +108,7 @@ export function normalizeRole(role?: string | null): AppRoleKey {
     admin: "admin",
     front_officer: "front-officer",
     back_officer: "back-officer",
+    feedback: "feedback",
     customer: "customer",
   };
 

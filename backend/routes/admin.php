@@ -80,7 +80,6 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('customers')->group(function () {
-        Route::get('/', [CustomerController::class, 'index']);
         Route::get('{id}', [CustomerController::class, 'show']);
         Route::put('{id}', [CustomerController::class, 'update']);
 

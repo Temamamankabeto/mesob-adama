@@ -82,4 +82,17 @@ class WindowController extends Controller
             'message' => 'Window deleted successfully',
         ]);
     }
+
+    public function services(Window $window)
+    {
+        $services = $window->services()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $services,
+        ]);
+    }
 }

@@ -10,6 +10,7 @@ import {
   Building2,
   Workflow,
   BarChart3,
+  Contact,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -72,6 +73,15 @@ const userManagementMenu: SidebarItem = {
   ],
 };
 
+const customerManagementMenu: SidebarItem = {
+  label: "Customers",
+  icon: Contact,
+  children: [
+    { label: "Customers", href: "/dashboard/users/customers", permission: "users.read" },
+    { label: "Add Customer", href: "/dashboard/users/customers/add", permission: "users.create" },
+  ],
+};
+
 const serviceManagementMenu: SidebarItem = {
   label: "Service Management",
   icon: Building2,
@@ -126,6 +136,11 @@ const reportMenu: SidebarItem = {
       href: "/dashboard/reports",
       permission: "applications.summary",
     },
+    {
+      label: "Customer Feedback",
+      href: "/dashboard/feedback",
+      permission: "feedback.read",
+    },
   ],
 };
 
@@ -150,6 +165,14 @@ const customerApplicationMenu: SidebarItem = {
   ],
 };
 
+const feedbackMenu: SidebarItem = {
+  label: "Customer Feedback",
+  icon: BarChart3,
+  children: [
+    { label: "Feedback List", href: "/dashboard/feedback", permission: "feedback.read" },
+  ],
+};
+
 const systemMenu: SidebarItem = {
   label: "System",
   icon: Settings,
@@ -161,12 +184,19 @@ const systemMenu: SidebarItem = {
       permission: "audit_logs.read",
       scopes: cityOnly,
     },
+    {
+      label: "Translations",
+      href: "dashboard/translations",
+      permission: "audit_logs.read",
+      scopes: cityOnly,
+    },
+
   ],
 };
 
 const adminSections = (role: AppRoleKey): SidebarSection[] => [
   s("Main", [dashboardItem(role)]),
-  s("Management", [userManagementMenu, serviceManagementMenu, windowManagementMenu]),
+  s("Management", [userManagementMenu, customerManagementMenu, serviceManagementMenu, windowManagementMenu]),
   s("Applications", [formBuilderMenu, applicationManagementMenu]),
   s("Reports", [reportMenu]),
   s("System", [systemMenu]),
@@ -188,12 +218,18 @@ const customerSections = (role: AppRoleKey): SidebarSection[] => [
   s("Applications", [customerApplicationMenu]),
 ];
 
+const feedbackSections = (role: AppRoleKey): SidebarSection[] => [
+  s("Main", [dashboardItem(role)]),
+  s("Feedback", [feedbackMenu]),
+];
+
 export const sidebarConfig: Record<AppRoleKey, RoleSidebar> = {
   "super-admin": { title: "Super Admin", icon: ShieldCheck, sections: adminSections("super-admin") },
   manager: { title: "Manager", icon: ShieldCheck, sections: managerSections("manager") },
   admin: { title: "Admin", icon: ShieldCheck, sections: adminSections("admin") },
   "front-officer": { title: "Front Officer", icon: UserCheck, sections: officerSections("front-officer") },
   "back-officer": { title: "Back Officer", icon: UserCheck, sections: officerSections("back-officer") },
+  feedback: { title: "Feedback Officer", icon: BarChart3, sections: feedbackSections("feedback") },
   customer: { title: "Customer", icon: UserCheck, sections: customerSections("customer") },
 };
 

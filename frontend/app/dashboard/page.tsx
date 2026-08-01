@@ -110,7 +110,7 @@ export default function DashboardPage() {
   const isCustomer = String(data.profile.role).toLowerCase().includes("customer");
 
   if (!isCustomer) {
-    return <RoleBasedDashboard profile={data.profile} />;
+    return <RoleBasedDashboard />;
   }
 
   const customerStatusCards = [

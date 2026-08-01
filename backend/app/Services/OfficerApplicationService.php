@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ServiceApplication;
+use App\Models\ServiceApplicationAppointment;
 use App\Models\ServiceApplicationHistory;
 use App\Models\ServiceApplicationShare;
 use App\Models\User;
@@ -14,6 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 class OfficerApplicationService
 {
+
     public function __construct(
         protected AccessScope $scope,
         protected ApplicationFileService $fileService
@@ -134,6 +136,67 @@ class OfficerApplicationService
             ->paginate(20);
     }
 
+    public function appointment(
+        ServiceApplication $application,
+        User $actor,
+        array $payload
+    ) {
+        return DB::transaction(function () use ($application, $actor, $payload) {
+
+            $appointmentAt = $payload['appointment_at']
+                ?? (!empty($payload['appointment_date']) && !empty($payload['appointment_time'])
+                    ? trim($payload['appointment_date']) . ' ' . trim($payload['appointment_time'])
+                    : null);
+
+            if (!$appointmentAt) {
+                throw ValidationException::withMessages([
+                    'appointment_at' => ['Please provide an appointment date and time.'],
+                ]);
+            }
+
+            $appointmentMessage = $payload['appointment_message'] ?? $payload['message'] ?? $payload['remark'] ?? null;
+
+            $application->update([
+                'status' => 'appointment_scheduled',
+                'current_stage' => 'appointment_scheduled',
+
+                'appointment_at' => $appointmentAt,
+                'appointment_location' => $payload['appointment_location'] ?? null,
+                'appointment_message' => $appointmentMessage,
+                'appointment_status' => 'scheduled',
+
+                'sla_started_at' => now(),
+            ]);
+
+            ServiceApplicationAppointment::create([
+                'application_id' => $application->id,
+                'scheduled_by' => $actor->id,
+                'appointment_at' => $appointmentAt,
+                'location' => $payload['appointment_location'] ?? null,
+                'message' => $appointmentMessage,
+                'status' => 'scheduled',
+            ]);
+
+            ServiceApplicationHistory::create([
+                'application_id' => $application->id,
+                'from_status' => $application->getOriginal('status'),
+                'to_status' => 'appointment_scheduled',
+                'action' => 'appointment_scheduled',
+                'action_type' => 'workflow_action',
+                'remark' => $appointmentMessage,
+                'comment' => $appointmentMessage,
+                'actor_id' => $actor->id,
+                'sender_id' => $actor->id,
+                'receiver_id' => $application->customer_id,
+                'from_window_id' => $application->current_window_id,
+                'to_window_id' => $application->current_window_id,
+                'administrative_level' => $application->administrative_level,
+                'status' => 'appointment_scheduled',
+            ]);
+
+            return $this->show($application->fresh());
+        });
+    }
 
     public function notificationSummary(User $actor): array
     {
