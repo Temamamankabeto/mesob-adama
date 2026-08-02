@@ -18,6 +18,8 @@ export const officerWindowAssignmentService = {
     officer_id: number;
     window_id: number;
     level: OfficerWindowLevel;
+    subcity_id?: number | string;
+    woreda_id?: number | string;
   }) {
     const response = await api.post("/officer-window-assignment/assign", payload);
     return response.data;
@@ -27,6 +29,8 @@ export const officerWindowAssignmentService = {
     officer_id: number;
     window_id: number;
     level: OfficerWindowLevel;
+    subcity_id?: number | string;
+    woreda_id?: number | string;
   }) {
     const response = await api.delete("/officer-window-assignment/unassign", {
       data: payload,

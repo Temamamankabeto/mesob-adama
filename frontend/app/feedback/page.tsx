@@ -46,7 +46,6 @@ import {
     Users,
     CheckCircle2,
     ArrowLeft,
-    ImageOff,
     Smile,
     Meh,
     Frown,
@@ -122,14 +121,14 @@ interface ServicePopupProps {
 }
 
 function ServicePopup({
-    isOpen,
-    onClose,
-    window,
-    services,
-    onSelectService,
-    isLoading,
-    windowName,
-}: ServicePopupProps) {
+                          isOpen,
+                          onClose,
+                          window,
+                          services,
+                          onSelectService,
+                          isLoading,
+                          windowName,
+                      }: ServicePopupProps) {
     const [selectedService, setSelectedService] = useState<number | null>(null);
     const [showFeedbackForm, setShowFeedbackForm] = useState(false);
     const [selectedServiceName, setSelectedServiceName] = useState("");
@@ -191,51 +190,33 @@ function ServicePopup({
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {orderedServices.map((service: any, index: number) => {
-                                const image = service.image_url || service.image || null;
-                                return (
-                                    <button
-                                        key={service.id ?? index}
-                                        type="button"
-                                        onClick={() =>
-                                            handleServiceClick(
-                                                service.id ?? index,
-                                                service.name || `Service ${index + 1}`
-                                            )
-                                        }
-                                        className="group text-left rounded-xl border-2 border-slate-200 overflow-hidden hover:border-blue-500 hover:shadow-lg transition-all duration-200 bg-white"
-                                    >
-                                        <div className="h-28 w-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden">
-                                            {image ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                    src={image}
-                                                    alt={service.name}
-                                                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                />
-                                            ) : (
-                                                <div className="flex flex-col items-center text-slate-400">
-                                                    <ImageOff className="w-6 h-6 mb-1" />
-                                                    <span className="text-[10px]">No image</span>
-                                                </div>
+                            {orderedServices.map((service: any, index: number) => (
+                                <button
+                                    key={service.id ?? index}
+                                    type="button"
+                                    onClick={() =>
+                                        handleServiceClick(
+                                            service.id ?? index,
+                                            service.name || `Service ${index + 1}`
+                                        )
+                                    }
+                                    className="group text-left rounded-xl border-2 border-slate-200 overflow-hidden hover:border-blue-500 hover:shadow-lg transition-all duration-200 bg-white"
+                                >
+                                    <div className="p-4 flex items-center justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-slate-800 text-sm truncate">
+                                                {service.name || `Service ${index + 1}`}
+                                            </p>
+                                            {service.description && (
+                                                <p className="text-xs text-slate-500 truncate">
+                                                    {service.description}
+                                                </p>
                                             )}
                                         </div>
-                                        <div className="p-3 flex items-center justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <p className="font-semibold text-slate-800 text-sm truncate">
-                                                    {service.name || `Service ${index + 1}`}
-                                                </p>
-                                                {service.description && (
-                                                    <p className="text-xs text-slate-500 truncate">
-                                                        {service.description}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <ChevronRight className="w-4 h-4 text-blue-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                                        </div>
-                                    </button>
-                                );
-                            })}
+                                        <ChevronRight className="w-4 h-4 text-blue-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                                    </div>
+                                </button>
+                            ))}
                         </div>
                     )}
                 </div>
@@ -295,14 +276,14 @@ const GENDER_OPTIONS = [
 ];
 
 function FeedbackFormModal({
-    isOpen,
-    onClose,
-    windowId,
-    windowName,
-    serviceId,
-    serviceName,
-    onBack,
-}: FeedbackFormModalProps) {
+                               isOpen,
+                               onClose,
+                               windowId,
+                               windowName,
+                               serviceId,
+                               serviceName,
+                               onBack,
+                           }: FeedbackFormModalProps) {
     const createFeedback = useCreateFeedback();
 
     const form = useForm<FeedbackFormValues>({

@@ -7,10 +7,14 @@ import {
   officerWindowAssignmentService,
 } from "@/services/officer-window-assignment/officer-window-assignment.service";
 
-export function useOfficerWindowBoard(params: OfficerWindowBoardParams) {
+export function useOfficerWindowBoard(
+    params: OfficerWindowBoardParams,
+    options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: ["officer-window-assignment-board", params],
     queryFn: () => officerWindowAssignmentService.board(params),
+    enabled: options?.enabled ?? true,
   });
 }
 

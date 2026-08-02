@@ -190,6 +190,12 @@ const systemMenu: SidebarItem = {
       permission: "audit_logs.read",
       scopes: cityOnly,
     },
+    {
+      label: "News",
+      href: "/dashboard/news",
+      permission: "audit_logs.read",
+      scopes: cityOnly,
+    },
 
   ],
 };

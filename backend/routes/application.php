@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Officer\OfficerApplicationController;
 use App\Http\Controllers\Api\Officer\CertificateController;
 use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\WindowController;
+use App\Http\Controllers\Api\NewsController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/applications', [ApplicationController::class, 'index']);
@@ -47,6 +48,18 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/applications/summary', [ApplicationDashboardController::class, 'summary']);
     Route::get('/dashboard/reporting', [ReportingDashboardController::class, 'index']);
     Route::get('/dashboard/reporting/report', [ReportingDashboardController::class, 'report']);
+
+
+    Route::prefix('news')->group(function () {
+        Route::get('/', [NewsController::class, 'index']);
+        Route::post('/', [NewsController::class, 'store']);
+        Route::get('{news}', [NewsController::class, 'show']);
+        Route::put('{news}', [NewsController::class, 'update']);
+        Route::patch('{news}', [NewsController::class, 'update']);
+        Route::delete('{news}', [NewsController::class, 'destroy']);
+    });
+
+
 });
 
 Route::prefix('public')->group(function () {
