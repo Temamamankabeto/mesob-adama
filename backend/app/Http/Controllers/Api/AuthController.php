@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\DB;
 use Log;
 
 class AuthController extends Controller
@@ -21,7 +23,7 @@ class AuthController extends Controller
         'name' => ['required', 'string', 'max:255'],
         'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
         'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
-        'password' => ['required', 'confirmed', 'min:8'],
+        'password' => ['required', 'confirmed', Password::min(12)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
         'address' => ['nullable', 'string', 'max:500'],
     ]);
 
@@ -80,34 +82,44 @@ class AuthController extends Controller
         ]);
 
         $loginInput = $request->login ?? $request->email;
+        $user = User::where('email', $loginInput)->orWhere('phone', $loginInput)->first();
 
-        $user = User::where('email', $loginInput)
-            ->orWhere('phone', $loginInput)
-            ->first();
+        if ($user?->locked_until && now()->lessThan($user->locked_until)) {
+            return response()->json(['success'=>false,'message'=>'Account temporarily locked. Try again later.','data'=>null,'meta'=>['locked_until'=>$user->locked_until]], 423);
+        }
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'login' => ['Invalid email/phone or password.'],
-            ]);
+            if ($user) {
+                DB::transaction(function () use ($user) {
+                    $attempts = $user->failed_login_attempts + 1;
+                    $user->forceFill([
+                        'failed_login_attempts'=>$attempts,
+                        'last_failed_login_at'=>now(),
+                        'locked_until'=>$attempts >= 5 ? now()->addMinutes(30) : null,
+                    ])->save();
+                    $user->tokens()->delete();
+                });
+            }
+            throw ValidationException::withMessages(['login'=>['Invalid email/phone or password.']]);
         }
 
         if (!$user->is_active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Your account is disabled. Please contact the administrator.',
-            ], 403);
+            return response()->json(['success'=>false,'message'=>'Your account is disabled. Please contact the administrator.','data'=>null,'meta'=>null], 403);
         }
 
-        $accessToken = $user->createToken('aig-api-token')->plainTextToken;
+        $user->tokens()->delete();
+        $accessToken = $user->createToken('mesob-api-token', ['*'], now()->addMinutes(30))->plainTextToken;
         $refreshToken = Str::random(64);
-
         $user->forceFill([
-            'refresh_token' => hash('sha256', $refreshToken),
-            'refresh_token_expires_at' => now()->addDays(30),
-            'last_login_at' => now(),
+            'refresh_token'=>hash('sha256',$refreshToken),
+            'refresh_token_expires_at'=>now()->addDays(7),
+            'last_login_at'=>now(),
+            'failed_login_attempts'=>0,
+            'locked_until'=>null,
+            'last_failed_login_at'=>null,
         ])->save();
 
-        return response()->json($this->authPayload($user, $accessToken, $refreshToken))
+        return response()->json($this->authPayload($user, $accessToken, null))
             ->cookie($this->refreshCookie($refreshToken));
     }
 
@@ -128,7 +140,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        $user?->currentAccessToken()?->delete();
+        $user?->tokens()->delete();
         $user?->forceFill([
             'refresh_token' => null,
             'refresh_token_expires_at' => null,
@@ -140,13 +152,12 @@ class AuthController extends Controller
         ])->withoutCookie('refresh_token');
     }
 
-    protected function authPayload(User $user, string $accessToken, string $refreshToken): array
+    protected function authPayload(User $user, string $accessToken, ?string $refreshToken = null): array
     {
         return [
             'success' => true,
             'message' => 'Authenticated successfully',
             'token' => $accessToken,
-            'refresh_token' => $refreshToken,
             'user' => $this->userPayload($user),
             'roles' => $user->getRoleNames()->values()->all(),
             'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
@@ -183,11 +194,11 @@ class AuthController extends Controller
         return cookie(
             'refresh_token',
             $refreshToken,
-            60 * 24 * 30,
+            60 * 24 * 7,
             '/',
-            null,
-            app()->environment('production'),
+            config('session.domain'),
+            (bool) config('session.secure'),
             true
-        )->withSameSite('Lax');
+        )->withSameSite((string) config('session.same_site', 'lax'));
     }
 }

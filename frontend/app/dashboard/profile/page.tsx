@@ -124,7 +124,6 @@ export default function ProfilePage() {
       const data = await authService.profile();
 
       fillForm(data);
-      localStorage.setItem("user", JSON.stringify(data));
     } catch (error) {
       if (!storedUser) {
         toast.error(error instanceof Error ? error.message : "Failed to load profile");
@@ -157,7 +156,6 @@ export default function ProfilePage() {
 
       fillForm(updated);
       setImage(null);
-      localStorage.setItem("user", JSON.stringify(updated));
 
       toast.success("Profile updated successfully");
     } catch (error) {

@@ -144,13 +144,9 @@ function getUserScope(user: any, role?: string | null) {
 
 export default function UsersPage() {
   const currentUser =
-    typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("user") || localStorage.getItem("mesob_user") || "{}")
-      : {};
+    authService.getStoredUser() || {};
   const currentRoles =
-    typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("roles") || localStorage.getItem("mesob_roles") || "[]")
-      : [];
+    authService.getStoredRoles();
   const currentRole = Array.isArray(currentRoles) ? currentRoles[0] : currentRoles;
   const userScope = getUserScope(currentUser, currentRole);
   const scope = userScope;

@@ -12,7 +12,7 @@ class RefreshTokenController extends Controller
 {
     public function refresh(Request $request)
     {
-        $refreshToken = $request->cookie('refresh_token') ?? $request->input('refresh_token');
+        $refreshToken = $request->cookie('refresh_token');
 
         if (!$refreshToken) {
             return response()->json([
@@ -35,27 +35,27 @@ class RefreshTokenController extends Controller
             ], 401);
         }
 
-        $newAccessToken = $user->createToken('aig-api-token')->plainTextToken;
+        $user->tokens()->delete();
+        $newAccessToken = $user->createToken('mesob-api-token', ['*'], now()->addMinutes(30))->plainTextToken;
 
         $newRefreshToken = Str::random(64);
 
         $user->update([
             'refresh_token' => hash('sha256', $newRefreshToken),
-            'refresh_token_expires_at' => now()->addDays(30),
+            'refresh_token_expires_at' => now()->addDays(7),
         ]);
 
         return response()->json([
             'success' => true,
             'token' => $newAccessToken,
-            'refresh_token' => $newRefreshToken,
-        ])->cookie(
+                    ])->cookie(
             'refresh_token',
             $newRefreshToken,
-            60 * 24 * 30,
+            60 * 24 * 7,
             '/',
-            null,
-            false,
+            config('session.domain'),
+            (bool) config('session.secure'),
             true
-        );
+        )->withSameSite((string) config('session.same_site', 'lax'));
     }
 }

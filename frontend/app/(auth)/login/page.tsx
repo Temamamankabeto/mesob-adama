@@ -81,11 +81,7 @@ function LoginContent() {
 
       authService.saveSession(response);
 
-      document.cookie = `token=${response.token}; path=/`;
-
       const role = getUserRole(response.user);
-
-      document.cookie = `role=${role.toLowerCase()}; path=/`;
 
       toast.success("Logged in successfully");
 

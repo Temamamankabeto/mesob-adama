@@ -1,3 +1,4 @@
+import { getToken } from "@/lib/api";
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -117,10 +118,7 @@ export default function ApplyPage() {
    */
   useEffect(() => {
     const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("token") ||
-          localStorage.getItem("mesob_token")
-        : null;
+      getToken();
 
     const roles = authService.getStoredRoles();
 

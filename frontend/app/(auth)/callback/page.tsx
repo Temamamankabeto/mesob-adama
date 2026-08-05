@@ -30,7 +30,6 @@ export default function CallbackPage() {
         authService.saveSession(response);
 
         // Save token
-        document.cookie = `token=${response.token}; path=/`;
 
         // Get role from backend response
         const role =
@@ -39,7 +38,6 @@ export default function CallbackPage() {
           "customer";
 
         // Save role cookie
-        document.cookie = `role=${role.toLowerCase()}; path=/`;
 
         // Save role locally if used in UI
         localStorage.setItem(

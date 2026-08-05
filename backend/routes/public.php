@@ -19,7 +19,7 @@ Route::prefix('public')->group(function () {
     Route::get('/window-services', [PublicServiceController::class, 'windowServices']);
     Route::get('/feedback-windows', [PublicServiceController::class, 'feedbackWindows']);
     Route::get('/services/{service}', [PublicServiceController::class, 'show']);
-    Route::post('/track-application', [ApplicationTrackingController::class, 'track']);
+    Route::post('/track-application', [ApplicationTrackingController::class, 'track'])->middleware('throttle:track-application');
     Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/chatbot/message', [PublicChatbotController::class, 'message']);
     Route::get('/reports/dashboard', [PublicReportController::class, 'dashboard']);

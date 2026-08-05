@@ -18,7 +18,7 @@ Route::get('/test-sms', function (SmsService $sms) {
 
 });
 Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/refresh', [RefreshTokenController::class, 'refresh']);
 

@@ -44,15 +44,12 @@ class FaydaController extends Controller
 
         $token = $user->createToken('mesob')->plainTextToken;
 
-        // 🔥 IMPORTANT FIX: set cookies for middleware
         return response()
             ->json([
                 'success' => true,
                 'token' => $token,
                 'user' => $user->load('roles'),
-            ])
-            ->cookie('token', $token, 60, '/', null, false, true)
-            ->cookie('role', 'customer', 60, '/', null, false, true);
+            ]);
 
     } catch (\Exception $e) {
         return response()->json([

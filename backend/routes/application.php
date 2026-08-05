@@ -24,35 +24,35 @@ use App\Http\Controllers\Api\WindowController;
 use App\Http\Controllers\Api\NewsController;
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/applications', [ApplicationController::class, 'index']);
-    Route::post('/applications', [ApplicationController::class, 'store']);
-    Route::get('/applications/{application}', [ApplicationController::class, 'show']);
-    Route::put('/applications/{application}', [ApplicationController::class, 'update']);
-    Route::delete('/applications/{application}', [ApplicationController::class, 'destroy']);
-    Route::get('/customer/notifications', [CustomerNotificationController::class, 'index']);
-    Route::get('/customer/service-applications', [CustomerServiceApplicationController::class, 'index']);
-    Route::get('/customer/service-applications/{application}', [CustomerServiceApplicationController::class, 'show']);
+    Route::get('/applications', [ApplicationController::class, 'index'])->middleware('permission:applications.read');
+    Route::post('/applications', [ApplicationController::class, 'store'])->middleware('permission:applications.create');
+    Route::get('/applications/{application}', [ApplicationController::class, 'show'])->middleware('permission:service_applications.read');
+    Route::put('/applications/{application}', [ApplicationController::class, 'update'])->middleware('permission:applications.update');
+    Route::delete('/applications/{application}', [ApplicationController::class, 'destroy'])->middleware('permission:applications.delete');
+    Route::get('/customer/notifications', [CustomerNotificationController::class, 'index'])->middleware('permission:applications.own');
+    Route::get('/customer/service-applications', [CustomerServiceApplicationController::class, 'index'])->middleware('permission:service_applications.read');
+    Route::get('/customer/service-applications/{application}', [CustomerServiceApplicationController::class, 'show'])->middleware('permission:service_applications.read');
 });
 
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index']);
-    Route::apiResource('service-forms', ServiceFormController::class);
-    Route::apiResource('service-form-sections', ServiceFormSectionController::class);
-    Route::apiResource('service-form-steps', ServiceFormStepController::class);
-    Route::apiResource('service-form-fields', ServiceFormFieldController::class);
-    Route::apiResource('service-form-field-conditions', ServiceFormFieldConditionController::class);
-    Route::get('/service-applications', [ServiceApplicationController::class, 'index']);
-    Route::get('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'show']);
-    Route::put('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'update']);
-    Route::delete('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'destroy']);
-    Route::get('/applications/summary', [ApplicationDashboardController::class, 'summary']);
-    Route::get('/dashboard/reporting', [ReportingDashboardController::class, 'index']);
-    Route::get('/dashboard/reporting/report', [ReportingDashboardController::class, 'report']);
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permission:applications.summary');
+    Route::apiResource('service-forms', ServiceFormController::class)->middleware('permission:service_forms.update');
+    Route::apiResource('service-form-sections', ServiceFormSectionController::class)->middleware('permission:service_forms.update');
+    Route::apiResource('service-form-steps', ServiceFormStepController::class)->middleware('permission:service_forms.update');
+    Route::apiResource('service-form-fields', ServiceFormFieldController::class)->middleware('permission:service_forms.update');
+    Route::apiResource('service-form-field-conditions', ServiceFormFieldConditionController::class)->middleware('permission:service_forms.update');
+    Route::get('/service-applications', [ServiceApplicationController::class, 'index'])->middleware('permission:service_applications.read');
+    Route::get('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'show'])->middleware('permission:service_applications.read');
+    Route::put('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'update'])->middleware('permission:service_applications.update');
+    Route::delete('/service-applications/{serviceApplication}', [ServiceApplicationController::class, 'destroy'])->middleware('permission:service_applications.delete');
+    Route::get('/applications/summary', [ApplicationDashboardController::class, 'summary'])->middleware('permission:service_applications.read');
+    Route::get('/dashboard/reporting', [ReportingDashboardController::class, 'index'])->middleware('permission:applications.summary');
+    Route::get('/dashboard/reporting/report', [ReportingDashboardController::class, 'report'])->middleware('permission:applications.summary');
 
 
     Route::prefix('news')->group(function () {
-        Route::get('/', [NewsController::class, 'index']);
-        Route::post('/', [NewsController::class, 'store']);
+        Route::get('/', [NewsController::class, 'index'])->middleware('permission:services.read');
+        Route::post('/', [NewsController::class, 'store'])->middleware('permission:services.read');
         Route::get('{news}', [NewsController::class, 'show']);
         Route::put('{news}', [NewsController::class, 'update']);
         Route::patch('{news}', [NewsController::class, 'update']);
@@ -65,48 +65,48 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 Route::prefix('public')->group(function () {
     Route::get('/services/{service}/form', [PublicApplicationController::class, 'form']);
     Route::middleware('auth:sanctum')->post('/services/{service}/apply', [PublicApplicationController::class, 'apply']);
-    Route::post('/track-application', [ApplicationTrackingController::class, 'track']);
+    Route::post('/track-application', [ApplicationTrackingController::class, 'track'])->middleware('throttle:track-application');
 });
 
 Route::middleware('auth:sanctum')->prefix('officer')->group(function () {
-    Route::get('/applications/queue', [OfficerApplicationController::class, 'queue']);
+    Route::get('/applications/queue', [OfficerApplicationController::class, 'queue'])->middleware('permission:service_applications.read');
     Route::get('/notifications', [OfficerApplicationController::class, 'notifications']);
-    Route::get('/applications/{application}', [OfficerApplicationController::class, 'show']);
+    Route::get('/applications/{application}', [OfficerApplicationController::class, 'show'])->middleware('permission:service_applications.read');
     Route::get('/sharing/windows', [OfficerApplicationShareController::class, 'windows']);
     Route::get('/sharing/windows/{window}/officers', [OfficerApplicationShareController::class, 'officers']);
-    Route::post('/applications/{application}/share-to-officer', [OfficerApplicationShareController::class, 'share']);
-    Route::post('/applications/{application}/accept', [OfficerApplicationController::class, 'accept']);
-    Route::post('/applications/{application}/appointment', [OfficerApplicationController::class, 'appointment']);
-    Route::post('/applications/{application}/share', [OfficerApplicationController::class, 'share']);
-    Route::post('/applications/{application}/forward-to-back-officer', [OfficerApplicationController::class, 'forwardToBackOfficer']);
-    Route::post('/applications/{application}/approve', [OfficerApplicationController::class, 'approve']);
-    Route::post('/applications/{application}/reject', [OfficerApplicationController::class, 'reject']);
-    Route::post('/applications/{application}/return', [OfficerApplicationController::class, 'returnApplication']);
-    Route::post('/applications/{application}/complete', [OfficerApplicationController::class, 'complete']);
-    Route::post('/applications/{application}/escalate-to-manager', [OfficerApplicationController::class, 'escalateToManager']);
-    Route::get('/applications/{application}/certificate', [CertificateController::class, 'download']);
+    Route::post('/applications/{application}/share-to-officer', [OfficerApplicationShareController::class, 'share'])->middleware('permission:applications.create');
+    Route::post('/applications/{application}/accept', [OfficerApplicationController::class, 'accept'])->middleware('permission:applications.create');
+    Route::post('/applications/{application}/appointment', [OfficerApplicationController::class, 'appointment'])->middleware('permission:applications.create');
+    Route::post('/applications/{application}/share', [OfficerApplicationController::class, 'share'])->middleware('permission:applications.create');
+    Route::post('/applications/{application}/forward-to-back-officer', [OfficerApplicationController::class, 'forwardToBackOfficer'])->middleware('permission:applications.create');
+    Route::post('/applications/{application}/approve', [OfficerApplicationController::class, 'approve'])->middleware('permission:service_applications.approve');
+    Route::post('/applications/{application}/reject', [OfficerApplicationController::class, 'reject'])->middleware('permission:service_applications.reject');
+    Route::post('/applications/{application}/return', [OfficerApplicationController::class, 'returnApplication'])->middleware('permission:service_applications.return');
+    Route::post('/applications/{application}/complete', [OfficerApplicationController::class, 'complete'])->middleware('permission:service_applications.complete');
+    Route::post('/applications/{application}/escalate-to-manager', [OfficerApplicationController::class, 'escalateToManager'])->middleware('permission:applications.create');
+    Route::get('/applications/{application}/certificate', [CertificateController::class, 'download'])->middleware('permission:service_applications.read');
 });
 
 Route::middleware('auth:sanctum')->prefix('manager')->group(function () {
-    Route::get('/applications/queue', [ManagerApplicationController::class, 'queue']);
-    Route::get('/applications/{application}', [ManagerApplicationController::class, 'show']);
-    Route::post('/applications/{application}/assign-officer', [ManagerApplicationController::class, 'assign']);
-    Route::post('/applications/{application}/return-to-officer', [ManagerApplicationController::class, 'returnToOfficer']);
-    Route::post('/applications/{application}/escalate-up', [ManagerApplicationController::class, 'escalateUp']);
+    Route::get('/applications/queue', [ManagerApplicationController::class, 'queue'])->middleware('permission:service_applications.read');
+    Route::get('/applications/{application}', [ManagerApplicationController::class, 'show'])->middleware('permission:service_applications.read');
+    Route::post('/applications/{application}/assign-officer', [ManagerApplicationController::class, 'assign'])->middleware('permission:applications.create');
+    Route::post('/applications/{application}/return-to-officer', [ManagerApplicationController::class, 'returnToOfficer'])->middleware('permission:service_applications.return');
+    Route::post('/applications/{application}/escalate-up', [ManagerApplicationController::class, 'escalateUp'])->middleware('permission:applications.create');
 });
 
 
 // Public kiosk submission — no login required at the service window.
-Route::post('feedback', [FeedbackController::class, 'store']);
+Route::post('feedback', [FeedbackController::class, 'store'])->middleware('permission:feedback.update');
 
 // Viewing / managing feedback requires an authenticated agent so it can be
 // scoped to their city / subcity / woreda.
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('feedback', [FeedbackController::class, 'index']);
-    Route::get('feedback/{feedback}', [FeedbackController::class, 'show']);
-    Route::put('feedback/{feedback}', [FeedbackController::class, 'update']);
-    Route::patch('feedback/{feedback}', [FeedbackController::class, 'update']);
-    Route::delete('feedback/{feedback}', [FeedbackController::class, 'destroy']);
+    Route::get('feedback', [FeedbackController::class, 'index'])->middleware('permission:feedback.read');
+    Route::get('feedback/{feedback}', [FeedbackController::class, 'show'])->middleware('permission:feedback.read');
+    Route::put('feedback/{feedback}', [FeedbackController::class, 'update'])->middleware('permission:feedback.update');
+    Route::patch('feedback/{feedback}', [FeedbackController::class, 'update'])->middleware('permission:feedback.update');
+    Route::delete('feedback/{feedback}', [FeedbackController::class, 'destroy'])->middleware('permission:feedback.delete');
 });
 
 Route::get(

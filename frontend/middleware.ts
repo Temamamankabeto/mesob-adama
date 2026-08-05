@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("refresh_token")?.value;
 
   // ✅ SAFE ROLE (avoid crash + normalize)
-  const roleRaw = request.cookies.get("role")?.value;
-  const role = roleRaw ? roleRaw.toLowerCase().trim() : null;
+  const role = null;
 
   const pathname = request.nextUrl.pathname;
 
@@ -68,13 +67,6 @@ export function middleware(request: NextRequest) {
       const url = new URL("/login", request.url);
       url.searchParams.set("redirect", pathname);
       return NextResponse.redirect(url);
-    }
-
-    // ✅ FIXED LOGIC
-    if (role !== "customer") {
-      return NextResponse.redirect(
-        new URL("/unauthorized", request.url)
-      );
     }
   }
 

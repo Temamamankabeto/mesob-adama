@@ -1,3 +1,4 @@
+import { getToken } from "@/lib/api";
 "use client";
 
 import Link from "next/link";
@@ -89,9 +90,7 @@ export default function ServiceDetailPage() {
 
   function handleApply() {
     const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("token") || localStorage.getItem("mesob_token")
-        : null;
+      getToken();
 
     const roles = authService.getStoredRoles();
     const role = normalizeRoleName(roles[0] || authService.getStoredUser()?.role || "");

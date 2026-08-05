@@ -1,78 +1,14 @@
 import axios, { AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from "axios";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
-const TOKEN_KEY = "token";
+let accessToken: string | null = null;
 
-type RetriableRequestConfig = InternalAxiosRequestConfig & {
-  _retry?: boolean;
-};
-
-function isBrowser() {
-  return typeof window !== "undefined";
-}
-
-function setCookie(name: string, value: string, maxAgeSeconds = 60 * 60 * 24 * 7) {
-  if (!isBrowser()) return;
-  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`;
-}
-
-export function getToken() {
-  return isBrowser() ? localStorage.getItem(TOKEN_KEY) : null;
-}
-
-export function saveAccessToken(token: string) {
-  if (!isBrowser()) return;
-
-  localStorage.setItem(TOKEN_KEY, token);
-  setCookie(TOKEN_KEY, token);
-}
-
-export function saveSession(payload: {
-  token: string;
-  refresh_token?: string | null;
-  user?: unknown;
-  roles?: string[];
-  permissions?: string[];
-}) {
-  if (!isBrowser()) return;
-
-  saveAccessToken(payload.token);
-
-  if (payload.refresh_token) {
-    localStorage.setItem("refresh_token", payload.refresh_token);
-    setCookie("refresh_token", payload.refresh_token, 60 * 60 * 24 * 30);
-  }
-
-  if (payload.user) {
-    const user = JSON.stringify(payload.user);
-    localStorage.setItem("user", user);
-    setCookie("user", user);
-  }
-
-  const roles = JSON.stringify(payload.roles ?? []);
-  const permissions = JSON.stringify(payload.permissions ?? []);
-
-  localStorage.setItem("roles", roles);
-  localStorage.setItem("permissions", permissions);
-  setCookie("roles", roles);
-  setCookie("permissions", permissions);
-}
-
-export function clearSession() {
-  if (!isBrowser()) return;
-
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  localStorage.removeItem("roles");
-  localStorage.removeItem("permissions");
-  localStorage.removeItem("refresh_token");
-
-  document.cookie = "token=; Path=/; Max-Age=0; SameSite=Lax";
-  document.cookie = "roles=; Path=/; Max-Age=0; SameSite=Lax"; 
-  document.cookie = "permissions=; Path=/; Max-Age=0; SameSite=Lax";
-  document.cookie = "user=; Path=/; Max-Age=0; SameSite=Lax";
-  document.cookie = "refresh_token=; Path=/; Max-Age=0; SameSite=Lax";
-}
+type RetriableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+function isBrowser() { return typeof window !== "undefined"; }
+export function getToken() { return accessToken; }
+export function saveAccessToken(token: string) { accessToken = token; }
+export function saveSession(payload: { token: string }) { accessToken = payload.token; }
+export function clearSession() { accessToken = null; }
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -101,21 +37,11 @@ async function refreshAccessToken() {
 
   if (!refreshPromise) {
     refreshPromise = refreshClient
-      .post("/auth/refresh", {
-        refresh_token: localStorage.getItem("refresh_token"),
-      })
+      .post("/auth/refresh")
       .then((response) => {
         const token = response.data?.token ?? response.data?.access_token;
-        const refreshToken = response.data?.refresh_token;
-
         if (!token) return null;
-
         saveAccessToken(token);
-
-        if (refreshToken) {
-          localStorage.setItem("refresh_token", refreshToken);
-        }
-
         return token as string;
       })
       .finally(() => {

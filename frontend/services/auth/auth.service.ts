@@ -1,4 +1,4 @@
-import api, { clearSession, unwrap } from "@/lib/api";
+import api, { clearSession, saveAccessToken, unwrap } from "@/lib/api";
 import type { CustomerRegisterPayload } from "@/lib/auth/auth.schema";
 
 export type AuthUser = {
@@ -50,23 +50,9 @@ function normalizeLoginResponse(response: unknown): LoginResponse {
   return "data" in value && value.data ? value.data : (value as LoginResponse);
 }
 
-function setCookie(name: string, value: unknown, maxAgeSeconds = 60 * 60 * 24 * 7) {
-  if (typeof document === "undefined") return;
-  const encoded = encodeURIComponent(typeof value === "string" ? value : JSON.stringify(value));
-  document.cookie = `${name}=${encoded}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`;
-}
-
-function deleteCookie(name: string) {
-  if (typeof document === "undefined") return;
-  document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
-}
-
-function clearAuthCookies() {
-  deleteCookie("token");
-  deleteCookie("roles");
-  deleteCookie("permissions");
-  deleteCookie("user");
-}
+let currentUser: AuthUser | null = null;
+let currentRoles: string[] = [];
+let currentPermissions: string[] = [];
 
 export const authService = {
   async login(credentials: { email: string; password: string }) {
@@ -127,44 +113,21 @@ export const authService = {
       await api.post("/auth/logout");
     } finally {
       clearSession();
-      clearAuthCookies();
     }
   },
 
   saveSession(response: LoginResponse) {
-    if (typeof window === "undefined") return;
     const token = response.token ?? response.access_token ?? response.data?.token ?? response.data?.access_token;
     const user = response.user ?? response.data?.user ?? null;
-    const roles = response.roles ?? response.data?.roles ?? user?.roles ?? (user?.role ? [user.role] : []);
-    const permissions = response.permissions ?? response.data?.permissions ?? user?.permissions ?? [];
-
     if (token) {
-      localStorage.setItem("token", token);
-      setCookie("token", token);
+      saveAccessToken(token);
     }
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-      setCookie("user", user);
-    }
-
-    localStorage.setItem("roles", JSON.stringify(roles));
-    localStorage.setItem("permissions", JSON.stringify(permissions));
-    setCookie("roles", roles);
-    setCookie("permissions", permissions);
+    currentUser = user;
+    currentRoles = response.roles ?? response.data?.roles ?? user?.roles ?? (user?.role ? [user.role] : []);
+    currentPermissions = response.permissions ?? response.data?.permissions ?? user?.permissions ?? [];
   },
 
-  getStoredUser(): AuthUser | null {
-    if (typeof window === "undefined") return null;
-    try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
-  },
-
-  getStoredRoles(): string[] {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem("roles") || "[]"); } catch { return []; }
-  },
-
-  getStoredPermissions(): string[] {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem("permissions") || "[]"); } catch { return []; }
-  },
+  getStoredUser(): AuthUser | null { return currentUser; },
+  getStoredRoles(): string[] { return currentRoles; },
+  getStoredPermissions(): string[] { return currentPermissions; },
 };

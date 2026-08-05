@@ -23,59 +23,59 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
-    Route::get('/users', [UserController::class, 'index']);
-    Route::get('/users/roles-lite', [UserController::class, 'rolesLite']);
-    Route::get('/users/{id}', [UserController::class, 'show']);
-    Route::post('/users', [UserController::class, 'store']);
-    Route::put('/users/{id}', [UserController::class, 'update']);
-    Route::delete('/users/{id}', [UserController::class, 'destroy']);
-    Route::post('/users/{id}/roles', [UserController::class, 'assignRole']);
-    Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword']);
-    Route::patch('/users/{id}/toggle', [UserController::class, 'toggle']);
-    Route::post('/users/{id}/change-password', [UserController::class, 'changePassword']);
-    Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.read');
+    Route::get('/users/roles-lite', [UserController::class, 'rolesLite'])->middleware('permission:roles.read');
+    Route::get('/users/{id}', [UserController::class, 'show'])->middleware('permission:users.read');
+    Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.create');
+    Route::put('/users/{id}', [UserController::class, 'update'])->middleware('permission:users.update');
+    Route::delete('/users/{id}', [UserController::class, 'destroy'])->middleware('permission:users.delete');
+    Route::post('/users/{id}/roles', [UserController::class, 'assignRole'])->middleware('permission:roles.update');
+    Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword'])->middleware('permission:users.update');
+    Route::patch('/users/{id}/toggle', [UserController::class, 'toggle'])->middleware('permission:users.update');
+    Route::post('/users/{id}/change-password', [UserController::class, 'changePassword'])->middleware('permission:users.update');
+    Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus'])->middleware('permission:users.update');
 
-    Route::get('/user-activation-requests', [UserActivationRequestController::class, 'index']);
-    Route::post('/user-activation-requests/bulk-verify', [UserActivationRequestController::class, 'bulkVerify']);
-    Route::post('/user-activation-requests/bulk-approve', [UserActivationRequestController::class, 'bulkApprove']);
-    Route::post('/user-activation-requests/{activationRequest}/verify', [UserActivationRequestController::class, 'verify']);
-    Route::post('/user-activation-requests/{activationRequest}/approve', [UserActivationRequestController::class, 'approve']);
-    Route::post('/user-activation-requests/{activationRequest}/reject', [UserActivationRequestController::class, 'reject']);
+    Route::get('/user-activation-requests', [UserActivationRequestController::class, 'index'])->middleware('permission:users.read');
+    Route::post('/user-activation-requests/bulk-verify', [UserActivationRequestController::class, 'bulkVerify'])->middleware('permission:users.activate');
+    Route::post('/user-activation-requests/bulk-approve', [UserActivationRequestController::class, 'bulkApprove'])->middleware('permission:users.activate');
+    Route::post('/user-activation-requests/{activationRequest}/verify', [UserActivationRequestController::class, 'verify'])->middleware('permission:users.activate');
+    Route::post('/user-activation-requests/{activationRequest}/approve', [UserActivationRequestController::class, 'approve'])->middleware('permission:users.activate');
+    Route::post('/user-activation-requests/{activationRequest}/reject', [UserActivationRequestController::class, 'reject'])->middleware('permission:users.activate');
 
-    Route::get('/roles', [RoleController::class, 'index']);
-    Route::post('/roles', [RoleController::class, 'store']);
-    Route::put('/roles/{id}', [RoleController::class, 'update']);
-    Route::get('/roles/{id}/permissions', [RoleController::class, 'rolePermissions']);
-    Route::post('/roles/{id}/permissions', [RoleController::class, 'assignPermissions']);
+    Route::get('/roles', [RoleController::class, 'index'])->middleware('permission:roles.read');
+    Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:roles.create');
+    Route::put('/roles/{id}', [RoleController::class, 'update'])->middleware('permission:roles.update');
+    Route::get('/roles/{id}/permissions', [RoleController::class, 'rolePermissions'])->middleware('permission:roles.read');
+    Route::post('/roles/{id}/permissions', [RoleController::class, 'assignPermissions'])->middleware('permission:roles.assign_permissions');
 
-    Route::get('/permissions', [PermissionController::class, 'index']);
-    Route::post('/permissions', [PermissionController::class, 'store']);
-    Route::put('/permissions/{id}', [PermissionController::class, 'update']);
-    Route::delete('/permissions/{id}', [PermissionController::class, 'destroy']);
+    Route::get('/permissions', [PermissionController::class, 'index'])->middleware('permission:permissions.read');
+    Route::post('/permissions', [PermissionController::class, 'store'])->middleware('permission:permissions.create');
+    Route::put('/permissions/{id}', [PermissionController::class, 'update'])->middleware('permission:permissions.update');
+    Route::delete('/permissions/{id}', [PermissionController::class, 'destroy'])->middleware('permission:permissions.delete');
 
-    Route::get('/offices', [OfficeController::class, 'index']);
-    Route::post('/offices', [OfficeController::class, 'store']);
-    Route::get('/offices/{office}', [OfficeController::class, 'show']);
-    Route::put('/offices/{office}', [OfficeController::class, 'update']);
-    Route::delete('/offices/{office}', [OfficeController::class, 'destroy']);
+    Route::get('/offices', [OfficeController::class, 'index'])->middleware('permission:users.read');
+    Route::post('/offices', [OfficeController::class, 'store'])->middleware('permission:users.update');
+    Route::get('/offices/{office}', [OfficeController::class, 'show'])->middleware('permission:users.read');
+    Route::put('/offices/{office}', [OfficeController::class, 'update'])->middleware('permission:users.update');
+    Route::delete('/offices/{office}', [OfficeController::class, 'destroy'])->middleware('permission:users.update');
 
 
 
-    Route::get('/service-providers', [ServiceProviderController::class, 'index']);
-    Route::post('/service-providers', [ServiceProviderController::class, 'store']);
-    Route::get('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'show']);
-    Route::put('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'update']);
-    Route::delete('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'destroy']);
+    Route::get('/service-providers', [ServiceProviderController::class, 'index'])->middleware('permission:service_providers.read');
+    Route::post('/service-providers', [ServiceProviderController::class, 'store'])->middleware('permission:service_providers.create');
+    Route::get('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'show'])->middleware('permission:service_providers.read');
+    Route::put('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'update'])->middleware('permission:service_providers.update');
+    Route::delete('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'destroy'])->middleware('permission:service_providers.delete');
 
     Route::apiResource('cities', CityController::class);
     Route::apiResource('subcities', SubcityController::class);
     Route::apiResource('woredas', WoredaController::class);
 
-    Route::get('/audit-logs', [AuditLogController::class, 'index']);
-    Route::post('/audit-logs', [AuditLogController::class, 'store']);
-    Route::get('/audit-logs/{id}', [AuditLogController::class, 'show']);
-    Route::put('/audit-logs/{id}', [AuditLogController::class, 'update']);
-    Route::delete('/audit-logs/{id}', [AuditLogController::class, 'destroy']);
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit_logs.read');
+    Route::post('/audit-logs', [AuditLogController::class, 'store'])->middleware('permission:audit_logs.read');
+    Route::get('/audit-logs/{id}', [AuditLogController::class, 'show'])->middleware('permission:audit_logs.read');
+    Route::put('/audit-logs/{id}', [AuditLogController::class, 'update'])->middleware('permission:audit_logs.read');
+    Route::delete('/audit-logs/{id}', [AuditLogController::class, 'destroy'])->middleware('permission:audit_logs.read');
 });
 
 Route::post('/sms/send-phone', [SmsController::class, 'sendPhone']);
@@ -92,5 +92,5 @@ Route::post(
     [FeedbackController::class, 'store']
 );
 
-Route::get('/customers', [CustomerController::class, 'customerlist']);
-  Route::get('/customers/{id}',[ CustomerController::class,'show']);
+Route::get('/customers', [CustomerController::class, 'customerlist'])->middleware('permission:users.read');
+  Route::get('/customers/{id}',[ CustomerController::class,'show'])->middleware('permission:users.read');

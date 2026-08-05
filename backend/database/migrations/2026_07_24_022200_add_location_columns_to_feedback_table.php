@@ -50,13 +50,25 @@ return new class extends Migration
         // Backfill existing rows from their window's location so reports
         // built against feedback.city_id/subcity_id/woreda_id don't lose
         // data that was already submitted before this migration.
-        DB::table('feedback')
-            ->join('windows', 'windows.id', '=', 'feedback.window_id')
-            ->update([
-                'feedback.city_id' => DB::raw('windows.city_id'),
-                'feedback.subcity_id' => DB::raw('windows.subcity_id'),
-                'feedback.woreda_id' => DB::raw('windows.woreda_id'),
-            ]);
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement(<<<'SQL'
+                UPDATE feedback
+                SET
+                    city_id = windows.city_id,
+                    subcity_id = windows.subcity_id,
+                    woreda_id = windows.woreda_id
+                FROM windows
+                WHERE windows.id = feedback.window_id
+            SQL);
+        } else {
+            DB::table('feedback')
+                ->join('windows', 'windows.id', '=', 'feedback.window_id')
+                ->update([
+                    'feedback.city_id' => DB::raw('windows.city_id'),
+                    'feedback.subcity_id' => DB::raw('windows.subcity_id'),
+                    'feedback.woreda_id' => DB::raw('windows.woreda_id'),
+                ]);
+        }
     }
 
     /**

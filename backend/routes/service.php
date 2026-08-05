@@ -11,38 +11,38 @@ use App\Http\Controllers\Api\ServiceFormFieldController;
 use App\Http\Controllers\SmsController;
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/services', [ServiceController::class, 'index']);
-    Route::get('/services-dropdown', [ServiceController::class, 'allServices']);
-    Route::post('/services', [ServiceController::class, 'store']);
-    Route::put('/services/{service}', [ServiceController::class, 'update']);
-    Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
+    Route::get('/services', [ServiceController::class, 'index'])->middleware('permission:services.read');
+    Route::get('/services-dropdown', [ServiceController::class, 'allServices'])->middleware('permission:services.read');
+    Route::post('/services', [ServiceController::class, 'store'])->middleware('permission:services.create');
+    Route::put('/services/{service}', [ServiceController::class, 'update'])->middleware('permission:services.update');
+    Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->middleware('permission:services.delete');
 
-    Route::apiResource('service-criteria', ServiceCriterionController::class);
+    Route::apiResource('service-criteria', ServiceCriterionController::class)->middleware('permission:services.update');
 
-    Route::apiResource('service-forms', ServiceFormController::class);
+    Route::apiResource('service-forms', ServiceFormController::class)->middleware('permission:service_forms.update');
 
-    Route::get('/user-services/board', [UserServiceAssignmentController::class, 'board']);
-    Route::post('/user-services/assign', [UserServiceAssignmentController::class, 'assignAdvanced']);
-    Route::delete('/user-services/unassign', [UserServiceAssignmentController::class, 'unassignAdvanced']);
+    Route::get('/user-services/board', [UserServiceAssignmentController::class, 'board'])->middleware('permission:services.read');
+    Route::post('/user-services/assign', [UserServiceAssignmentController::class, 'assignAdvanced'])->middleware('permission:services.update');
+    Route::delete('/user-services/unassign', [UserServiceAssignmentController::class, 'unassignAdvanced'])->middleware('permission:services.update');
 
-    Route::get('/users/{user}/services', [UserServiceAssignmentController::class, 'show']);
-    Route::post('/users/{user}/services', [UserServiceAssignmentController::class, 'assign']);
-    Route::delete('/users/{user}/services/{serviceId}', [UserServiceAssignmentController::class, 'remove']);
-    Route::patch('/users/{user}/services/{serviceId}/toggle', [UserServiceAssignmentController::class, 'toggle']);
+    Route::get('/users/{user}/services', [UserServiceAssignmentController::class, 'show'])->middleware('permission:services.read');
+    Route::post('/users/{user}/services', [UserServiceAssignmentController::class, 'assign'])->middleware('permission:services.update');
+    Route::delete('/users/{user}/services/{serviceId}', [UserServiceAssignmentController::class, 'remove'])->middleware('permission:services.update');
+    Route::patch('/users/{user}/services/{serviceId}/toggle', [UserServiceAssignmentController::class, 'toggle'])->middleware('permission:services.update');
 
-    Route::get('/service-officers', [UserServiceAssignmentController::class, 'officers']);
+    Route::get('/service-officers', [UserServiceAssignmentController::class, 'officers'])->middleware('permission:services.read');
 
-    Route::get('/service-form-sections', [ServiceFormSectionController::class, 'index']);
-    Route::post('/service-form-sections', [ServiceFormSectionController::class, 'store']);
-    Route::get('/service-form-sections/{serviceFormSection}', [ServiceFormSectionController::class, 'show']);
-    Route::put('/service-form-sections/{serviceFormSection}', [ServiceFormSectionController::class, 'update']);
-    Route::delete('/service-form-sections/{serviceFormSection}', [ServiceFormSectionController::class, 'destroy']);
+    Route::get('/service-form-sections', [ServiceFormSectionController::class, 'index'])->middleware('permission:service_forms.read');
+    Route::post('/service-form-sections', [ServiceFormSectionController::class, 'store'])->middleware('permission:service_forms.create');
+    Route::get('/service-form-sections/{serviceFormSection}', [ServiceFormSectionController::class, 'show'])->middleware('permission:service_forms.read');
+    Route::put('/service-form-sections/{serviceFormSection}', [ServiceFormSectionController::class, 'update'])->middleware('permission:service_forms.update');
+    Route::delete('/service-form-sections/{serviceFormSection}', [ServiceFormSectionController::class, 'destroy'])->middleware('permission:service_forms.delete');
 
-    Route::get('/service-form-fields', [ServiceFormFieldController::class, 'index']);
-    Route::post('/service-form-fields', [ServiceFormFieldController::class, 'store']);
-    Route::get('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'show']);
-    Route::put('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'update']);
-    Route::delete('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'destroy']);
+    Route::get('/service-form-fields', [ServiceFormFieldController::class, 'index'])->middleware('permission:service_forms.read');
+    Route::post('/service-form-fields', [ServiceFormFieldController::class, 'store'])->middleware('permission:service_forms.create');
+    Route::get('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'show'])->middleware('permission:service_forms.read');
+    Route::put('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'update'])->middleware('permission:service_forms.update');
+    Route::delete('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'destroy'])->middleware('permission:service_forms.delete');
 });
 
     Route::post('/sms/send-phone', [SmsController::class, 'sendPhone']);
