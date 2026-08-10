@@ -82,7 +82,11 @@ function windowDisplayName(window: any, level?: Level | null) {
                   ? window.woreda_title || window.title
                   : window.title;
 
-  return `${window.name || "Window"}${title ? ` - ${title}` : ""}`;
+  const name = window.name || "Window";
+  const isDuplicate =
+      title && title.trim().toLowerCase() === name.trim().toLowerCase();
+
+  return `${name}${title && !isDuplicate ? ` - ${title}` : ""}`;
 }
 
 function serviceWindowDisplayName(service: any, windows: any[], level?: Level | null) {

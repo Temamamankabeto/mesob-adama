@@ -18,15 +18,33 @@ class FeedbackService {
     private readonly feedbackUrl = "/feedback";
     private readonly windowsUrl = "/windows";
     private readonly publicWindowsUrl = "/public/feedback-windows";
+    private readonly scopedWindowsUrl = "/feedback/windows";
 
     /* ==========================================================
-     * WINDOWS
-     * Public kiosk endpoint — no login required, matches how the
-     * feedback form itself is submitted anonymously at a window.
+     * WINDOWS (public kiosk)
+     * No login required, matches how the feedback form itself is
+     * submitted anonymously at a window — every window is shown
+     * since the walk-in customer picks whichever one they're at.
      * ========================================================== */
 
     async getWindows(): Promise<Window[]> {
         const response = await api.get(this.publicWindowsUrl);
+
+        return unwrap<WindowResponse>(response).data;
+    }
+
+    /* ==========================================================
+     * WINDOWS (logged-in feedback officer)
+     * Requires auth. Scoped server-side to the officer's own
+     * city / subcity / woreda — a city-level officer only sees
+     * their city's windows, a subcity-level officer sees their
+     * subcity window plus every woreda window under it, and a
+     * woreda-level officer sees only their own woreda window.
+     * Each window comes with its active services attached.
+     * ========================================================== */
+
+    async getScopedWindows(): Promise<Window[]> {
+        const response = await api.get(this.scopedWindowsUrl);
 
         return unwrap<WindowResponse>(response).data;
     }

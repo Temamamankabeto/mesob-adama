@@ -6,6 +6,7 @@ import {
     useQueryClient,
 } from "@tanstack/react-query";
 
+import { getToken } from "@/lib/api";
 import feedbackService from "@/services/feedback.service";
 
 import type {
@@ -23,6 +24,8 @@ export const feedbackKeys = {
     all: ["feedback"] as const,
 
     windows: ["feedback", "windows"] as const,
+
+    scopedWindows: ["feedback", "scoped-windows"] as const,
 
     services: (windowId?: number) =>
         ["feedback", "services", windowId] as const,
@@ -51,6 +54,65 @@ export function useWindows() {
             feedbackService.getWindows(),
 
     });
+
+}
+
+/* ==========================================================
+ * WINDOWS — scoped to the logged-in officer's own
+ * city / subcity / woreda (with their active services attached)
+ * ========================================================== */
+
+export function useScopedWindows() {
+
+    return useQuery({
+
+        queryKey: feedbackKeys.scopedWindows,
+
+        queryFn: () =>
+            feedbackService.getScopedWindows(),
+
+    });
+
+}
+
+/* ==========================================================
+ * WINDOWS — location-aware.
+ * A logged-in feedback officer (token present) gets the scoped,
+ * server-filtered list for their own city / subcity / woreda
+ * (with active services already attached). Everyone else — the
+ * anonymous kiosk case — falls back to the unscoped public list,
+ * since a walk-in customer at a window has no "location" of their
+ * own to scope by.
+ * ========================================================== */
+
+export function useAvailableWindows() {
+
+    const hasToken =
+        typeof window !== "undefined" && !!getToken();
+
+    const scoped = useQuery({
+
+        queryKey: feedbackKeys.scopedWindows,
+
+        queryFn: () =>
+            feedbackService.getScopedWindows(),
+
+        enabled: hasToken,
+
+    });
+
+    const publicWindows = useQuery({
+
+        queryKey: feedbackKeys.windows,
+
+        queryFn: () =>
+            feedbackService.getWindows(),
+
+        enabled: !hasToken,
+
+    });
+
+    return hasToken ? scoped : publicWindows;
 
 }
 
