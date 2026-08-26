@@ -20,9 +20,18 @@ export type Gender =
 export interface Window {
     id: number;
     name: string;
+    title?: string | null;
+    city_title?: string | null;
+    subcity_title?: string | null;
+    woreda_title?: string | null;
+    administrative_level?: "city" | "subcity" | "woreda" | null;
     city_id?: number | null;
     subcity_id?: number | null;
     woreda_id?: number | null;
+    city?: LocationRef | null;
+    subcity?: LocationRef | null;
+    woreda?: LocationRef | null;
+    services?: Service[];
 }
 
 export interface LocationRef {

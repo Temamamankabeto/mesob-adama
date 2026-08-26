@@ -31,7 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-    useWindows,
+    useAvailableWindows,
     useWindowServices,
     useCreateFeedback,
 } from "@/hooks/use-feedback";
@@ -506,17 +506,28 @@ export default function FeedbackPage() {
     const [showServicePopup, setShowServicePopup] = useState(false);
     const [selectedServiceId, setSelectedServiceId] = useState<number>();
 
-    /* Load Windows */
-    const { data: windowsData, isLoading: windowsLoading } = useWindows();
+    /* Load Windows — scoped to the logged-in officer's own city /
+       subcity / woreda when authenticated, all windows otherwise
+       (anonymous kiosk). */
+    const { data: windowsData, isLoading: windowsLoading } = useAvailableWindows();
     const windows = useMemo(
         () => sortByLevel(normalizeList(windowsData)),
         [windowsData]
     );
 
-    /* Load Services for the currently opened window */
-    const { data: servicesData, isLoading: servicesLoading } =
-        useWindowServices(windowId);
-    const services = normalizeList(servicesData);
+    /* The scoped (logged-in) window list already comes with its
+       active services attached, so no extra request is needed —
+       only fall back to fetching services separately for the
+       public/anonymous kiosk list, which doesn't embed them. */
+    const embeddedServices = Array.isArray(selectedWindow?.services)
+        ? selectedWindow.services
+        : null;
+
+    const { data: servicesData, isLoading: servicesQueryLoading } =
+        useWindowServices(embeddedServices ? undefined : windowId);
+
+    const services = embeddedServices ?? normalizeList(servicesData);
+    const servicesLoading = embeddedServices ? false : servicesQueryLoading;
 
     /* Handle Window Click */
     const handleWindowClick = (window: any) => {

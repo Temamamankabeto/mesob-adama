@@ -27,7 +27,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-import { useFeedback } from "@/hooks/use-feedback";
+import { useFeedback, useScopedWindows } from "@/hooks/use-feedback";
 import { useReportingDashboardCards } from "@/hooks/dashboard/use-reporting-dashboard";
 import type { Feedback, FeedbackFilters, Satisfaction } from "@/types/feedback";
 import type {
@@ -201,7 +201,38 @@ export default function AgentFeedbackPage() {
     const [satisfaction, setSatisfaction] = useState<Satisfaction | "all">(
         "all"
     );
+    const [windowId, setWindowId] = useState<number | "all">("all");
+    const [serviceId, setServiceId] = useState<number | "all">("all");
     const [page, setPage] = useState(1);
+
+    // Windows (with their active services) inside the officer's own
+    // city / subcity / woreda — a city-level officer only sees their
+    // city's window, a subcity-level officer sees their subcity window
+    // plus every woreda window under it, and a woreda-level officer sees
+    // only their own woreda window.
+    const { data: scopedWindows = [] } = useScopedWindows();
+
+    const selectedWindow = useMemo(
+        () => scopedWindows.find((w) => w.id === windowId),
+        [scopedWindows, windowId]
+    );
+
+    // Services available to filter by: only those on the selected window,
+    // or the union of services across every window in scope if none is
+    // selected yet — never services outside the officer's jurisdiction.
+    const availableServices = useMemo(() => {
+        const source = selectedWindow
+            ? [selectedWindow]
+            : scopedWindows;
+
+        const byId = new Map<number, { id: number; name: string }>();
+
+        source.forEach((w) => {
+            (w.services ?? []).forEach((s) => byId.set(s.id, s));
+        });
+
+        return Array.from(byId.values());
+    }, [scopedWindows, selectedWindow]);
 
     const filters = useMemo<FeedbackFilters>(() => {
         const value: FeedbackFilters = { page, per_page: 20 };
@@ -210,8 +241,16 @@ export default function AgentFeedbackPage() {
             value.satisfaction = satisfaction;
         }
 
+        if (windowId !== "all") {
+            value.window_id = windowId;
+        }
+
+        if (serviceId !== "all") {
+            value.service_id = serviceId;
+        }
+
         return value;
-    }, [satisfaction, page]);
+    }, [satisfaction, windowId, serviceId, page]);
 
     const { data, isLoading, isError } = useFeedback(filters);
 
@@ -260,11 +299,11 @@ export default function AgentFeedbackPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="text-base">
-                        By Window / Service (all)
+                        By Window / Service (your jurisdiction)
                     </CardTitle>
                     <CardDescription>
-                        Every window and service, with its location and
-                        satisfaction breakdown.
+                        Every window and service within your city, subcity,
+                        or woreda, with its satisfaction breakdown.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -292,31 +331,94 @@ export default function AgentFeedbackPage() {
                         </CardDescription>
                     </div>
 
-                    <Select
-                        value={satisfaction}
-                        onValueChange={(value) => {
-                            setSatisfaction(value as Satisfaction | "all");
-                            setPage(1);
-                        }}
-                    >
-                        <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Filter by satisfaction" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">
-                                All satisfaction levels
-                            </SelectItem>
-                            <SelectItem value="highly_satisfied">
-                                Highly Satisfied
-                            </SelectItem>
-                            <SelectItem value="satisfied">
-                                Satisfied
-                            </SelectItem>
-                            <SelectItem value="not_satisfied">
-                                Not Satisfied
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Select
+                            value={String(windowId)}
+                            onValueChange={(value) => {
+                                const next =
+                                    value === "all" ? "all" : Number(value);
+
+                                setWindowId(next);
+                                // The service list depends on the window,
+                                // so a previously-picked service may no
+                                // longer be valid — reset it.
+                                setServiceId("all");
+                                setPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Filter by window" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">
+                                    All windows in my jurisdiction
+                                </SelectItem>
+                                {scopedWindows.map((w) => (
+                                    <SelectItem
+                                        key={w.id}
+                                        value={String(w.id)}
+                                    >
+                                        {w.title || w.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select
+                            value={String(serviceId)}
+                            onValueChange={(value) => {
+                                setServiceId(
+                                    value === "all" ? "all" : Number(value)
+                                );
+                                setPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Filter by service" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">
+                                    All services
+                                </SelectItem>
+                                {availableServices.map((s) => (
+                                    <SelectItem
+                                        key={s.id}
+                                        value={String(s.id)}
+                                    >
+                                        {s.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select
+                            value={satisfaction}
+                            onValueChange={(value) => {
+                                setSatisfaction(
+                                    value as Satisfaction | "all"
+                                );
+                                setPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Filter by satisfaction" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">
+                                    All satisfaction levels
+                                </SelectItem>
+                                <SelectItem value="highly_satisfied">
+                                    Highly Satisfied
+                                </SelectItem>
+                                <SelectItem value="satisfied">
+                                    Satisfied
+                                </SelectItem>
+                                <SelectItem value="not_satisfied">
+                                    Not Satisfied
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </CardHeader>
 
                 <CardContent>

@@ -113,7 +113,7 @@ function apiBaseUrl() {
   return (
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
-    "http://127.0.0.1:8000/api"
+    "https://mesobbackend.adamacity.gov.et/api"
   ).replace(/\/$/, "");
 }
 
@@ -166,7 +166,12 @@ async function getAboutData(): Promise<AboutData> {
 }
 
 export default async function AboutPage() {
-  const { cities, subcities, woredas, services } = await getAboutData();
+  const cityName = "Adama";
+  const { cities,
+    subcities,
+    woredas,
+    services }
+      = await getAboutData();
 
   const cityName = cities[0]?.name ?? "Adama City Administration";
 

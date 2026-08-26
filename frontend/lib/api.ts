@@ -1,7 +1,12 @@
 import axios, { AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from "axios";
 
+<<<<<<< HEAD
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
 let accessToken: string | null = null;
+=======
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://mesobbackend.adamacity.gov.et/";
+const TOKEN_KEY = "token";
+>>>>>>> 2cf3ab943677f8cacd77f8fe39a7ea3db2e3374d
 
 type RetriableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 function isBrowser() { return typeof window !== "undefined"; }
