@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\SmsService;
 use App\Support\AppRoles;
+use App\Support\StrongPassword;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -23,7 +24,7 @@ class AuthController extends Controller
         'name' => ['required', 'string', 'max:255'],
         'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
         'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
-        'password' => ['required', 'confirmed', Password::min(12)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
+        'password' => array_merge(StrongPassword::required(), ['confirmed']),
         'address' => ['nullable', 'string', 'max:500'],
     ]);
 

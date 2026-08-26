@@ -9,7 +9,7 @@ use App\Http\Controllers\Api\RefreshTokenController;
 use Illuminate\Support\Facades\Route;
 use App\Services\SmsService;
 
-Route::get('/test-sms', function (SmsService $sms) {
+Route::middleware(['auth:sanctum', 'permission:users.update'])->get('/test-sms', function (SmsService $sms) {
 
     return $sms->sendToPhone(
         '251953546423',

@@ -13,6 +13,7 @@ use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
+use App\Support\StrongPassword;
 use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
@@ -207,7 +208,7 @@ class UserController extends Controller
     {
         $request->validate([
             'current_password' => ['required', 'string'],
-            'new_password' => ['required', 'string', 'confirmed', Password::min(12)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
+            'new_password' => array_merge(StrongPassword::required(), ['confirmed']),
         ]);
 
         $this->userService->changePassword(
@@ -228,7 +229,7 @@ class UserController extends Controller
 
         $request->validate([
             'current_password' => 'required|string',
-            'new_password' => ['required','string','confirmed',Password::min(12)->mixedCase()->letters()->numbers()->symbols()->uncompromised()],
+            'new_password' => array_merge(StrongPassword::required(), ['confirmed']),
         ]);
 
         $this->userService->changePassword(

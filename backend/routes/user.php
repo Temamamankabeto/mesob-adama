@@ -67,9 +67,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::put('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'update'])->middleware('permission:service_providers.update');
     Route::delete('/service-providers/{serviceProvider}', [ServiceProviderController::class, 'destroy'])->middleware('permission:service_providers.delete');
 
-    Route::apiResource('cities', CityController::class);
-    Route::apiResource('subcities', SubcityController::class);
-    Route::apiResource('woredas', WoredaController::class);
+    Route::apiResource('cities', CityController::class)->middleware('permission:users.read');
+    Route::apiResource('subcities', SubcityController::class)->middleware('permission:users.read');
+    Route::apiResource('woredas', WoredaController::class)->middleware('permission:users.read');
 
     Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit_logs.read');
     Route::post('/audit-logs', [AuditLogController::class, 'store'])->middleware('permission:audit_logs.read');
@@ -78,9 +78,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::delete('/audit-logs/{id}', [AuditLogController::class, 'destroy'])->middleware('permission:audit_logs.read');
 });
 
-Route::post('/sms/send-phone', [SmsController::class, 'sendPhone']);
-Route::post('/sms/send-otp', [SmsController::class, 'sendOtp']);
-Route::post('/sms/send-bulk', [SmsController::class, 'sendBulk']);
+Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-phone', [SmsController::class, 'sendPhone']);
+Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-otp', [SmsController::class, 'sendOtp']);
+Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-bulk', [SmsController::class, 'sendBulk']);
 
 Route::get(
     '/feedback/{token}',
@@ -92,5 +92,5 @@ Route::post(
     [FeedbackController::class, 'store']
 );
 
-Route::get('/customers', [CustomerController::class, 'customerlist'])->middleware('permission:users.read');
-  Route::get('/customers/{id}',[ CustomerController::class,'show'])->middleware('permission:users.read');
+Route::middleware(['auth:sanctum', 'permission:users.read'])->get('/customers', [CustomerController::class, 'customerlist']);
+  Route::middleware(['auth:sanctum', 'permission:users.read'])->get('/customers/{id}', [CustomerController::class, 'show']);

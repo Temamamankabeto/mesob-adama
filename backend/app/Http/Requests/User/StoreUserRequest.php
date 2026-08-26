@@ -3,6 +3,7 @@
 namespace App\Http\Requests\User;
 
 use App\Support\AppRoles;
+use App\Support\StrongPassword;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +24,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'email', 'max:100', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
             'gender' => ['nullable', 'string', Rule::in(['male', 'female', 'other'])],
-            'password' => ['required', 'string', 'min:8', 'max:255'],
+            'password' => StrongPassword::required(),
 
             'role' => [
                 'required',

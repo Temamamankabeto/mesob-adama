@@ -52,11 +52,11 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     Route::prefix('news')->group(function () {
         Route::get('/', [NewsController::class, 'index'])->middleware('permission:services.read');
-        Route::post('/', [NewsController::class, 'store'])->middleware('permission:services.read');
-        Route::get('{news}', [NewsController::class, 'show']);
-        Route::put('{news}', [NewsController::class, 'update']);
-        Route::patch('{news}', [NewsController::class, 'update']);
-        Route::delete('{news}', [NewsController::class, 'destroy']);
+        Route::post('/', [NewsController::class, 'store'])->middleware('permission:services.create');
+        Route::get('{news}', [NewsController::class, 'show'])->middleware('permission:services.read');
+        Route::put('{news}', [NewsController::class, 'update'])->middleware('permission:services.update');
+        Route::patch('{news}', [NewsController::class, 'update'])->middleware('permission:services.update');
+        Route::delete('{news}', [NewsController::class, 'destroy'])->middleware('permission:services.delete');
     });
 
 

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\User;
 
 use App\Support\AppRoles;
+use App\Support\StrongPassword;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -34,7 +35,7 @@ class UpdateUserRequest extends FormRequest
                 Rule::unique('users', 'phone')->ignore($userId),
             ],
             'gender' => ['nullable', 'string', Rule::in(['male', 'female', 'other'])],
-            'password' => ['nullable', 'string', 'min:8', 'max:255'],
+            'password' => StrongPassword::nullable(),
 
             'role' => [
                 'required',

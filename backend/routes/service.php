@@ -45,6 +45,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'destroy'])->middleware('permission:service_forms.delete');
 });
 
-    Route::post('/sms/send-phone', [SmsController::class, 'sendPhone']);
-    Route::post('/sms/send-otp', [SmsController::class, 'sendOtp']);
-    Route::post('/sms/send-bulk', [SmsController::class, 'sendBulk']);
+    Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-phone', [SmsController::class, 'sendPhone']);
+    Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-otp', [SmsController::class, 'sendOtp']);
+    Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-bulk', [SmsController::class, 'sendBulk']);
