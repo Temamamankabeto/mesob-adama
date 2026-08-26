@@ -14,8 +14,9 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\UserActivationRequestController;
 use App\Http\Controllers\SmsController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\EnforceIdleSessionTimeout;
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class])->group(function () {
     Route::get('/profile', [UserController::class, 'profile']);
     Route::post('/profile/update', [UserController::class, 'updateProfile']);
     Route::post('/profile/change-password', [UserController::class, 'changeOwnPassword']);
@@ -77,9 +78,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::delete('/audit-logs/{id}', [AuditLogController::class, 'destroy'])->middleware('permission:audit_logs.read');
 });
 
-Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-phone', [SmsController::class, 'sendPhone']);
-Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-otp', [SmsController::class, 'sendOtp']);
-Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-bulk', [SmsController::class, 'sendBulk']);
+Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class, 'permission:users.update'])->post('/sms/send-phone', [SmsController::class, 'sendPhone']);
+Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class, 'permission:users.update'])->post('/sms/send-otp', [SmsController::class, 'sendOtp']);
+Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class, 'permission:users.update'])->post('/sms/send-bulk', [SmsController::class, 'sendBulk']);
 
 Route::get(
     '/feedback/{token}',
@@ -91,5 +92,5 @@ Route::post(
     [FeedbackController::class, 'store']
 );
 
-Route::middleware(['auth:sanctum', 'permission:users.read'])->get('/customers', [CustomerController::class, 'customerlist']);
-  Route::middleware(['auth:sanctum', 'permission:users.read'])->get('/customers/{id}', [CustomerController::class, 'show']);
+Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class, 'permission:users.read'])->get('/customers', [CustomerController::class, 'customerlist']);
+  Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class, 'permission:users.read'])->get('/customers/{id}', [CustomerController::class, 'show']);

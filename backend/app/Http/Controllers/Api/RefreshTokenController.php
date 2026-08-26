@@ -35,6 +35,21 @@ class RefreshTokenController extends Controller
             ], 401);
         }
 
+        if (!$user->is_active) {
+            $user->tokens()->delete();
+            $user->forceFill([
+                'refresh_token' => null,
+                'refresh_token_expires_at' => null,
+            ])->save();
+
+            return response()
+                ->json([
+                    'success' => false,
+                    'message' => 'Your account is disabled. Please contact the administrator.',
+                ], 403)
+                ->withoutCookie('refresh_token');
+        }
+
         $user->tokens()->delete();
         $newAccessToken = $user->createToken('mesob-api-token', ['*'], now()->addMinutes(30))->plainTextToken;
 
@@ -48,6 +63,9 @@ class RefreshTokenController extends Controller
         return response()->json([
             'success' => true,
             'token' => $newAccessToken,
+                'access_token' => $newAccessToken,
+                'token_type' => 'Bearer',
+                'expires_in' => 30 * 60,
                     ])->cookie(
             'refresh_token',
             $newRefreshToken,

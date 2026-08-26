@@ -166,7 +166,6 @@ async function getAboutData(): Promise<AboutData> {
 }
 
 export default async function AboutPage() {
-  const cityName = "Adama";
   const { cities,
     subcities,
     woredas,

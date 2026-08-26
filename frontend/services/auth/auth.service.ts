@@ -64,12 +64,33 @@ function rememberUser(user: AuthUser | null) {
 export const authService = {
   async login(credentials: { email: string; password: string }) {
     const response = await api.post("/auth/login", credentials);
-    return normalizeLoginResponse(unwrap<LoginResponse>(response));
+    const loginResponse = normalizeLoginResponse(unwrap<LoginResponse>(response));
+    const token = loginResponse.token ?? loginResponse.access_token ?? loginResponse.data?.token ?? loginResponse.data?.access_token;
+
+    if (token) {
+      saveAccessToken(token);
+    }
+
+    const user = await this.me();
+
+    return {
+      ...loginResponse,
+      user,
+      roles: user?.roles ?? (user?.role ? [user.role] : []),
+      permissions: user?.permissions ?? [],
+    };
   },
 
   async registerCustomer(payload: CustomerRegisterPayload) {
     const response = await api.post("/auth/register", payload);
-    return normalizeLoginResponse(unwrap<LoginResponse>(response));
+    const registerResponse = normalizeLoginResponse(unwrap<LoginResponse>(response));
+    const token = registerResponse.token ?? registerResponse.access_token ?? registerResponse.data?.token ?? registerResponse.data?.access_token;
+
+    if (token) {
+      saveAccessToken(token);
+    }
+
+    return registerResponse;
   },
 
   async me() {
@@ -87,15 +108,23 @@ export const authService = {
     }
   },
   async faydaLogin(code: string) {
-  const response = await api.post(
-    "/auth/fayda/callback",
-    {
-      code,
-    }
-  );
+    const response = await api.post("/auth/fayda/callback", { code });
+    const faydaResponse = normalizeLoginResponse(unwrap<LoginResponse>(response));
+    const token = faydaResponse.token ?? faydaResponse.access_token ?? faydaResponse.data?.token ?? faydaResponse.data?.access_token;
 
-  return response.data;
-},
+    if (token) {
+      saveAccessToken(token);
+    }
+
+    const user = await this.me();
+
+    return {
+      ...faydaResponse,
+      user,
+      roles: user?.roles ?? (user?.role ? [user.role] : []),
+      permissions: user?.permissions ?? [],
+    };
+  },
   async updateProfile(payload: FormData) {
     const response = await api.post("/profile/update", payload, {
       headers: {

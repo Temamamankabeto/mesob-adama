@@ -4,8 +4,9 @@ use App\Http\Controllers\Api\WindowController;
 use App\Http\Controllers\Api\ServiceWindowController;
 use App\Http\Controllers\Api\OfficerWindowAssignmentController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\EnforceIdleSessionTimeout;
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class])->group(function () {
     Route::get('/windows', [WindowController::class, 'index'])->middleware('permission:windows.read');
     Route::post('/windows', [WindowController::class, 'store'])->middleware('permission:windows.create');
     Route::put('/windows/{window}', [WindowController::class, 'update'])->middleware('permission:windows.update');

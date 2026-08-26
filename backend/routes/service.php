@@ -9,8 +9,9 @@ use App\Http\Controllers\Api\UserServiceAssignmentController;
 use App\Http\Controllers\Api\ServiceFormSectionController;
 use App\Http\Controllers\Api\ServiceFormFieldController;
 use App\Http\Controllers\SmsController;
+use App\Http\Middleware\EnforceIdleSessionTimeout;
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class])->group(function () {
     Route::get('/services', [ServiceController::class, 'index'])->middleware('permission:services.read');
     Route::get('/services-dropdown', [ServiceController::class, 'allServices'])->middleware('permission:services.read');
     Route::post('/services', [ServiceController::class, 'store'])->middleware('permission:services.create');
@@ -45,6 +46,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/service-form-fields/{serviceFormField}', [ServiceFormFieldController::class, 'destroy'])->middleware('permission:service_forms.delete');
 });
 
-    Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-phone', [SmsController::class, 'sendPhone']);
-    Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-otp', [SmsController::class, 'sendOtp']);
-    Route::middleware(['auth:sanctum', 'permission:users.update'])->post('/sms/send-bulk', [SmsController::class, 'sendBulk']);
+    Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class, 'permission:users.update'])->post('/sms/send-phone', [SmsController::class, 'sendPhone']);
+    Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class, 'permission:users.update'])->post('/sms/send-otp', [SmsController::class, 'sendOtp']);
+    Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class, 'permission:users.update'])->post('/sms/send-bulk', [SmsController::class, 'sendBulk']);

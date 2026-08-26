@@ -5,11 +5,14 @@ use App\Http\Controllers\Api\Chatbot\CustomerChatbotController;
 use App\Http\Controllers\Api\Chatbot\ChatbotCategoryController;
 use App\Http\Controllers\Api\Chatbot\ChatbotTrainingQuestionController;
 use App\Http\Controllers\Api\FeedbackController;
-Route::middleware('auth:sanctum')->post('/chatbot/message', [CustomerChatbotController::class, 'message']);
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\EnforceIdleSessionTimeout;
+Route::middleware(SecurityHeaders::class)->group(function () {
+Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class])->post('/chatbot/message', [CustomerChatbotController::class, 'message']);
 
-Route::middleware('auth:sanctum')->prefix('admin/chatbot')->group(function () {
-    Route::apiResource('categories', ChatbotCategoryController::class);
-    Route::apiResource('training-questions', ChatbotTrainingQuestionController::class);
+Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class])->prefix('admin/chatbot')->group(function () {
+    Route::apiResource('categories', ChatbotCategoryController::class)->middleware('permission:services.update');
+    Route::apiResource('training-questions', ChatbotTrainingQuestionController::class)->middleware('permission:services.update');
 });
 
 Route::get('/ping', function () {
@@ -40,3 +43,4 @@ require base_path('routes/user.php');
 require base_path('routes/service.php');
 require base_path('routes/window.php');
 require base_path('routes/application.php');
+});

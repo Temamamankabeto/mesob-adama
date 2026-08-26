@@ -159,9 +159,14 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Authenticated successfully',
             'token' => $accessToken,
-            'user' => $this->userPayload($user),
-            'roles' => $user->getRoleNames()->values()->all(),
-            'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
+            'access_token' => $accessToken,
+            'token_type' => 'Bearer',
+            'expires_in' => 30 * 60,
+            'data' => [
+                'access_token' => $accessToken,
+                'token_type' => 'Bearer',
+                'expires_in' => 30 * 60,
+            ],
         ];
     }
 

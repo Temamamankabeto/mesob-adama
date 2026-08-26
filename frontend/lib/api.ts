@@ -1,19 +1,40 @@
 import axios, { AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from "axios";
 
-<<<<<<< HEAD
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:8000/api";
+
 let accessToken: string | null = null;
-=======
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://mesobbackend.adamacity.gov.et/";
-const TOKEN_KEY = "token";
->>>>>>> 2cf3ab943677f8cacd77f8fe39a7ea3db2e3374d
 
 type RetriableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean };
-function isBrowser() { return typeof window !== "undefined"; }
-export function getToken() { return accessToken; }
-export function saveAccessToken(token: string) { accessToken = token; }
-export function saveSession(payload: { token: string }) { accessToken = payload.token; }
-export function clearSession() { accessToken = null; }
+
+function isBrowser() {
+  return typeof window !== "undefined";
+}
+
+function ensureHeaders(config: InternalAxiosRequestConfig): AxiosHeaders {
+  if (config.headers instanceof AxiosHeaders) {
+    return config.headers;
+  }
+
+  config.headers = new AxiosHeaders(config.headers);
+  return config.headers;
+}
+
+export function getToken() {
+  return accessToken;
+}
+
+export function saveAccessToken(token: string | null) {
+  accessToken = token;
+}
+
+export function saveSession(payload: { token?: string | null; access_token?: string | null }) {
+  accessToken = payload.token ?? payload.access_token ?? null;
+}
+
+export function clearSession() {
+  accessToken = null;
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -22,6 +43,7 @@ const api = axios.create({
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
 });
 
@@ -32,6 +54,7 @@ const refreshClient = axios.create({
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
 });
 
@@ -44,8 +67,14 @@ async function refreshAccessToken() {
     refreshPromise = refreshClient
       .post("/auth/refresh")
       .then((response) => {
-        const token = response.data?.token ?? response.data?.access_token;
+        const token =
+          response.data?.data?.access_token ??
+          response.data?.access_token ??
+          response.data?.token ??
+          null;
+
         if (!token) return null;
+
         saveAccessToken(token);
         return token as string;
       })
@@ -59,13 +88,9 @@ async function refreshAccessToken() {
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = getToken();
+  const headers = ensureHeaders(config);
 
-  const headers =
-    config.headers instanceof AxiosHeaders
-      ? config.headers
-      : new AxiosHeaders(config.headers);
-
-  if (token) {
+  if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -93,11 +118,7 @@ api.interceptors.response.use(
       const newToken = await refreshAccessToken();
 
       if (newToken) {
-        const headers =
-          originalRequest.headers instanceof AxiosHeaders
-            ? originalRequest.headers
-            : new AxiosHeaders(originalRequest.headers);
-
+        const headers = ensureHeaders(originalRequest);
         headers.set("Authorization", `Bearer ${newToken}`);
         originalRequest.headers = headers;
 
