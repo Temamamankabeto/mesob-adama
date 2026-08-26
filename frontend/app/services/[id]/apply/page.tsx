@@ -1,6 +1,6 @@
-import { getToken } from "@/lib/api";
 "use client";
 
+import { getToken } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, MapPin } from "lucide-react";

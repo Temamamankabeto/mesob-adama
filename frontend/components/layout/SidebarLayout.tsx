@@ -3,8 +3,8 @@
 import Link from "next/link";
 
 export default function SidebarLayout({ children }: { children: React.ReactNode }) {
-  const roles = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("roles") || "[]") : [];
-  const permissions = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("permissions") || "[]") : [];
+  const roles: string[] = [];
+  const permissions: string[] = [];
 
   const navSections = [
     { title: "Main", items: [{ label: "Dashboard", href: "/dashboard" }] },

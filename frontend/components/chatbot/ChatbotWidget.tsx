@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { chatbotService } from "@/services/chatbot/chatbot.service";
+import { getToken } from "@/lib/api";
 
 type ChatMessage = {
   id: string;
@@ -29,8 +30,7 @@ function sessionId() {
 }
 
 function isAuthenticated() {
-  if (typeof window === "undefined") return false;
-  return Boolean(localStorage.getItem("token"));
+  return Boolean(getToken());
 }
 
 export default function ChatbotWidget({ source = "web" }: { source?: string }) {

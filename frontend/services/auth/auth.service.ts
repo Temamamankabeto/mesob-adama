@@ -54,6 +54,13 @@ let currentUser: AuthUser | null = null;
 let currentRoles: string[] = [];
 let currentPermissions: string[] = [];
 
+function rememberUser(user: AuthUser | null) {
+  currentUser = user;
+  currentRoles = user?.roles ?? (user?.role ? [user.role] : []);
+  currentPermissions = user?.permissions ?? [];
+  return user;
+}
+
 export const authService = {
   async login(credentials: { email: string; password: string }) {
     const response = await api.post("/auth/login", credentials);
@@ -67,16 +74,16 @@ export const authService = {
 
   async me() {
     const response = await api.get("/auth/me");
-    return normalizeUserResponse(response);
+    return rememberUser(normalizeUserResponse(response));
   },
 
   async profile() {
     try {
       const response = await api.get("/profile");
-      return normalizeUserResponse(response);
+      return rememberUser(normalizeUserResponse(response));
     } catch {
       const response = await api.get("/auth/me");
-      return normalizeUserResponse(response);
+      return rememberUser(normalizeUserResponse(response));
     }
   },
   async faydaLogin(code: string) {
@@ -125,6 +132,9 @@ export const authService = {
     currentUser = user;
     currentRoles = response.roles ?? response.data?.roles ?? user?.roles ?? (user?.role ? [user.role] : []);
     currentPermissions = response.permissions ?? response.data?.permissions ?? user?.permissions ?? [];
+    if (currentUser) {
+      currentUser = { ...currentUser, roles: currentRoles, permissions: currentPermissions };
+    }
   },
 
   getStoredUser(): AuthUser | null { return currentUser; },

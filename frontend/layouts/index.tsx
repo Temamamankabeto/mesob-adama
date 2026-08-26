@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import DashboardHeader from "@/layouts/components/DashboardHeader";
 import Sidebar from "@/layouts/components/Sidebar";
 import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
+import { authService } from "@/services/auth/auth.service";
 
 export default function DashboardLayoutShell({
   children,
@@ -16,14 +17,19 @@ export default function DashboardLayoutShell({
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    let active = true;
 
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
+    authService.profile()
+      .then(() => {
+        if (active) setReady(true);
+      })
+      .catch(() => {
+        if (active) router.replace("/login");
+      });
 
-    setReady(true);
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   if (!ready) return null;

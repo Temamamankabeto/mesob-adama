@@ -243,32 +243,10 @@ export function getSidebarForRole(role?: string | null): RoleSidebar {
   return sidebarConfig[normalizeRole(role)];
 }
 
-function currentScopeKey(): string {
-  if (typeof window === "undefined") return "super_admin";
-
-  try {
-    const rawUser = localStorage.getItem("user") || localStorage.getItem("mesob_user");
-    const rawRoles = localStorage.getItem("roles") || localStorage.getItem("mesob_roles");
-    const user = rawUser ? JSON.parse(rawUser) : {};
-    const roles = rawRoles ? JSON.parse(rawRoles) : [];
-    const role = Array.isArray(roles) ? roles[0] : roles || user.role;
-    const normalized = String(role || "").toLowerCase().replace(/[-\s]+/g, "_");
-
-    if (normalized === "super_admin") return "super_admin";
-    if (normalized === "customer") return "customer";
-
-    const level = user.location_level || (user.woreda_id ? "woreda" : user.subcity_id ? "subcity" : user.city_id ? "city" : "");
-
-    return level ? `${normalized}:${level}` : normalized;
-  } catch {
-    return "super_admin";
-  }
-}
-
 function scopeAllowed(scopes: string[] | undefined): boolean {
-  if (!scopes?.length) return true;
-
-  return scopes.includes(currentScopeKey());
+  // Frontend scoping is only a usability filter. Backend permission and scope
+  // middleware remain the security boundary, so no roles/users are stored in localStorage.
+  return true;
 }
 
 function childAllowed(child: SidebarChildItem, permissions: string[]): boolean {

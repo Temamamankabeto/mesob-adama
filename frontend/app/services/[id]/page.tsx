@@ -1,6 +1,6 @@
-import { getToken } from "@/lib/api";
 "use client";
 
+import { getToken } from "@/lib/api";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {

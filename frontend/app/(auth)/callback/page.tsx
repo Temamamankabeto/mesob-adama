@@ -37,14 +37,6 @@ export default function CallbackPage() {
           response.user?.role ||
           "customer";
 
-        // Save role cookie
-
-        // Save role locally if used in UI
-        localStorage.setItem(
-          "role",
-          role.toLowerCase()
-        );
-
         // Redirect based on role
         switch (role.toLowerCase()) {
           case "customer":

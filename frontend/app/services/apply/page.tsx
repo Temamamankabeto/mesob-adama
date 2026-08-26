@@ -1,6 +1,6 @@
-import { getToken } from "@/lib/api";
 "use client";
 
+import { getToken } from "@/lib/api";
 import {
   Suspense,
   useEffect,
@@ -158,16 +158,7 @@ function ApplyPageContent() {
       : `/services/${serviceId}/apply`;
 
   useEffect(() => {
-    const token =
-      typeof window !==
-      "undefined"
-        ? localStorage.getItem(
-            "token"
-          ) ||
-          localStorage.getItem(
-            "mesob_token"
-          )
-        : null;
+    const token = getToken();
 
     const roles =
       authService.getStoredRoles();
