@@ -6,7 +6,7 @@ use App\Models\ServiceApplication;
 
 class ApplicationTrackingService
 {
-    public function track(string $trackingNumber)
+    public function track(string $trackingNumber, int $customerId)
     {
         return ServiceApplication::with([
             'service',
@@ -32,7 +32,8 @@ class ApplicationTrackingService
             'shares.fromWindow',
             'shares.toWindow',
         ])
-            ->where('tracking_number', $trackingNumber)
-            ->first();
+        ->where('tracking_number', $trackingNumber)
+        ->where('customer_id', $customerId)
+        ->first();
     }
 }

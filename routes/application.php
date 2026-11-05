@@ -68,7 +68,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 Route::prefix('public')->group(function () {
     Route::get('/services/{service}/form', [PublicApplicationController::class, 'form']);
     Route::middleware('auth:sanctum')->post('/services/{service}/apply', [PublicApplicationController::class, 'apply']);
-    Route::post('/track-application', [ApplicationTrackingController::class, 'track'])->middleware('throttle:track-application');
+    Route::post('/track-application', [ApplicationTrackingController::class, 'track'])->middleware(['auth:sanctum', 'throttle:track-application']);
 });
 
 Route::middleware('auth:sanctum')->prefix('officer')->group(function () {

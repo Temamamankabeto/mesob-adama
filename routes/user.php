@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\CityController;
 use App\Http\Controllers\Api\SubcityController;
 use App\Http\Controllers\Api\WoredaController;
 use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\FeedbackController;
 
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\UserActivationRequestController;
