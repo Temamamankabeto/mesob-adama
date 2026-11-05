@@ -1,8 +1,7 @@
 name: Deploy Laravel to cPanel
 
 on:
-  push:
-    branches: [ main ] # Change to your default branch
+  workflow_dispatch: # Change to your default branch
 
 jobs:
   deploy:
