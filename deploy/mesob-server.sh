@@ -71,13 +71,16 @@ case "${1:-}" in
 
     # Apache/PHP runs as www-data.
     # Allow both the deploy user and Apache to write Laravel cache files.
+    # Grant Apache group write access without sudo or ACL packages.
+    chgrp www-data "$RELEASE/bootstrap/cache"
     chmod 2775 "$RELEASE/bootstrap/cache"
-    setfacl -m u:www-data:rwx "$RELEASE/bootstrap/cache"
-    setfacl -d -m u:www-data:rwx "$RELEASE/bootstrap/cache"
 
-    # Confirm permissions before switching production.
-    if ! sudo -u www-data test -w "$RELEASE/bootstrap/cache"; then
-        echo "Laravel bootstrap/cache is not writable by Apache"
+    # Verify group ownership and writable permissions.
+    GROUP="$(stat -c '%G' "$RELEASE/bootstrap/cache")"
+    MODE="$(stat -c '%a' "$RELEASE/bootstrap/cache")"
+
+    if [[ "$GROUP" != "www-data" || "$MODE" != "2775" ]]; then
+        echo "Invalid Laravel bootstrap/cache permissions"
         exit 1
     fi
 
