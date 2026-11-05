@@ -68,7 +68,18 @@ case "${1:-}" in
     ln -s "$BASE/storage" "$RELEASE/storage"
 
     mkdir -p "$RELEASE/bootstrap/cache"
-    chmod -R u+rwX "$RELEASE/bootstrap/cache"
+
+    # Apache/PHP runs as www-data.
+    # Allow both the deploy user and Apache to write Laravel cache files.
+    chmod 2775 "$RELEASE/bootstrap/cache"
+    setfacl -m u:www-data:rwx "$RELEASE/bootstrap/cache"
+    setfacl -d -m u:www-data:rwx "$RELEASE/bootstrap/cache"
+
+    # Confirm permissions before switching production.
+    if ! sudo -u www-data test -w "$RELEASE/bootstrap/cache"; then
+        echo "Laravel bootstrap/cache is not writable by Apache"
+        exit 1
+    fi
 
     printf '%s\n' "$ID" > "$RELEASE/public/mesob-release.txt"
 
