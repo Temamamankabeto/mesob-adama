@@ -64,6 +64,22 @@ jobs:
           echo "=== DATABASE MIGRATION STATUS ==="
           php artisan migrate:status --no-ansi
 
+          echo "=== TICKET FOREIGN KEY DEPENDENCIES ==="
+          php artisan tinker --execute='
+          foreach ([
+              "users",
+              "services",
+              "windows",
+              "cities",
+              "subcities",
+              "woredas"
+          ] as $table) {
+              echo $table . ": " .
+                  (\Illuminate\Support\Facades\Schema::hasTable($table)
+                      ? "EXISTS"
+                      : "MISSING") . PHP_EOL;
+          }
+          '
           echo "=== TICKET TABLE EXISTENCE ==="
           php artisan tinker --execute='
           foreach ([
