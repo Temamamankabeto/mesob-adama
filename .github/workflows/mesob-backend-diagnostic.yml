@@ -1,4 +1,4 @@
-﻿name: MESOB Backend Production Diagnostic
+name: MESOB Backend Production Diagnostic
 
 on:
   workflow_dispatch:
@@ -99,6 +99,32 @@ jobs:
           grep -nE 'artisan migrate|migrate --force|migrate:status' \
             /home/eservadmin/mesob-backend-deploy.sh || true
 
+          echo "=== POSTGRESQL BACKUP READINESS ==="
+
+          if command -v pg_dump >/dev/null 2>&1; then
+            echo "PG_DUMP=AVAILABLE"
+            pg_dump --version
+          else
+            echo "PG_DUMP=MISSING"
+          fi
+
+          if command -v pg_restore >/dev/null 2>&1; then
+            echo "PG_RESTORE=AVAILABLE"
+            pg_restore --version
+          else
+            echo "PG_RESTORE=MISSING"
+          fi
+
+          echo "=== DATABASE CONNECTION ==="
+
+          php artisan tinker --execute='
+          $db = \Illuminate\Support\Facades\DB::connection();
+
+          echo "DRIVER=" . $db->getDriverName() . PHP_EOL;
+          echo "DATABASE=" . $db->getDatabaseName() . PHP_EOL;
+          '
+
+          echo "STEP_29EN_BACKUP_READINESS=CHECKED"
           echo "STEP_29CQ_DIAGNOSTIC=COMPLETE"
           REMOTE
 
