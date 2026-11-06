@@ -36,16 +36,26 @@ jobs:
 
           echo "=== ACTIVE BACKEND RELEASE ==="
 
-          BASE="/var/www/mesob-backend-releases"
+          LIVE="/var/www/mesob-adama/backend"
 
-          if [ -L "$BASE/current" ]; then
-            APP=$(readlink -f "$BASE/current")
-          elif [ -f "$BASE/current/artisan" ]; then
-            APP="$BASE/current"
-          else
-            echo "Active release not found at expected path."
+          if [ ! -L "$LIVE" ]; then
+            echo "Production backend symlink is missing."
             exit 1
           fi
+
+          APP=$(readlink -f "$LIVE")
+
+          if [ ! -f "$APP/artisan" ]; then
+            echo "Live Laravel application not found."
+            exit 1
+          fi
+
+          echo "=== LIVE SYMLINK ==="
+          ls -ld "$LIVE"
+
+          echo "=== TICKET MIGRATION FILES ==="
+          find "$APP/database/migrations" \
+            -maxdepth 1 -name '2026_11_06*' -printf '%f\n'
 
           echo "Active release: $APP"
 
