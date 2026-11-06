@@ -1,0 +1,77 @@
+﻿name: MESOB Backend Production Diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.MESOB_BACKEND_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.MESOB_BACKEND_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Inspect production Laravel migrations
+        env:
+          HOST: ${{ secrets.MESOB_BACKEND_HOST }}
+          USER: ${{ secrets.MESOB_BACKEND_USER }}
+        run: |
+          set -euo pipefail
+
+          ssh -o BatchMode=yes "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+
+          echo "=== ACTIVE BACKEND RELEASE ==="
+
+          BASE="/var/www/mesob-backend-releases"
+
+          if [ -L "$BASE/current" ]; then
+            APP=$(readlink -f "$BASE/current")
+          elif [ -f "$BASE/current/artisan" ]; then
+            APP="$BASE/current"
+          else
+            echo "Active release not found at expected path."
+            exit 1
+          fi
+
+          echo "Active release: $APP"
+
+          cd "$APP"
+
+          echo "=== DATABASE MIGRATION STATUS ==="
+          php artisan migrate:status --no-ansi
+
+          echo "=== TICKET TABLE EXISTENCE ==="
+          php artisan tinker --execute='
+          foreach ([
+              "ticket_sequences",
+              "tickets",
+              "kiosks",
+              "kiosk_primary_officers"
+          ] as $table) {
+              echo $table . ": " .
+                  (\Illuminate\Support\Facades\Schema::hasTable($table)
+                      ? "EXISTS"
+                      : "MISSING") . PHP_EOL;
+          }
+          '
+
+          echo "=== DEPLOYMENT SCRIPT MIGRATION REFERENCES ==="
+          grep -nE 'artisan migrate|migrate --force|migrate:status' \
+            /home/eservadmin/mesob-backend-deploy.sh || true
+
+          echo "STEP_29CQ_DIAGNOSTIC=COMPLETE"
+          REMOTE
