@@ -75,3 +75,41 @@ jobs:
 
           echo "STEP_29CQ_DIAGNOSTIC=COMPLETE"
           REMOTE
+
+      - name: Inspect backend release activation
+        env:
+          HOST: ${{ secrets.MESOB_BACKEND_HOST }}
+          USER: ${{ secrets.MESOB_BACKEND_USER }}
+        run: |
+          set -euo pipefail
+
+          ssh -o BatchMode=yes "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+
+          BASE="/var/www/mesob-backend-releases"
+
+          echo "=== CURRENT SYMLINK ==="
+          ls -ld "$BASE/current"
+          readlink -f "$BASE/current"
+
+          echo "=== LATEST RELEASE DIRECTORIES ==="
+          ls -ldt "$BASE/releases"/* | head -n 8
+
+          echo "=== DEPLOYMENT SCRIPT ==="
+          sed -n '1,240p' /home/eservadmin/mesob-backend-deploy.sh
+
+          echo "=== NEWEST RELEASE TICKET MIGRATIONS ==="
+          LATEST=$(find "$BASE/releases" -mindepth 1 -maxdepth 1 \
+            -type d -name 'be_*' -printf '%T@ %p\n' |
+            sort -nr | head -n 1 | cut -d' ' -f2-)
+
+          if [ -n "$LATEST" ]; then
+            echo "Latest release: $LATEST"
+            find "$LATEST/database/migrations" \
+              -maxdepth 1 -name '2026_11_06*' -printf '%f\n'
+          else
+            echo "No be_* release directory found."
+          fi
+
+          echo "STEP_29DH_RELEASE_INSPECTION=COMPLETE"
+          REMOTE
