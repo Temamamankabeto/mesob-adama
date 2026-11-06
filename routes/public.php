@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Public\TicketController;
 
 use App\Http\Controllers\Api\Public\HomeController;
 use App\Http\Controllers\Api\Public\PublicLocationController;
@@ -12,6 +13,17 @@ use App\Http\Controllers\Api\Public\PublicNewsController;
 use App\Http\Controllers\Api\Chatbot\PublicChatbotController;
 
 Route::prefix('public')->group(function () {
+
+    // Native MESOB ticket kiosk.
+    Route::get('/ticket/windows', [TicketController::class, 'windows'])
+        ->middleware('throttle:60,1');
+
+    Route::post('/ticket/issue', [TicketController::class, 'issue'])
+        ->middleware('throttle:5,1');
+
+    Route::get('/ticket/{requestId}', [TicketController::class, 'show'])
+        ->whereUuid('requestId')
+        ->middleware('throttle:30,1');
     Route::get('/homepage', [HomeController::class, 'index']);
     Route::get('/locations', [PublicLocationController::class, 'index']);
     Route::get('/services', [PublicServiceController::class, 'index']);
