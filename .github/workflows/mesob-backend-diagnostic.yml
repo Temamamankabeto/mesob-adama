@@ -124,6 +124,31 @@ jobs:
           echo "DATABASE=" . $db->getDatabaseName() . PHP_EOL;
           '
 
+          echo "=== DATABASE BACKUP CONFIGURATION PREFLIGHT ==="
+
+          php artisan tinker --execute='
+          $db = \Illuminate\Support\Facades\DB::connection();
+
+          if (
+              $db->getDriverName() !== "pgsql" ||
+              $db->getDatabaseName() !== "mesobdb"
+          ) {
+              throw new \RuntimeException("Unexpected database");
+          }
+
+          $config = $db->getConfig();
+
+          foreach (["host", "port", "database", "username"] as $key) {
+              if (empty($config[$key])) {
+                  throw new \RuntimeException("Missing configuration: " . $key);
+              }
+          }
+
+          echo "DATABASE_BACKUP_CONFIG=READY" . PHP_EOL;
+          echo "DATABASE_IDENTITY=VERIFIED" . PHP_EOL;
+          '
+
+          echo "STEP_29ET_DATABASE_PREFLIGHT=PASSED"
           echo "STEP_29EN_BACKUP_READINESS=CHECKED"
           echo "STEP_29CQ_DIAGNOSTIC=COMPLETE"
           REMOTE
