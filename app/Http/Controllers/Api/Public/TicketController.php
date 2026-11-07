@@ -16,6 +16,27 @@ final class TicketController extends Controller
         private readonly TicketService $ticketService
     ) {}
 
+    public function statistics(): JsonResponse
+    {
+        // Counts are global across MESOB locations and include all issued statuses.
+        // Use the application timezone for the current calendar day.
+        $start = now()->startOfDay();
+        $end = $start->copy()->addDay();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ticket statistics retrieved successfully.',
+            'data' => [
+                'total_tickets' => DB::table('tickets')->count(),
+                'today_tickets' => DB::table('tickets')
+                    ->where('created_at', '>=', $start)
+                    ->where('created_at', '<', $end)
+                    ->count(),
+            ],
+            'meta' => [],
+        ]);
+    }
+
     public function windows(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -314,12 +335,44 @@ final class TicketController extends Controller
     {
         $ticket->loadMissing('window:id,name,title');
 
+        // The printed officer must be a Front Officer assigned to this service,
+        // window and exact administrative location, not just any window officer.
+        $assignment = DB::table('user_service_assignments AS usa')
+            ->join('users AS u', 'u.id', '=', 'usa.user_id')
+            ->where('usa.service_id', $ticket->service_id)
+            ->where('usa.window_id', $ticket->window_id)
+            ->where('usa.officer_type', 'front_officer')
+            ->where('usa.is_active', true)
+            ->where('usa.assignment_level', $ticket->administrative_level)
+            ->where('usa.city_id', $ticket->city_id)
+            ->where('usa.subcity_id', $ticket->subcity_id)
+            ->where('usa.woreda_id', $ticket->woreda_id)
+            ->where('u.is_active', true)
+            ->whereNull('u.deleted_at')
+            ->whereExists(function ($query) use ($ticket) {
+                $query->selectRaw('1')
+                    ->from('officer_window_assignments AS owa')
+                    ->whereColumn('owa.officer_id', 'u.id')
+                    ->where('owa.window_id', $ticket->window_id)
+                    ->where('owa.assignment_level', $ticket->administrative_level)
+                    ->where('owa.city_id', $ticket->city_id)
+                    ->where('owa.subcity_id', $ticket->subcity_id)
+                    ->where('owa.woreda_id', $ticket->woreda_id)
+                    ->where('owa.is_active', true);
+            });
+
+        // First assigned means earliest assignment record; ID breaks ties.
+        $officerCode = $assignment
+            ->orderBy('usa.id')
+            ->value('u.officer_code');
+
         return [
             'id' => $ticket->id,
             'ticket_number' => $ticket->ticket_number,
             'request_id' => $ticket->request_id,
             'window_id' => $ticket->window_id,
             'window_name' => $ticket->window?->name,
+            'officer_code' => $officerCode,
             'service_id' => $ticket->service_id,
             'service_name' => $ticket->service_name,
             'administrative_level' => $ticket->administrative_level,

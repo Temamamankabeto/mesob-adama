@@ -25,6 +25,7 @@ class User extends Authenticatable
         'failed_login_attempts', 'locked_until', 'last_failed_login_at', 'password_changed_at',
         'phone_verified_at', 'last_login_at', 'date_of_birth', 'officer_code',
          'fin',
+    'must_change_password',
     'is_fayda_verified',
     'fayda_payload'
     ];
@@ -41,6 +42,7 @@ class User extends Authenticatable
         'activated_at' => 'datetime',
         'password' => 'hashed',
         'is_active' => 'boolean',
+        'must_change_password' => 'boolean',
     ];
 
     protected $appends = ['profile_image_url'];

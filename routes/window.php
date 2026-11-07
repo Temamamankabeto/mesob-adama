@@ -1,12 +1,17 @@
 <?php
 
 use App\Http\Controllers\Api\WindowController;
+use App\Http\Controllers\Api\AgentWindowAssignmentController;
 use App\Http\Controllers\Api\ServiceWindowController;
 use App\Http\Controllers\Api\OfficerWindowAssignmentController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\EnforceIdleSessionTimeout;
 
 Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class])->group(function () {
+    Route::get('/agent-window-assignment/board', [AgentWindowAssignmentController::class, 'board'])->middleware('permission:windows.read');
+    Route::post('/agent-window-assignment/assign', [AgentWindowAssignmentController::class, 'assign'])->middleware('permission:windows.update');
+    Route::delete('/agent-window-assignment/unassign', [AgentWindowAssignmentController::class, 'unassign'])->middleware('permission:windows.update');
+
     Route::get('/windows', [WindowController::class, 'index'])->middleware('permission:windows.read');
     Route::post('/windows', [WindowController::class, 'store'])->middleware('permission:windows.create');
     Route::put('/windows/{window}', [WindowController::class, 'update'])->middleware('permission:windows.update');

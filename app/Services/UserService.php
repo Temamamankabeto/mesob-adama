@@ -192,6 +192,7 @@ class UserService
             'email' => $data['email'],
             'phone' => $isCustomer ? $user->phone : $data['phone'],
             'gender' => $data['gender'] ?? null,
+            'officer_code' => array_key_exists('officer_code', $data) ? ($data['officer_code'] ?: null) : $user->officer_code,
             'date_of_birth' => $data['date_of_birth'] ?? null,
             'address' => $data['address'] ?? null,
             ...$location,

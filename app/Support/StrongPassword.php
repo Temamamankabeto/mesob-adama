@@ -11,12 +11,7 @@ class StrongPassword
         return [
             'string',
             'max:255',
-            Password::min(8)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised(),
+            Password::min(8),
         ];
     }
 

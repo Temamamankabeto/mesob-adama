@@ -11,6 +11,7 @@ class AppRoles
     public const ADMIN = 'admin';
     public const BACK_OFFICER = 'back_officer';
     public const FRONT_OFFICER = 'front_officer';
+    public const AGENT = 'agent';
     public const FEEDBACK = 'feedback';
     public const CUSTOMER = 'customer';
 
@@ -26,6 +27,7 @@ class AppRoles
             self::ADMIN,
             self::BACK_OFFICER,
             self::FRONT_OFFICER,
+            self::AGENT,
             self::FEEDBACK,
             self::CUSTOMER,
         ];
@@ -47,6 +49,7 @@ class AppRoles
             self::ADMIN,
             self::BACK_OFFICER,
             self::FRONT_OFFICER,
+            self::AGENT,
             self::FEEDBACK,
         ];
     }
@@ -59,6 +62,7 @@ class AppRoles
             self::ADMIN => 'Admin',
             self::BACK_OFFICER => 'Back Officer',
             self::FRONT_OFFICER => 'Front Officer',
+            self::AGENT => 'Agent',
             self::FEEDBACK => 'Feedback Officer',
             self::CUSTOMER => 'Customer',
         ];
@@ -90,6 +94,7 @@ class AppRoles
             'backofficer' => self::BACK_OFFICER,
             'back_officer' => self::BACK_OFFICER,
 
+            'agent' => self::AGENT,
             'front' => self::FRONT_OFFICER,
             'frontofficer' => self::FRONT_OFFICER,
             'front_officer' => self::FRONT_OFFICER,

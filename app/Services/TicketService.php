@@ -57,18 +57,6 @@ final class TicketService
                 $woredaId
             );
 
-            // Preserve the existing sequence lock and idempotency.
-            $sequence = DB::table('ticket_sequences')
-                ->where('name', 'ticket')
-                ->lockForUpdate()
-                ->first();
-
-            if (! $sequence) {
-                throw new \RuntimeException(
-                    'Ticket sequence is not initialized.'
-                );
-            }
-
             $existing = Ticket::query()
                 ->where('request_id', $input['request_id'])
                 ->first();
@@ -175,6 +163,40 @@ final class TicketService
                 throw ValidationException::withMessages([
                     'service_id' => 'Service is unavailable at the selected location.',
                 ]);
+            }
+
+            // Preserve the existing sequence lock and idempotency.
+            $sequence = DB::table('ticket_sequences')
+                ->where('name', 'ticket')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $sequence) {
+                throw new \RuntimeException(
+                    'Ticket sequence is not initialized.'
+                );
+            }
+
+            // Recheck after acquiring the sequence lock: another request may
+            // have created this same ticket while we validated the selection.
+            $existing = Ticket::query()
+                ->where('request_id', $input['request_id'])
+                ->first();
+            if ($existing) {
+                if (
+                    (int) $existing->window_id !== (int) $input['window_id']
+                    || (int) $existing->service_id !== (int) $input['service_id']
+                    || $existing->administrative_level !== $level
+                    || $existing->priority !== $priority
+                    || (int) $existing->city_id !== $cityId
+                    || $existing->subcity_id !== $subcityId
+                    || $existing->woreda_id !== $woredaId
+                ) {
+                    throw new ConflictHttpException(
+                        'This request ID belongs to another ticket request.'
+                    );
+                }
+                return $existing;
             }
 
             $next = (int) $sequence->last_number + 1;

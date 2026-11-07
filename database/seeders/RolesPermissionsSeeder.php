@@ -287,6 +287,7 @@ class RolesPermissionsSeeder extends Seeder
             AppRoles::MANAGER => $managerPermissions,
             AppRoles::ADMIN => $adminPermissions,
             AppRoles::FRONT_OFFICER => $frontOfficerPermissions,
+            AppRoles::AGENT => ['auth.me', 'services.read', 'service_forms.read'],
             AppRoles::BACK_OFFICER => $backOfficerPermissions,
             AppRoles::FEEDBACK => $feedbackPermissions,
             AppRoles::CUSTOMER => $customerPermissions,

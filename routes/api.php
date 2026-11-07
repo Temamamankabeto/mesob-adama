@@ -37,6 +37,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('feedback/{feedback}', [FeedbackController::class, 'update']);
     Route::delete('feedback/{feedback}', [FeedbackController::class, 'destroy']);
 });
+Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class])->group(function () {
+    Route::get('/officer/tickets/queue', [\App\Http\Controllers\Api\Officer\OfficerTicketCallingController::class, 'queue']);
+    Route::post('/officer/tickets/pause', [\App\Http\Controllers\Api\Officer\OfficerTicketCallingController::class, 'pause']);
+    Route::post('/officer/tickets/resume', [\App\Http\Controllers\Api\Officer\OfficerTicketCallingController::class, 'resume']);
+    Route::post('/officer/tickets/call-next', [\App\Http\Controllers\Api\Officer\OfficerTicketCallingController::class, 'callNext']);
+    Route::post('/officer/tickets/{ticket}/call', [\App\Http\Controllers\Api\Officer\OfficerTicketCallingController::class, 'call'])->whereNumber('ticket');
+    Route::post('/officer/tickets/{ticket}/recall', [\App\Http\Controllers\Api\Officer\OfficerTicketCallingController::class, 'recall'])->whereNumber('ticket');
+    Route::post('/officer/tickets/{ticket}/start', [\App\Http\Controllers\Api\Officer\OfficerTicketCallingController::class, 'start'])->whereNumber('ticket');
+    Route::post('/officer/tickets/{ticket}/skip', [\App\Http\Controllers\Api\Officer\OfficerTicketCallingController::class, 'skip'])->whereNumber('ticket');
+    Route::get('/agent/dashboard', [\App\Http\Controllers\Api\AgentTicketController::class, 'dashboard']);
+    Route::get('/agent/tickets/incoming', [\App\Http\Controllers\Api\AgentTicketController::class, 'incoming']);
+    Route::get('/agent/windows', [\App\Http\Controllers\Api\AgentTicketController::class, 'windows']);
+    Route::post('/agent/tickets/verify', [\App\Http\Controllers\Api\AgentTicketController::class, 'verify']);
+    Route::get('/agent/services/{service}/application-form', [\App\Http\Controllers\Api\AgentTicketController::class, 'applicationForm']);
+    Route::post('/agent/services/{service}/applications', [\App\Http\Controllers\Api\AgentTicketController::class, 'submitApplication']);
+    Route::post('/admin/agent-window-assignments', [\App\Http\Controllers\Api\AgentTicketController::class, 'assign']);
+});
 require base_path('routes/public.php');
 require base_path('routes/auth.php');
 require base_path('routes/user.php');

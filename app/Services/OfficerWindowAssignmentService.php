@@ -9,6 +9,7 @@ use App\Models\ServiceApplicationHistory;
 use App\Models\ServiceApplicationShare;
 use App\Models\User;
 use App\Models\Window;
+use App\Support\AccessScope;
 use App\Support\AppRoles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -177,6 +178,7 @@ class OfficerWindowAssignmentService
             ->orderBy('name')
             ->get()
             ->filter(fn (Window $window) => $this->windowAvailableForLevel($window, $level))
+            ->filter(fn (Window $window) => !$serviceId || $window->services()->where('services.id', $serviceId)->exists())
             ->map(fn (Window $window) => [
                 'id' => $window->id,
                 'name' => $window->name,
@@ -198,6 +200,10 @@ class OfficerWindowAssignmentService
             $level ?: AppRoles::userLevel($actor) ?: AppRoles::LEVEL_CITY
         );
 
+        if ($level !== AppRoles::userLevel($actor)) {
+            return [];
+        }
+
         $query = User::query()
             ->with('roles')
             ->where('is_active', true)
@@ -212,6 +218,7 @@ class OfficerWindowAssignmentService
                     ->where('is_active', true);
             });
 
+        $query->where('users.city_id', $actor->city_id);
         $this->applyOfficerLocationFilter($query, $level, $actor->subcity_id, $actor->woreda_id);
 
         $query->where('users.id', '!=', $actor->id);
@@ -231,39 +238,48 @@ class OfficerWindowAssignmentService
         int $toOfficerId,
         ?string $note = null
     ): ServiceApplicationShare {
-        $level = $this->normalizeLevel(
-            $application->administrative_level
-                ?: AppRoles::userLevel($actor)
-                ?: AppRoles::LEVEL_CITY
-        );
+        return DB::transaction(function () use ($actor, $application, $toWindowId, $toOfficerId, $note) {
+            // Lock before authorization to prevent stale assignment / concurrent shares.
+            $application = ServiceApplication::query()->lockForUpdate()->findOrFail($application->id);
+            $level = $this->normalizeLevel((string) ($application->administrative_level ?: AppRoles::userLevel($actor)));
 
-        if (AppRoles::userLevel($actor) !== $level) {
-            throw ValidationException::withMessages([
-                'level' => ['You can share applications only within your own administrative level.'],
-            ]);
-        }
+            if (!$actor->is_active || !$actor->hasAnyRole([AppRoles::FRONT_OFFICER, AppRoles::BACK_OFFICER])
+                || AppRoles::userLevel($actor) !== $level
+                || !in_array((int) $actor->id, array_filter([(int) $application->assigned_to, (int) $application->current_officer_id]), true)
+                || !ServiceApplication::query()->whereKey($application->id)
+                    ->tap(fn ($q) => app(AccessScope::class)->applyServiceApplicationScope($q, $actor))->exists()) {
+                throw ValidationException::withMessages(['application' => ['You are not authorized to share this application.']]);
+            }
 
-        $targetOfficer = User::with('roles')->findOrFail($toOfficerId);
-        $targetWindow = Window::findOrFail($toWindowId);
+            if (in_array($application->status, ['completed', 'approved', 'rejected', 'cancelled'], true)) {
+                throw ValidationException::withMessages(['application' => ['A finalized application cannot be shared.']]);
+            }
 
-        $this->assertOfficerAllowedForLevel($targetOfficer, $level);
-        $this->assertWindowAllowedForLevel($targetWindow, $level);
+            $targetOfficer = User::with('roles')->findOrFail($toOfficerId);
+            $targetWindow = Window::findOrFail($toWindowId);
+            if (!$targetOfficer->is_active || $targetOfficer->id === $actor->id) {
+                throw ValidationException::withMessages(['to_officer_id' => ['Select a different active officer.']]);
+            }
+            $this->assertOfficerAllowedForLevel($targetOfficer, $level);
+            $this->assertWindowAllowedForLevel($targetWindow, $level);
+            foreach (['city_id', 'subcity_id', 'woreda_id'] as $column) {
+                if ((int) ($targetOfficer->{$column} ?? 0) !== (int) ($application->{$column} ?? 0)) {
+                    throw ValidationException::withMessages(['to_officer_id' => ['Officer location does not match the application.']]);
+                }
+            }
+            if (!$targetWindow->services()->where('services.id', $application->service_id)->exists()) {
+                throw ValidationException::withMessages(['to_window_id' => ['Window is not assigned to the application service.']]);
+            }
+            $assigned = OfficerWindowAssignment::query()
+                ->where('officer_id', $targetOfficer->id)
+                ->where('window_id', $targetWindow->id)
+                ->where('assignment_level', $level)
+                ->where('is_active', true)
+                ->exists();
+            if (!$assigned) {
+                throw ValidationException::withMessages(['to_officer_id' => ['Selected officer is not assigned to this window.']]);
+            }
 
-        $assigned = OfficerWindowAssignment::query()
-            ->where('officer_id', $targetOfficer->id)
-            ->where('window_id', $targetWindow->id)
-            ->where('assignment_level', $level)
-            ->where('is_active', true)
-            ->exists();
-
-        if (!$assigned) {
-            throw ValidationException::withMessages([
-                'officer_id' => ['Selected officer is not assigned to the selected window.'],
-            ]);
-        }
-
-
-        return DB::transaction(function () use ($actor, $application, $targetOfficer, $targetWindow, $level, $note) {
             $share = ServiceApplicationShare::create([
                 'application_id' => $application->id,
                 'shared_from_officer_id' => $actor->id,
@@ -274,11 +290,8 @@ class OfficerWindowAssignmentService
                 'note' => $note,
                 'shared_at' => now(),
             ]);
-
-            $this->storeDocuments($application, $actor);
-
             $oldStatus = $application->status;
-
+            $fromWindowId = $application->current_window_id;
             $application->update([
                 'current_window_id' => $targetWindow->id,
                 'current_officer_id' => $targetOfficer->id,
@@ -286,7 +299,7 @@ class OfficerWindowAssignmentService
                 'status' => 'shared',
                 'current_stage' => 'shared',
             ]);
-
+            $this->storeDocuments($application, $actor);
             ServiceApplicationHistory::create([
                 'application_id' => $application->id,
                 'from_status' => $oldStatus,
@@ -295,24 +308,16 @@ class OfficerWindowAssignmentService
                 'action_type' => 'officer_share',
                 'remark' => $note,
                 'actor_id' => $actor->id,
+                'sender_id' => $actor->id,
+                'receiver_id' => $targetOfficer->id,
+                'from_window_id' => $fromWindowId,
+                'to_window_id' => $targetWindow->id,
+                'administrative_level' => $level,
+                'status' => 'shared',
             ]);
-
-            $this->audit(
-                $actor,
-                'application_shared',
-                'Application shared between officers/windows.',
-                'service_application',
-                $application->id,
-                null,
-                $share->toArray()
-            );
-
-            return $share->fresh([
-                'sharedFromOfficer',
-                'sharedToOfficer',
-                'fromWindow',
-                'toWindow',
-            ]);
+            $this->audit($actor, 'application_shared', 'Application shared between officers/windows.',
+                'service_application', $application->id, null, $share->toArray());
+            return $share->fresh(['sharedFromOfficer', 'sharedToOfficer', 'fromWindow', 'toWindow']);
         });
     }
 

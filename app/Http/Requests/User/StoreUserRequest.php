@@ -20,6 +20,7 @@ class StoreUserRequest extends FormRequest
         $level = AppRoles::normalizeLevel($this->input('location_level'));
 
         return [
+            'officer_code' => ['nullable', 'string', 'max:10', Rule::unique('users', 'officer_code')],
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:100', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],

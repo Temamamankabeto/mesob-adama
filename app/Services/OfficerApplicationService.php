@@ -334,34 +334,12 @@ class OfficerApplicationService
 
     public function share(ServiceApplication $application, User $actor, array $payload)
     {
-        $targetId = (int)($payload['officer_id'] ?? $payload['front_officer_id'] ?? $payload['back_officer_id'] ?? 0);
-        $windowId = (int)($payload['to_window_id'] ?? $payload['window_id'] ?? $application->current_window_id);
-        $target = User::with('roles')->findOrFail($targetId);
-        $window = Window::findOrFail($windowId);
-        $level = $application->administrative_level ?: AppRoles::userLevel($actor);
-
-        $this->assertSameLevelAndScope($application, $actor, $target, $level);
-        $this->assertOfficerWindow($target, $window, $level);
-
-        $status = $target->hasRole(AppRoles::BACK_OFFICER) ? 'shared_to_back_officer' : 'shared_to_front_officer';
-
-        return DB::transaction(function () use ($application, $actor, $target, $window, $level, $payload, $status) {
-            ServiceApplicationShare::create([
-                'application_id' => $application->id,
-                'shared_from_officer_id' => $actor->id,
-                'shared_to_officer_id' => $target->id,
-                'from_window_id' => $application->current_window_id,
-                'to_window_id' => $window->id,
-                'administrative_level' => $level,
-                'note' => $payload['remark'] ?? $payload['note'] ?? null,
-                'shared_at' => now(),
-            ]);
-
-            return $this->transition(
-                $application, $actor, $status, 'shared_to_officer', $payload['remark'] ?? $payload['note'] ?? null,
-                receiverId: $target->id, toWindowId: $window->id, assignedTo: $target->id, metadata: ['share' => true]
-            );
-        });
+        $targetId = (int) ($payload['to_officer_id'] ?? $payload['officer_id'] ?? $payload['front_officer_id'] ?? $payload['back_officer_id'] ?? 0);
+        $windowId = (int) ($payload['to_window_id'] ?? $payload['window_id'] ?? $application->current_window_id);
+        app(OfficerWindowAssignmentService::class)->shareApplication(
+            $actor, $application, $windowId, $targetId, $payload['remark'] ?? $payload['note'] ?? null
+        );
+        return $this->show($application->fresh());
     }
 
     public function forwardToBackOfficer(ServiceApplication $application, User $actor, array $payload)

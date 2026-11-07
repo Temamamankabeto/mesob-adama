@@ -24,6 +24,9 @@ use App\Http\Controllers\Api\WindowController;
 use App\Http\Controllers\Api\NewsController;
 use App\Http\Controllers\Api\ServiceApplicationFileDownloadController;
 
+// Role-scoped dashboard; authenticated users only, with AccessScope enforced by DashboardService.
+Route::middleware('auth:sanctum')->get('/dashboard', [DashboardController::class, 'index']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/service-application-files/{file}/download', [ServiceApplicationFileDownloadController::class, 'download']);
     Route::get('/applications', [ApplicationController::class, 'index'])->middleware('permission:applications.read');

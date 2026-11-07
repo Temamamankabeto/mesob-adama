@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Public\TicketController;
+use App\Http\Controllers\Api\Public\PublicQueueDisplayController;
+use App\Http\Controllers\Api\Public\PublicOfficerCounterController;
 
 use App\Http\Controllers\Api\Public\HomeController;
 use App\Http\Controllers\Api\Public\PublicLocationController;
@@ -14,12 +16,23 @@ use App\Http\Controllers\Api\Chatbot\PublicChatbotController;
 
 Route::prefix('public')->group(function () {
 
+    // Read-only counter display; officer codes are unique in the existing users table.
+    Route::get('/counter/{officerCode}', [PublicOfficerCounterController::class, 'show'])
+        ->where('officerCode', '[A-Za-z0-9-]{1,10}')
+        ->middleware('throttle:60,1');
+
+    // Read-only, office-scoped public TV queue.
+    Route::get('/queue-display', [PublicQueueDisplayController::class, 'index'])
+        ->middleware('throttle:60,1');
+
     // Native MESOB ticket kiosk.
+    Route::get('/ticket/statistics', [TicketController::class, 'statistics'])
+        ->middleware('throttle:60,1');
+
     Route::get('/ticket/windows', [TicketController::class, 'windows'])
         ->middleware('throttle:60,1');
 
-    Route::post('/ticket/issue', [TicketController::class, 'issue'])
-        ->middleware('throttle:5,1');
+    Route::post('/ticket/issue', [TicketController::class, 'issue']);
 
     Route::get('/ticket/{requestId}', [TicketController::class, 'show'])
         ->whereUuid('requestId')
