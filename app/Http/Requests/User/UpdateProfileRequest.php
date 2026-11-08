@@ -4,6 +4,7 @@ namespace App\Http\Requests\User;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Support\AppRoles;
 
 class UpdateProfileRequest extends FormRequest
 {
@@ -27,6 +28,14 @@ class UpdateProfileRequest extends FormRequest
             | Email, phone, city, subcity and woreda are intentionally not editable
             | from profile page. Admin user-edit page controls those fields.
             */
+            'officer_code' => [
+                Rule::prohibitedIf(fn () => ! $this->user()?->hasAnyRole([AppRoles::FRONT_OFFICER, AppRoles::BACK_OFFICER, AppRoles::AGENT, AppRoles::FEEDBACK])),
+                'sometimes',
+                'required',
+                'string',
+                'max:10',
+                Rule::unique('users', 'officer_code')->ignore($this->user()?->getKey()),
+            ],
             'profile' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'profile_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];

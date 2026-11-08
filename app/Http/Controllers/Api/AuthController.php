@@ -134,6 +134,13 @@ class AuthController extends Controller
             ->cookie($this->refreshCookie($refreshToken, $request));
     }
 
+    public function qrLoginResponse(Request $request, User $user, string $accessToken, string $refreshToken)
+    {
+        return response()
+            ->json($this->authPayload($user, $accessToken))
+            ->cookie($this->refreshCookie($refreshToken, $request));
+    }
+
     public function me(Request $request)
     {
         $user = $request->user();

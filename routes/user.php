@@ -27,6 +27,11 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.read');
     Route::get('/users/roles-lite', [UserController::class, 'rolesLite'])->middleware('permission:roles.read');
     Route::get('/users/{id}', [UserController::class, 'show'])->middleware('permission:users.read');
+    Route::get('/users/{user}/qr-credential', [\App\Http\Controllers\Api\UserQrCredentialController::class, 'show'])->middleware('permission:users.update');
+    Route::post('/users/{user}/qr-credential', [\App\Http\Controllers\Api\UserQrCredentialController::class, 'issue'])->middleware('permission:users.update');
+    Route::patch('/users/{user}/qr-credential/expiry', [\App\Http\Controllers\Api\UserQrCredentialController::class, 'updateExpiry'])->middleware('permission:users.update');
+    Route::delete('/users/{user}/qr-credential', [\App\Http\Controllers\Api\UserQrCredentialController::class, 'revoke'])->middleware('permission:users.update');
+
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.create');
     Route::put('/users/{id}', [UserController::class, 'update'])->middleware('permission:users.update');
     Route::delete('/users/{id}', [UserController::class, 'destroy'])->middleware('permission:users.delete');

@@ -294,6 +294,10 @@ class UserService
     {
         $user->name = $data['name'];
 
+        if (array_key_exists('officer_code', $data)) {
+            $user->officer_code = $data['officer_code'];
+        }
+
         if (array_key_exists('gender', $data)) {
             $user->gender = $data['gender'];
         }

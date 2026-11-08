@@ -19,6 +19,7 @@ Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class, 'permission
 
 });
 Route::prefix('auth')->group(function () {
+    Route::post('/qr-login', [\App\Http\Controllers\Api\QrLoginController::class, 'login'])->middleware('throttle:login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/refresh', [RefreshTokenController::class, 'refresh']);
