@@ -47,6 +47,10 @@ Route::middleware(['auth:sanctum', EnforceIdleSessionTimeout::class])->group(fun
     Route::post('/officer/tickets/{ticket}/start', [\App\Http\Controllers\Api\Officer\OfficerTicketCallingController::class, 'start'])->whereNumber('ticket');
     Route::post('/officer/tickets/{ticket}/skip', [\App\Http\Controllers\Api\Officer\OfficerTicketCallingController::class, 'skip'])->whereNumber('ticket');
     Route::get('/agent/dashboard', [\App\Http\Controllers\Api\AgentTicketController::class, 'dashboard']);
+    Route::get('/admin/agent-reports', [\App\Http\Controllers\Api\ConsolidatedAgentReportController::class, 'index']);
+    Route::get('/admin/agent-reports/export', [\App\Http\Controllers\Api\ConsolidatedAgentReportController::class, 'export']);
+    Route::get('/agent/reports/me', [\App\Http\Controllers\Api\AgentReportController::class, 'index']);
+    Route::get('/agent/reports/me/export', [\App\Http\Controllers\Api\AgentReportController::class, 'export']);
     Route::get('/agent/tickets/incoming', [\App\Http\Controllers\Api\AgentTicketController::class, 'incoming']);
     Route::get('/agent/windows', [\App\Http\Controllers\Api\AgentTicketController::class, 'windows']);
     Route::post('/agent/tickets/verify', [\App\Http\Controllers\Api\AgentTicketController::class, 'verify']);

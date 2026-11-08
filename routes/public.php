@@ -21,6 +21,10 @@ Route::prefix('public')->group(function () {
         ->where('officerCode', '[A-Za-z0-9-]{1,10}')
         ->middleware('throttle:60,1');
 
+    // Read-only agent incoming-ticket TV; no ticket calling or state mutation.
+    Route::get('/agent-ticket-display', [\App\Http\Controllers\Api\Public\AgentTicketDisplayController::class, 'index'])
+        ->middleware('throttle:60,1');
+
     // Read-only, office-scoped public TV queue.
     Route::get('/queue-display', [PublicQueueDisplayController::class, 'index'])
         ->middleware('throttle:60,1');

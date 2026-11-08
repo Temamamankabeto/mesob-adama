@@ -33,6 +33,7 @@ final class PublicQueueDisplayService
             'window_name' => $ticket->window_name,
             'window_title' => $ticket->window_title,
             'service_name' => $ticket->service_name,
+            'assigned_agent' => $ticket->assigned_agent,
             'status' => $ticket->status,
             'called_at' => $ticket->called_at,
             'serving_at' => $ticket->serving_at,
@@ -55,15 +56,19 @@ final class PublicQueueDisplayService
     {
         $base = $this->tickets($scope);
         $active = (clone $base)->leftJoin('windows as w', 'w.id', '=', 't.window_id')
+            ->leftJoin('agent_ticket_applications as ata', 'ata.ticket_id', '=', 't.id')
+            ->leftJoin('users as agent', 'agent.id', '=', 'ata.agent_id')
             ->whereIn('t.status', ['called', 'serving'])
             ->select('t.id', 't.ticket_number', 't.window_id', 'w.name as window_name',
-                'w.title as window_title', 't.service_name', 't.status', 't.called_at', 't.serving_at')
+                'w.title as window_title', 't.service_name', 'agent.name as assigned_agent', 't.status', 't.called_at', 't.serving_at')
             ->orderByDesc('t.called_at')->orderByDesc('t.id')->limit(50)->get();
 
         $waiting = (clone $base)->leftJoin('windows as w', 'w.id', '=', 't.window_id')
+            ->leftJoin('agent_ticket_applications as ata', 'ata.ticket_id', '=', 't.id')
+            ->leftJoin('users as agent', 'agent.id', '=', 'ata.agent_id')
             ->where('t.status', 'waiting')
             ->select('t.id', 't.ticket_number', 't.window_id', 'w.name as window_name',
-                'w.title as window_title', 't.service_name', 't.status', 't.called_at', 't.serving_at')
+                'w.title as window_title', 't.service_name', 'agent.name as assigned_agent', 't.status', 't.called_at', 't.serving_at')
             ->orderBy('t.created_at')->orderBy('t.id')->limit(100)->get();
 
         $eventsQuery = (clone $base)->join('ticket_call_events as e', 'e.ticket_id', '=', 't.id')
