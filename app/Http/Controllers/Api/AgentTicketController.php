@@ -144,8 +144,8 @@ class AgentTicketController extends Controller
                 'tickets.window_id', 'tickets.status', 'tickets.created_at', 'tickets.administrative_level',
                 'tickets.city_id', 'tickets.subcity_id', 'tickets.woreda_id')
             ->distinct()
-            ->orderBy('tickets.created_at')
-            ->orderBy('tickets.id')
+            ->orderByDesc('tickets.created_at')
+            ->orderByDesc('tickets.id')
             ->limit(100)
             ->get();
 

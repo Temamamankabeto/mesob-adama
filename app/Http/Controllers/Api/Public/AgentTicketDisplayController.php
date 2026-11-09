@@ -55,7 +55,7 @@ final class AgentTicketDisplayController extends Controller
             else $query->where('t.'.$column, $value)->where('awa.'.$column, $value);
         }
         $records = $query->select('t.id', 't.ticket_number', 't.window_id', 't.created_at',
-            'agent.id as agent_id', 'agent.name as agent_name')
+            'agent.id as agent_id', 'agent.name as agent_name', 'agent.officer_code as agent_code')
             ->orderBy('t.created_at')->orderBy('t.id')->orderBy('agent.name')
             ->limit(1000)->get();
         $tickets = $records->groupBy('id')->map(function ($group) {
@@ -65,6 +65,11 @@ final class AgentTicketDisplayController extends Controller
                 'ticket_number' => $first->ticket_number,
                 'window_id' => $first->window_id,
                 'assigned_agents' => $group->unique('agent_id')->pluck('agent_name')->values()->all(),
+                'agent_codes' => $group->unique('agent_id')
+                    ->pluck('agent_code')
+                    ->filter(fn ($code) => is_string($code) && trim($code) !== '')
+                    ->values()
+                    ->all(),
             ];
         })->values();
         return response()->json([
