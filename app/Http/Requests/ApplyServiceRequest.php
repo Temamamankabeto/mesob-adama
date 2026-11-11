@@ -43,7 +43,7 @@ class ApplyServiceRequest extends FormRequest
             ],
 
             'data' => [
-                'required',
+                'sometimes',
                 'array',
             ],
 

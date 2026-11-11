@@ -22,7 +22,8 @@ class OfficerApplicationService
         protected ApplicationFileService $fileService
     ) {}
 
-    public function queue(User $actor, ?string $bucket = null, ?string $search = null)
+    /** Shared officer visibility rules for queue and dashboard. */
+    public function visibleApplicationsQuery(User $actor): \Illuminate\Database\Eloquent\Builder
     {
         $role = $this->actorOfficerRole($actor);
 
@@ -105,6 +106,13 @@ class OfficerApplicationService
             });
 
         $this->scope->applyServiceApplicationScope($query, $actor);
+
+        return $query;
+    }
+
+    public function queue(User $actor, ?string $bucket = null, ?string $search = null)
+    {
+        $query = $this->visibleApplicationsQuery($actor);
 
         $map = [
             'new' => ['submitted', 'resubmitted'],

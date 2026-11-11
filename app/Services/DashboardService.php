@@ -27,8 +27,14 @@ class DashboardService
         $role = $user->getRoleNames()->first() ?: AppRoles::CUSTOMER;
         $permissions = $user->getAllPermissions()->pluck('name')->values()->all();
 
-        $serviceApplications = ServiceApplication::query();
-        $this->scope->applyServiceApplicationScope($serviceApplications, $user);
+        if ($user->hasAnyRole([AppRoles::FRONT_OFFICER, AppRoles::BACK_OFFICER])) {
+            // Dashboard and officer queue must use the same visibility boundary.
+            $serviceApplications = app(OfficerApplicationService::class)
+                ->visibleApplicationsQuery($user);
+        } else {
+            $serviceApplications = ServiceApplication::query();
+            $this->scope->applyServiceApplicationScope($serviceApplications, $user);
+        }
 
         $applications = Application::query();
         $this->scope->applyApplicationScope($applications, $user);
