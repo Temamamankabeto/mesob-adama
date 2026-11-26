@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Http\Requests\ApplyServiceRequest;
 use Illuminate\Support\Str;
 use App\Services\PublicApplicationService;
+use App\Services\AgentLocationService;
 use App\Models\User;
 use App\Support\AppRoles;
 use Illuminate\Http\JsonResponse;
@@ -20,7 +21,7 @@ class AgentTicketController extends Controller
     private function agent(Request $request): User
     {
         $user = $request->user();
-        abort_unless($user && $user->is_active && $user->hasRole(AppRoles::AGENT), 403);
+        abort_unless($user instanceof User && app(AgentLocationService::class)->canAccess($user), 403);
         return $user;
     }
 
@@ -30,9 +31,9 @@ class AgentTicketController extends Controller
         $agent = $this->agent($request);
         abort_unless($agent->can('applications.create') && $agent->can('service_forms.read'), 403);
 
-        $assigned = DB::table('agent_window_assignments as awa')
-            ->where('awa.agent_id', $agent->id)
-            ->where('awa.is_active', true)
+        $assigned = app(AgentLocationService::class)->constrain(
+            DB::table('agent_window_assignments as awa'), $agent
+        )
             ->select('awa.window_id', 'awa.assignment_level', 'awa.city_id', 'awa.subcity_id', 'awa.woreda_id')
             ->distinct();
 
@@ -55,8 +56,8 @@ class AgentTicketController extends Controller
                     ->where(function ($q) {
                         $q->whereColumn('awa.woreda_id', 'tickets.woreda_id')
                           ->orWhere(fn ($q) => $q->whereNull('awa.woreda_id')->whereNull('tickets.woreda_id'));
-                    })
-                    ->where('awa.agent_id', $agent->id)->where('awa.is_active', true);
+                    });
+                app(AgentLocationService::class)->constrain($sub, $agent);
             });
         };
 
@@ -112,9 +113,10 @@ class AgentTicketController extends Controller
     public function windows(Request $request): JsonResponse
     {
         $agent = $this->agent($request);
-        $windows = DB::table('agent_window_assignments as awa')
+        $windows = app(AgentLocationService::class)->constrain(
+            DB::table('agent_window_assignments as awa'), $agent
+        )
             ->join('windows as w', 'w.id', '=', 'awa.window_id')
-            ->where('awa.agent_id', $agent->id)->where('awa.is_active', true)
             ->select('w.id', 'w.name', 'w.title')->orderBy('w.name')->get();
         return response()->json(['success'=>true,'message'=>'Assigned windows retrieved.','data'=>$windows,'meta'=>[]]);
     }
@@ -122,7 +124,9 @@ class AgentTicketController extends Controller
     public function incoming(Request $request): JsonResponse
     {
         $agent = $this->agent($request);
-        $tickets = Ticket::query()
+        $query = Ticket::query();
+        app(AgentLocationService::class)->constrain($query->getQuery(), $agent);
+        $tickets = $query
             ->join('agent_window_assignments as awa', function ($join) use ($agent) {
                 $join->on('awa.window_id', '=', 'tickets.window_id')
                     ->on('awa.assignment_level', '=', 'tickets.administrative_level')
@@ -187,10 +191,26 @@ class AgentTicketController extends Controller
         if (!$ticket) {
             return response()->json(['success'=>false,'message'=>'Ticket not found.','data'=>null,'meta'=>[]],404);
         }
-        $allowed = DB::table('agent_window_assignments')
-            ->where('agent_id', $agent->id)->where('window_id', $ticket->window_id)
-            ->where('is_active', true)->exists();
-        abort_unless($allowed, 403, 'Ticket does not belong to an assigned window.');
+        $assignment = app(AgentLocationService::class)->activeAssignments($agent)
+            ->where('agent_id', $agent->id)
+            ->where('window_id', $ticket->window_id)
+            ->where('assignment_level', $ticket->administrative_level)
+            ->where('city_id', $ticket->city_id)
+            ->where('is_active', true);
+
+        foreach (['subcity_id', 'woreda_id'] as $column) {
+            if ($ticket->{$column} === null) {
+                $assignment->whereNull($column);
+            } else {
+                $assignment->where($column, $ticket->{$column});
+            }
+        }
+
+        abort_unless(
+            $assignment->exists(),
+            403,
+            'Ticket does not belong to an assigned window or location.'
+        );
         $officer = DB::table('officer_window_assignments as owa')
             ->join('users as u', 'u.id', '=', 'owa.officer_id')
             ->where('owa.window_id', $ticket->window_id)
@@ -248,7 +268,7 @@ class AgentTicketController extends Controller
             ], 404);
         }
 
-        $assignment = DB::table('agent_window_assignments')
+        $assignment = app(AgentLocationService::class)->activeAssignments($agent)
             ->where('agent_id', $agent->id)
             ->where('window_id', $ticket->window_id)
             ->where('assignment_level', $ticket->administrative_level)
@@ -312,13 +332,17 @@ class AgentTicketController extends Controller
         ]);
 
         $result = DB::transaction(function () use ($agent, $service, $applications, $request, $extra) {
+            $agent = User::query()->lockForUpdate()->findOrFail($agent->id);
+            abort_unless(app(AgentLocationService::class)->canAccess($agent)
+                && $agent->can('applications.create') && $agent->can('service_forms.read'), 403);
+
             $ticket = Ticket::query()->where('ticket_number', trim($extra['ticket_number']))
                 ->lockForUpdate()->first();
             if (!$ticket || (int) $ticket->service_id !== (int) $service->id
                 || !in_array($ticket->status, ['waiting', 'called', 'serving'], true)) {
                 throw ValidationException::withMessages(['ticket_number' => ['Ticket is not eligible for this service.']]);
             }
-            $assignment = DB::table('agent_window_assignments')
+            $assignment = app(AgentLocationService::class)->activeAssignments($agent)
                 ->where('agent_id', $agent->id)->where('window_id', $ticket->window_id)
                 ->where('assignment_level', $ticket->administrative_level)
                 ->where('city_id', $ticket->city_id)->where('is_active', true);
@@ -370,30 +394,64 @@ class AgentTicketController extends Controller
     public function assign(Request $request): JsonResponse
     {
         $actor = $request->user();
-        abort_unless($actor && $actor->is_active && $actor->hasAnyRole([AppRoles::SUPER_ADMIN,AppRoles::ADMIN]),403);
-        $data = $request->validate([
-            'agent_id'=>['required','integer','exists:users,id'],
-            'window_id'=>['required','integer','exists:windows,id'],
-            'is_active'=>['sometimes','boolean'],
-        ]);
-        $agent = User::findOrFail($data['agent_id']);
-        if (!$agent->is_active || !$agent->hasRole(AppRoles::AGENT)) {
-            throw ValidationException::withMessages(['agent_id'=>'Select an active user with the Agent role.']);
-        }
-        // Administrators may only assign windows within their own location.
-        if (!$actor->hasRole(AppRoles::SUPER_ADMIN)) {
-            $window = DB::table('windows')->where('id',$data['window_id'])->first();
-            foreach (['city_id','subcity_id','woreda_id'] as $column) {
-                if ($window->{$column} !== null && (int)$window->{$column} !== (int)$actor->{$column}) {
-                    abort(403, 'Window is outside your administrative location.');
-                }
-            }
-            if ((int)$agent->city_id !== (int)$actor->city_id) abort(403);
-        }
-        DB::table('agent_window_assignments')->updateOrInsert(
-            ['agent_id'=>$agent->id,'window_id'=>$data['window_id']],
-            ['is_active'=>$data['is_active']??true,'assigned_by'=>$actor->id,'created_at'=>now(),'updated_at'=>now()]
+
+        abort_unless(
+            $actor &&
+            $actor->is_active &&
+            (
+                $actor->hasRole(AppRoles::SUPER_ADMIN) ||
+                (
+                    $actor->hasRole(AppRoles::ADMIN) &&
+                    $actor->can('windows.update')
+                )
+            ),
+            403
         );
-        return response()->json(['success'=>true,'message'=>'Agent window assignment saved.','data'=>$data,'meta'=>[]]);
+
+        $data = $request->validate([
+            'agent_id' => ['required', 'integer', 'exists:users,id'],
+            'window_id' => ['required', 'integer', 'exists:windows,id'],
+            'is_active' => ['sometimes', 'boolean'],
+        ]);
+
+        return DB::transaction(function () use ($request, $data) {
+            $agent = User::query()
+                ->lockForUpdate()
+                ->findOrFail($data['agent_id']);
+
+            if (!$agent->is_active || !$agent->hasRole(AppRoles::AGENT)) {
+                throw ValidationException::withMessages([
+                    'agent_id' => 'Select an active user with the Agent role.',
+                ]);
+            }
+
+            $level = $agent->woreda_id
+                ? 'woreda'
+                : ($agent->subcity_id ? 'subcity' : 'city');
+
+            $request->merge([
+                'level' => $level,
+                'city_id' => $agent->city_id,
+                'subcity_id' => $agent->subcity_id,
+                'woreda_id' => $agent->woreda_id,
+            ]);
+
+            $controller = app(AgentWindowAssignmentController::class);
+
+            $response = ($data['is_active'] ?? true)
+                ? $controller->assign($request)
+                : $controller->unassign($request);
+
+            if (!$response->isSuccessful()) {
+                return $response;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Agent window assignment saved.',
+                'data' => $data,
+                'meta' => [],
+            ]);
+        });
     }
 }
